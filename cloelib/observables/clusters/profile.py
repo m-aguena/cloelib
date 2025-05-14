@@ -435,6 +435,7 @@ class Profile:
         bessel_term: function
             Bessel term of the integrand with the power spectrum.
             Used to return the surface density or the excess surface density.
+            It should take (ll, theta) as inputs.
 
         Returns
         -------
