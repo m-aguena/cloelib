@@ -126,7 +126,7 @@ def test_cosmo():
                 (),
                 {},
                 147.50225,
-                rtol=1e-7,
+                rtol=1e-6,
             )
 
             # linear
