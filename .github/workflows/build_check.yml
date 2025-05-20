@@ -18,7 +18,7 @@ jobs:
         python-version: '3.13' 
     - name: Install prereq using pip
       run: |
-        pip install astropy camb jax black
+        pip install astropy camb classy jax black
     - name: Install the package
       run: |
         pip install .
