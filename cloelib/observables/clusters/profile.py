@@ -346,7 +346,7 @@ class Profile:
             *self._surface_mass_density_args(R, z, M, radius_units=radius_units), c
         )
         Sigma = self._surface_mass_density_cen(
-            R, z, M, c, two_halo="auto", radius_units=radius_units
+            R, z, M, c, two_halo="None", radius_units=radius_units
         )
         DeltaSigma = Sigma_mean - Sigma
 
