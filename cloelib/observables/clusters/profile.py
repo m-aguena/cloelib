@@ -346,7 +346,7 @@ class Profile:
             *self._surface_mass_density_args(R, z, M, radius_units=radius_units), c
         )
         Sigma = self._surface_mass_density_cen(
-            R, z, M, c, two_halo="None", radius_units=radius_units
+            R, z, M, c, two_halo="auto", radius_units=radius_units
         )
         DeltaSigma = Sigma_mean - Sigma
 
@@ -475,7 +475,7 @@ class Profile:
         raise NotImplementedError
 
     def _surface_mass_density_cen(
-        self, R, z, M, c, two_halo="None", bias_z=None, radius_units="Mpc/h"
+        self, R, z, M, c, two_halo="auto", bias_z=None, radius_units="Mpc/h"
     ):
         r"""
         Centered surface mass density profile.
