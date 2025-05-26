@@ -131,6 +131,66 @@ class Profile:
 
         return out
 
+    def convert_distance(
+        self, distance, units_in, units_out, angular_diameter_distance=None
+    ):
+        r"""Convert distances
+
+        Parameters
+        ----------
+        distance: np.ndarray
+            Input projected distances
+        units_in: str
+            Unit for the input projected distance. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        units_out: str
+            Unit for the output projected distance. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        angular_diameter_distance: float, np.ndarray
+            Angular diameter distance (units: Mpc/h) to be used for converting
+            between angular and physical units. If array, it
+            should be in the shape (z.size, 1).
+
+        Returns
+        -------
+        np.ndarray
+            Distance in output units. If z is array and physical to
+            angular conversion used, output shape is (z.size, distance.size).
+        """
+        angular_units_bank = {
+            "radians": ap_units.rad,
+            "degrees": ap_units.deg,
+            "arcmin": ap_units.arcmin,
+            "arcsec": ap_units.arcsec,
+        }
+        _valid_units = ["mpc/h", *angular_units_bank.keys()]
+        if units_in.lower() not in _valid_units:
+            raise ValueError(f"units_in (={units_in}) must be in {_valid_units}")
+        if units_out.lower() not in _valid_units:
+            raise ValueError(f"units_out (={units_out}) must be in {_valid_units}")
+
+        if units_in.lower() == units_out.lower():
+            return distance
+
+        if units_out.lower() not in angular_units_bank:
+            # converting to mpc/h
+            theta = (
+                (distance * angular_units_bank[units_in]).to(ap_units.rad).value
+            )  # distance in radians
+            out = theta * angular_diameter_distance
+        elif units_in.lower() not in angular_units_bank:
+            # converting to angular units
+            theta = distance / angular_diameter_distance  # distance in radians
+            out = (theta * ap_units.rad).to(angular_units_bank[units_out]).value
+        else:
+            out = (
+                (distance * angular_units_bank[units_in])
+                .to(angular_units_bank[units_out])
+                .value
+            )
+
+        return out
+
     def sigma_crit(self, z, z_sources):
         r"""
         Critical surface mass density.
@@ -468,7 +528,11 @@ class Profile:
         raise NotImplementedError
 
     def _surface_mass_density_cen(
+<<<<<<< HEAD
         self, R, z, M, c, two_halo="None", bias_z=None, radius_units="Mpc/h"
+=======
+        self, R, z, M, c, two_halo="auto", bias_z=None, radius_units="Mpc/h"
+>>>>>>> cluster_structure
     ):
         r"""
         Centered surface mass density profile.
@@ -580,7 +644,11 @@ class Profile:
         z_outshape = np.asarray(z)[:, np.newaxis, np.newaxis]  # shape (nz, 1, 1)
         D_A_outshape = D_A[:, np.newaxis, np.newaxis]
         rho_m_outshape = (
+<<<<<<< HEAD
             self.halo_statistics._Omega_m(z)
+=======
+            self.background.Omega_m(z, nonu=False)
+>>>>>>> cluster_structure
             * self.background.rho_crit(z)
             / self.background.h**2
         )[:, np.newaxis, np.newaxis]
