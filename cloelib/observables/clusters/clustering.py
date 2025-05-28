@@ -1,4 +1,5 @@
 from cloelib.cosmology.cosmology import Perturbations
+from cloelib.observables.clusters.selection_function import SelectionFunction
 
 from ...auxiliary import units
 from scipy.special import erf
@@ -9,21 +10,21 @@ from scipy.special import spherical_jn
 class HaloClustering:
     def __init__(
         self,
-        pertrurbations: Perturbations,
-        pertrurbations_fid: Perturbations,
-        nonu: bool = False,
-        k_div: int = 500,
-        k_min: float = 1.0e-4,
-        k_max: float = 1.0e2,
+        perturbations: Perturbations,
+        perturbations_fid: Perturbations,
+        selectionfunction: SelectionFunction,
+        #Lambda_obs: np.ndarray,
+        k: np.ndarray,
+        nonu: bool = False,              
     ):
 
-        self.background = pertrurbations.background
-        self.background_fid = pertrurbations_fid.background
-
+        self.background = perturbations.background
+        self.background_fid = perturbations_fid.background
+        self.selectionfunction = selectionfunction
         self.nonu = nonu
 
         # wavelength array (integration variable)                                                                                                                                                               
-        self.k = np.geomspace(k_min, k_max, k_div)
+        self.k = k
 
 
         
@@ -190,7 +191,7 @@ class HaloClustering:
 
 
     
-    def photoz_rsd_correction(self, z: np.ndarray, sigma_zob: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def photoz_rsd_correction(self, z: np.ndarray, Lambda_obs: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """                                                                                                                                                                                                          
         Compute the correction that accounts for photo-z uncertainty and RSD (Kaiser effect)                                                                                                              
                                                                                                                                                                                                                      
@@ -198,8 +199,8 @@ class HaloClustering:
         ----------                                                                                                                                                                                                   
         z:  np.ndarray
             redshift
-        sigma_zob: np.ndarray
-            photo-z uncertainty
+        Lambda_obs: numpy.ndarray
+            Observed richness points.           
         
         Returns                                                                                                                                                                                                      
         -------                                                                                                                                                                                                      
@@ -213,7 +214,7 @@ class HaloClustering:
 
 
         ks = self.k * (
-            sigma_zob * (units.SPEED_OF_LIGHT *1e-3) / self.background.hubble_parameter(z) * (self.background.H0/100)
+            self.selectionfunction.scatter_zobs_z(Lambda_obs, z) * (units.SPEED_OF_LIGHT *1e-3) / self.background.hubble_parameter(z) * (self.background.H0/100)
         ).reshape(len(z), 1)
         
         erf_ks = erf(ks)

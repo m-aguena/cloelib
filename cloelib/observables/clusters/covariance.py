@@ -6,19 +6,19 @@ from scipy.integrate import simpson as simps
 class HaloCovariance:
     def __init__(
             self,
-            pertrurbations: Perturbations,
-            area: float,
-            nbins_zob: int,
+            perturbations: Perturbations,
             k: np.ndarray,
-            L: int
+            area: float,
+            nbins_zob: int,            
+            #L: int
 ):
-        self.background = pertrurbations.background
+        self.background = perturbations.background
 
         self.area = area
         self.k = k
-        self.L = L
+        self.L = 20
         
-        self.rint = np.zeros((nbins_zob,len(self.k),L+1))
+        self.rint = np.zeros((nbins_zob,len(self.k),self.L+1))
         
         
     def Kl_coeff(self):

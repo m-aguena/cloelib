@@ -245,7 +245,7 @@ class Profile:
             Effective inverse critical surface mass density (units : pc^2 / Msun / h)
         """
         z_s = np.linspace(z + 1.0e-5, self.zs_max, self.z_div + 1, axis=1)
-        sig_crit_m1[:] = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s[:])
+        sig_crit_m1 = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s)
 
         return self.nzsnorM[zbin] * simps(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
 
@@ -472,7 +472,16 @@ class Profile:
             Centered one-halo surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        raise NotImplementedError
+        Rs = RDelta / c
+        x = R / Rs
+
+        F = np.vectorize(self._f_term)(x)
+        m_nfw = np.log(1.0 + c) - c / (1.0 + c)  # Eq. 4 Oguri & Hamana 2011
+        rho_s = Delta * c**3.0 / (3.0 * m_nfw)
+
+        Sigma = 2.0 * rho_s * Rs * F * 1.0e-12
+
+        return Sigma
 
     def _surface_mass_density_cen(
         self, R, z, M, c, two_halo="auto", bias_z=None, radius_units="Mpc/h"
@@ -547,7 +556,15 @@ class Profile:
             Centered one-halo mean surface mass density (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        raise NotImplementedError
+        Rs = RDelta / c
+        x = R / Rs
+
+        G = np.vectorize(self._g_term)(x)
+
+        m_nfw = np.log(1.0 + c) - c / (1.0 + c)  # Eq. 4 Oguri & Hamana 2011
+        rho_s = Delta * c**3.0 / (3.0 * m_nfw)
+
+        return 4.0 * rho_s * Rs * (G / x**2.0) * 1.0e-12
 
     def _func_mass_density_2h(
         self, R, z, M, bias_z, bessel_function, radius_units="Mpc/h"
@@ -734,7 +751,12 @@ class Profile:
         float
             One-Halo profile F term.
         """
-        raise NotImplementedError
+        if x < 1.0:
+            return (1.0 - np.arccosh(1.0 / x) / np.sqrt(1.0 - x**2.0)) / (x**2.0 - 1.0)
+        if x == 1.0:
+            return 1.0 / 3.0
+        if x > 1.0:
+            return (1.0 - np.arccos(1.0 / x) / np.sqrt(x**2.0 - 1.0)) / (x**2.0 - 1.0)
 
     def _g_term(self, x):
         r"""
@@ -752,7 +774,12 @@ class Profile:
         float
             One-Halo profile G term.
         """
-        raise NotImplementedError
+        if x < 1.0:
+            return np.log(x / 2.0) + np.arccosh(1.0 / x) / np.sqrt(1.0 - x**2.0)
+        if x == 1.0:
+            return 1.0 + np.log(1.0 / 2.0)
+        if x > 1.0:
+            return np.log(x / 2.0) + np.arccos(1.0 / x) / np.sqrt(x**2.0 - 1.0)
 
 
 class ProfileNFW(Profile):
