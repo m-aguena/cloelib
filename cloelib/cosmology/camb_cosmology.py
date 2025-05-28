@@ -199,10 +199,10 @@ class CAMBBackground:
             np.ndarray: volume element in Mpc^3 h^{-3}
         """
         return (
-            units.SPEED_OF_LIGHT
-            / 1.0e3
+            (units.SPEED_OF_LIGHT
+            / 1.0e3)
             * self.comoving_distance(zs) ** 2.0
-            * self.hubble_parameter(zs)
+            / self.hubble_parameter(zs)
         )
 
     def rdrag(
