@@ -6,6 +6,7 @@ from astropy import units as ap_units
 from scipy import interpolate
 from scipy.integrate import quad_vec
 from scipy.special import j0, j1
+from scipy import interpolate
 
 from ...auxiliary import units
 from .halo_statistics import HaloStatistics
@@ -54,7 +55,12 @@ class Profile:
         )  # correction needed for avoiding zero values in n_zs_norM computation
         self.z_div = 50
         self.zed = np.linspace(z_min, z_max, self.z_div + 1)
-
+        
+        self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
+            x=np.linspace(z_min, self.zs_max, 2*self.z_div + 1), 
+            y=self.background.angular_diameter_distance(np.linspace(z_min, 
+            self.zs_max, 2*self.z_div + 1)), ext=2)
+        
         # ??? evaluated at true redshift
         self.nzsnorM = np.vectorize(self.n_zs_norM)(self.zed)
         self.nzs = self.n_zs(self.zed)
@@ -160,9 +166,9 @@ class Profile:
         fact = (units.SPEED_OF_LIGHT / 1.0e3 / units.MPC_TO_KM) ** 2.0 / (
             4.0 * np.pi * units.GRAVITATIONAL_CONSTANT
         )  # Msun/Mpc
-        d_a_sources = self.background.angular_diameter_distance(z_sources)  # Mpc
+        d_a_sources = self.interp_angular_dist(z_sources)  # Mpc
         d_m_sources = (1.0 + z_sources) * d_a_sources
-        d_a_lens = self.background.angular_diameter_distance(z)[:, np.newaxis]  # Mpc
+        d_a_lens = self.interp_angular_dist(z)[:, np.newaxis]  # Mpc
         d_m_lens = (1.0 + z[:, np.newaxis]) * d_a_lens
         d_h = units.SPEED_OF_LIGHT / 1e3 / self.background.H0  # Mpc
         d_a_lens_source = (
