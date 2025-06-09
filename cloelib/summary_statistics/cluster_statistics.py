@@ -1,10 +1,8 @@
 # cloelib imports
-from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.halo_statistics import HaloStatisticsTinker
-from cloelib.observables.clusters.halo_statistics import HaloStatisticsCastro
+from cloelib.observables.clusters.halo_statistics import HaloStatistics, HaloStatisticsCastro, HaloStatisticsTinker
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.cosmology.cosmology import Perturbations
-from cloelib.observables.clusters.profile import Profile
+from cloelib.observables.clusters.profile import Profile, ProfileNFW, ProfileBMO
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.auxiliary.units import SPEED_OF_LIGHT
@@ -28,8 +26,6 @@ class ClusterStatistics:
         self, 
         perturbations: Perturbations,
         haloStatistics: HaloStatistics,
-        haloStatisticsTinker: HaloStatisticsTinker,
-        haloStatisticsCastro: HaloStatisticsCastro,
         selectionfunction: SelectionFunction,
         profile: Profile,
         clustering: HaloClustering,
@@ -42,6 +38,9 @@ class ClusterStatistics:
         zed_obs_Cxi2_edges: np.ndarray,
         halo_concentration: float,
         k: np.ndarray,
+        Mass : np.ndarray,
+        Lambda : np.ndarray,
+        zed: np.ndarray,
         area: float = 10313,
         CG_like_selection: str = 'CC_CWL_Cxi2',
         CG_xi2_cov_selection: str = 'covCC_covCxi2',
@@ -59,8 +58,6 @@ class ClusterStatistics:
         self.perturbations = perturbations
         self.background = self.perturbations.background
         self.haloStatistics = haloStatistics
-        self.haloStatisticsTinker = haloStatisticsTinker
-        self.haloStatisticsCastro = haloStatisticsCastro
         self.selectionfunction = selectionfunction
         self.profile = profile
         self.clustering = clustering
@@ -82,28 +79,17 @@ class ClusterStatistics:
         
         self.halo_concentration = halo_concentration
         
-        # k array (integration variable)
-               
+        # k array (integration variable)              
         self.k = k
 
         # mass array (integration variable)
-        M_min = 12.0  # in Msun h^-1
-        M_max = 16.0
-        self.M_div = 50
-        self.Mass = np.logspace(M_min, M_max, self.M_div+1)
+        self.Mass = Mass #in Msun h^-1
 
         # true richness array (integration variable)
-        Lambda_min = 5.0
-        Lambda_max = 250.0
-        self.Lambda_div = 50
-        self.Lambda = np.geomspace(Lambda_min, Lambda_max, self.Lambda_div+1)
+        self.Lambda = Lambda
 
         # true redshift array (integration variable)
-        zs_max=2.0
-        z_min = 1e-5
-        z_max = zs_max - 1e-5  # correction needed for avoiding zero values in n_zs_norM computation
-        self.z_div = 50
-        self.zed   = np.linspace(z_min, z_max, self.z_div+1)
+        self.zed = zed
         
         ################### SELECTION FUNCTION ###################
 
@@ -145,19 +131,11 @@ class ClusterStatistics:
         #############################################################      
 
         # volume element at the center of observed redshift bins
-        self.dvdzdomega_z1z2 = self.background.dV_dzdO(self.zed)*(self.background.H0/100.0)**3.0
+        self.dvdzdomega_z1z2 = self.background.dV_dzdO(self.zed, hubble_units=True)#*(self.background.H0/100.0)**3.0
 
         # hmf at the center of observed redshift bins
         self.dndm_z = self.haloStatistics.dn_dm(self.zed, self.Mass) 
-
-        # hb at the center of observed redshift bins
-        if self.bias == 'castro23':
-                self.bias_z = self.haloStatisticsCastro.bias(self.zed, self.Mass)  # only work for virial overdensity
-        elif self.bias == 'tinker10':
-                #Delta_bkg = self.haloStatistics.get_Delta(self.overdensity_type, z, 'tot', self.overdensity)/self.Omm_z(z, nu_cdm = 'tot')
-                self.bias_z    = haloStatisticsTinker.bias(self.zed, self.Mass) 
-        else:
-                raise ValueError('Invalid \'bias\' definition, %s.' % bias)
+        self.bias_z = self.haloStatistics.bias(self.zed, self.Mass)  # only work for virial overdensity        
         
         
     def N_zbin_Lbin_Rbin(self): 
@@ -173,22 +151,7 @@ class ClusterStatistics:
 
             # mean observed bins
             z_obs_mid      = 0.5 * (self.zed_obs_edges[1:] + self.zed_obs_edges[:-1])
-            Lambda_obs_mid = 0.5 * (self.Lambda_obs_edges[1:] + self.Lambda_obs_edges[:-1])
-
-            # volume element at the center of observed redshift bins
-            #dvdzdomega_z1z2 = self.background.dV_dzdO(z)*(self.background.H0/100.0)**3.0
-
-            # hmf at the center of observed redshift bins
-            #dndm_z = HaloStatistics.dn_dm(z, M) 
-
-            # hb at the center of observed redshift bins
-            #if self.bias == 'castro23':
-            #    bias_z = HaloStatisticsCastro23.bias_castro23(z, M)  # only work for virial overdensity
-            #elif self.bias == 'tinker10':
-            #    Delta_bkg = HaloStatistics.get_Delta(self.overdensity_type, z, 'tot', self.overdensity)/self.Omm_z(z, nu_cdm = 'tot')
-            #    bias_z    = HaloStatisticsTinker10.bias_tinker10(z, self.Mass, Delta_bkg) 
-            #else:
-            #    raise ValueError('Invalid \'bias\' definition, %s.' % bias)
+            Lambda_obs_mid = 0.5 * (self.Lambda_obs_edges[1:] + self.Lambda_obs_edges[:-1])           
 
 
             ##### number counts covariance
@@ -292,7 +255,7 @@ class ClusterStatistics:
                             for z_bin in range(len(self.zed_obs_edges)-1):
                                 g_zbin_Lbin_Rbin[z_bin,lambda_bin, rad_bin] = (1.0)/N_zbin_Lbin[z_bin,lambda_bin] * simps(
                                     self.profile.m_sig_crit_m1(self.zed, z_bin)*dV_dzob[z_bin,lambda_bin]*excesssurfacemassdensity,self.zed) 
-                                   
+#                                      
         ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
         ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
         ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
@@ -305,8 +268,8 @@ class ClusterStatistics:
         if self.CG_like_selection in ['CC_Cxi2','CC_CWL_Cxi2']:
             
             # init
-            n_lbdobs_z_Cxi2    = np.zeros((self.Lambda_obs_Cxi2_div,self.z_div+1)) 
-            n_b_lbdobs_z_Cxi2  = np.zeros((self.Lambda_obs_Cxi2_div,self.z_div+1))
+            n_lbdobs_z_Cxi2    = np.zeros((self.Lambda_obs_Cxi2_div,len(self.zed))) 
+            n_b_lbdobs_z_Cxi2  = np.zeros((self.Lambda_obs_Cxi2_div,len(self.zed)))
             integ_zbin_lbin  = np.zeros(((self.zed_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))))
             
             # clustering bins
