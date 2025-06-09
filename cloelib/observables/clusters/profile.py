@@ -21,17 +21,23 @@ class Profile:
     def __init__(
         self,
         halo_statistics: HaloStatistics,
-        two_halo="None",
-        offcentering=False,
-        rms_off=0.0,
-        f_off=0.0,
-        trunc_fact=3.0,
-        zs_max=2.0,
-        mean_nz=0.4,
-        sigma_nz=0.3,
-        alpha_nz=0.4,
+        k: np.ndarray,
+        zed: np.ndarray, 
+        r_interp: np.ndarray,       
+        two_halo : str ="None",
+        offcentering: bool = False,
+        rms_off: float = 0.0,
+        f_off: float = 0.0,
+        trunc_fact: float = 3.0,
+        zs_max: float = 2.0,
+        mean_nz: float = 0.4,
+        sigma_nz: float = 0.3,
+        alpha_nz: float = 0.4,
     ):
         self.halo_statistics = halo_statistics
+        self.k = k
+        self.zed = zed 
+        self.r_interp = r_interp     
 
         self._validate_two_halo(two_halo)
         self.two_halo = two_halo
@@ -49,22 +55,23 @@ class Profile:
         self.alpha_nz = alpha_nz
 
         # true redshift array (integration variable)
-        z_min = 1e-5
-        z_max = (
-            self.zs_max - 1e-5
-        )  # correction needed for avoiding zero values in n_zs_norM computation
-        self.z_div = 50
-        self.zed = np.linspace(z_min, z_max, self.z_div + 1)
-        
+#        z_min = 1e-5
+#        z_max = (
+#            self.zs_max - 1e-5
+#        )  # correction needed for avoiding zero values in n_zs_norM computation
+#        self.z_div = 50
+#        self.zed = np.linspace(z_min, z_max, self.z_div + 1)        
+
         self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=np.linspace(z_min, self.zs_max, 2*self.z_div + 1), 
-            y=self.background.angular_diameter_distance(np.linspace(z_min, 
-            self.zs_max, 2*self.z_div + 1)), ext=2)
-        
+            x=np.linspace(self.zed.min(), self.zed.max()+1.e-5, 2*len(self.zed)), 
+            y=self.background.angular_diameter_distance(np.linspace(self.zed.min(), 
+            self.zed.max()+1.e-5, 2*len(self.zed))), ext=0)    
+
         # ??? evaluated at true redshift
         self.nzsnorM = np.vectorize(self.n_zs_norM)(self.zed)
         self.nzs = self.n_zs(self.zed)
-        self.r_interp = np.logspace(-10, 2.5, 200)
+#        self.r_interp = np.logspace(-10, 2.5, 200)
+        
 
     def _validate_two_halo(self, two_halo):
         if two_halo not in ("None", "sum", "max"):
@@ -110,13 +117,13 @@ class Profile:
             Distance in output units. If z is array and physical to
             angular conversion used, output shape is (z.size, distance.size).
         """
-        angular_units_bank = {
+        angular_units_dict = {
             "radians": ap_units.rad,
             "degrees": ap_units.deg,
             "arcmin": ap_units.arcmin,
             "arcsec": ap_units.arcsec,
         }
-        _valid_units = ["mpc/h", *angular_units_bank.keys()]
+        _valid_units = ["mpc/h", *angular_units_dict.keys()]
         if units_in.lower() not in _valid_units:
             raise ValueError(f"units_in (={units_in}) must be in {_valid_units}")
         if units_out.lower() not in _valid_units:
@@ -125,20 +132,20 @@ class Profile:
         if units_in.lower() == units_out.lower():
             return distance
 
-        if units_out.lower() not in angular_units_bank:
+        if units_out.lower() not in angular_units_dict:
             # converting to mpc/h
             theta = (
-                (distance * angular_units_bank[units_in]).to(ap_units.rad).value
+                (distance * angular_units_dict[units_in]).to(ap_units.rad).value
             )  # distance in radians
             out = theta * angular_diameter_distance
-        elif units_in.lower() not in angular_units_bank:
+        elif units_in.lower() not in angular_units_dict:
             # converting to angular units
             theta = distance / angular_diameter_distance  # distance in radians
-            out = (theta * ap_units.rad).to(angular_units_bank[units_out]).value
+            out = (theta * ap_units.rad).to(angular_units_dict[units_out]).value
         else:
             out = (
-                (distance * angular_units_bank[units_in])
-                .to(angular_units_bank[units_out])
+                (distance * angular_units_dict[units_in])
+                .to(angular_units_dict[units_out])
                 .value
             )
 
@@ -224,9 +231,9 @@ class Profile:
         n_zs: float or np.ndarray
             Galaxy number density per redshift
         """
-        n_zs = np.zeros((z.size, self.z_div + 1))
+        n_zs = np.zeros((z.size, len(self.zed)))
         for z_ind, zed in enumerate(z):
-            z_s = np.linspace(zed + 1.0e-5, self.zs_max, self.z_div + 1)
+            z_s = np.linspace(zed + 1.0e-5, self.zs_max, len(self.zed))
             n_zs[z_ind] = skewnorm.pdf(z_s, self.alpha_nz, self.mean_nz, self.sigma_nz)
 
         return n_zs
@@ -250,7 +257,7 @@ class Profile:
         m_sigma_crit_m1: float
             Effective inverse critical surface mass density (units : pc^2 / Msun / h)
         """
-        z_s = np.linspace(z + 1.0e-5, self.zs_max, self.z_div + 1, axis=1)
+        z_s = np.linspace(z + 1.0e-5, self.zs_max, len(self.zed), axis=1)
         sig_crit_m1 = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s)
 
         return self.nzsnorM[zbin] * simps(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
@@ -478,16 +485,7 @@ class Profile:
             Centered one-halo surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        Rs = RDelta / c
-        x = R / Rs
-
-        F = np.vectorize(self._f_term)(x)
-        m_nfw = np.log(1.0 + c) - c / (1.0 + c)  # Eq. 4 Oguri & Hamana 2011
-        rho_s = Delta * c**3.0 / (3.0 * m_nfw)
-
-        Sigma = 2.0 * rho_s * Rs * F * 1.0e-12
-
-        return Sigma
+        return NotImplementedError
 
     def _surface_mass_density_cen(
         self, R, z, M, c, two_halo="auto", bias_z=None, radius_units="Mpc/h"
@@ -562,15 +560,7 @@ class Profile:
             Centered one-halo mean surface mass density (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        Rs = RDelta / c
-        x = R / Rs
-
-        G = np.vectorize(self._g_term)(x)
-
-        m_nfw = np.log(1.0 + c) - c / (1.0 + c)  # Eq. 4 Oguri & Hamana 2011
-        rho_s = Delta * c**3.0 / (3.0 * m_nfw)
-
-        return 4.0 * rho_s * Rs * (G / x**2.0) * 1.0e-12
+        return NotImplementedError
 
     def _func_mass_density_2h(
         self, R, z, M, bias_z, bessel_function, radius_units="Mpc/h"
@@ -624,8 +614,7 @@ class Profile:
 
         ## 1. Power spectrum interpolation
 
-        kl_min, kl_max, kl_num = 1e-4, 1e2, 500
-        kl_array = np.logspace(np.log10(kl_min), np.log10(kl_max), kl_num)
+        kl_array = self.k
 
         if z.size < 10:
             z_for_interp = np.linspace(z.min() * 0.9, z.max() * 1.1, 10)
@@ -659,7 +648,7 @@ class Profile:
 
         ## 4. Integration
         two_point_corr_outshape = (
-            quad_vec(integrand, kl_min, kl_max, epsrel=1e-1)[0]
+            quad_vec(integrand, kl_array.min(), kl_array.max(), epsrel=1e-1)[0]
             * (1.0 + z_outshape)
             * D_A_outshape
         )
@@ -757,12 +746,7 @@ class Profile:
         float
             One-Halo profile F term.
         """
-        if x < 1.0:
-            return (1.0 - np.arccosh(1.0 / x) / np.sqrt(1.0 - x**2.0)) / (x**2.0 - 1.0)
-        if x == 1.0:
-            return 1.0 / 3.0
-        if x > 1.0:
-            return (1.0 - np.arccos(1.0 / x) / np.sqrt(x**2.0 - 1.0)) / (x**2.0 - 1.0)
+        NotImplementedError
 
     def _g_term(self, x):
         r"""
@@ -780,12 +764,7 @@ class Profile:
         float
             One-Halo profile G term.
         """
-        if x < 1.0:
-            return np.log(x / 2.0) + np.arccosh(1.0 / x) / np.sqrt(1.0 - x**2.0)
-        if x == 1.0:
-            return 1.0 + np.log(1.0 / 2.0)
-        if x > 1.0:
-            return np.log(x / 2.0) + np.arccos(1.0 / x) / np.sqrt(x**2.0 - 1.0)
+        NotImplementedError
 
 
 class ProfileNFW(Profile):

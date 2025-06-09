@@ -326,37 +326,7 @@ class HaloStatistics:
         f_sigma_nu: numpy.ndarray
             f_sigma_nu[i,j], where i is the redshift axis and j the mass axis.
         """
-        a1 = 0.7962
-        a2 = 0.1449
-        az = -0.0658
-        p1 = -0.5612
-        p2 = -0.4743
-        q1 = 0.3688
-        q2 = -0.2804
-        qz = 0.0251
-
-        dlnsigmadlnR = self.dlns_dlnR(z, M)
-        Ommz = self.background.Omega_m(z, self.nonu)[:, np.newaxis]
-        nu = self.nu_z_M(z, M)
-
-        aR = a1 + a2 * (dlnsigmadlnR + 0.6125) ** 2.0
-        a = aR * Ommz**az
-        p = p1 + p2 * (dlnsigmadlnR + 0.5)
-        qR = q1 + q2 * (dlnsigmadlnR + 0.5)
-        q = qR * Ommz**qz
-        A = 1.0 / (
-            2.0 ** (-0.5 - p + q / 2.0)
-            / np.sqrt(np.pi)
-            * (2.0**p * gamma(q / 2.0) + gamma(-p + q / 2.0))
-        )
-
-        return (
-            A
-            * np.sqrt(2.0 * a / (np.pi))
-            * np.exp(-a * nu**2.0 / 2.0)
-            * (1.0 + 1.0 / (a * nu**2.0) ** p)
-            * (nu * np.sqrt(a)) ** (q - 1.0)
-        ) * nu
+        NotImplementedError
 
     def dn_dm(self, z, M):
         r"""
