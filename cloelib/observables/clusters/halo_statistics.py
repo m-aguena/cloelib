@@ -10,6 +10,7 @@ class HaloStatistics:
     def __init__(
         self,
         perturbations: Perturbations,
+        zed: np.ndarray,
         k: np.ndarray,
         overdensity_type: str,
         overdensity: int = 200,
@@ -36,14 +37,7 @@ class HaloStatistics:
             200 times the chosen reference (`crit` or `mean`).
         nonu : bool, optional
             If `True`, massive neutrinos are excluded from the density parameter
-            summation.
-        k_div : int, optional
-            Number of logarithmic divisions in wavenumber `k` for numerical
-            integration.
-        k_min : float, optional
-            Minimum wavenumber for integration.
-        k_max : float, optional
-            Maximum wavenumber for integration.
+            summation.        
         """
         self.perturbations = perturbations
 
@@ -53,7 +47,21 @@ class HaloStatistics:
         self.overdensity = overdensity
 
         self.nonu = nonu
-        self.k = k
+        self.k = k        
+        self.zed = zed
+        
+        # Power spectrum interpolation       
+        self.Pk_interp = interpolate.RectBivariateSpline(
+            self.zed,
+            self.k,
+            self.perturbations.matter_power_spectrum(
+                self.zed,
+                self.k,
+                hubble_units=True,
+                k_hunit=True,
+                nonu=self.nonu,
+            ),
+        )
 
         # internal value of sigma8
         self.__sigma8 = None
@@ -218,9 +226,7 @@ class HaloStatistics:
                 / (2.0 * np.pi**2)
                 * simps(
                     (k**2.0).reshape(1, 1, len(k))
-                    * self.perturbations.matter_power_spectrum(
-                        z, k, hubble_units=True, k_hunit=True, nonu=self.nonu
-                    ).reshape(len(z), 1, len(k))
+                    * self.Pk_interp(z,k).reshape(len(z), 1, len(k))
                     * (W**2.0).reshape(1, len(R), len(k)),
                     k,
                     axis=-1,
@@ -296,9 +302,7 @@ class HaloStatistics:
         W, dWdx = self.window(k, R)
         dsigma2_dR = np.pi**-2 * simps(
             k.reshape(1, 1, len(k)) ** 3
-            * self.perturbations.matter_power_spectrum(
-                z, k, hubble_units=True, k_hunit=True, nonu=self.nonu
-            ).reshape(len(z), 1, len(k))
+            * self.Pk_interp(z,k).reshape(len(z), 1, len(k))
             * W.reshape(1, len(R), len(k))
             * dWdx.reshape(1, len(R), len(k)),
             k,

@@ -238,8 +238,17 @@ class CAMBLinearPerturbations:
             redshifts (np.ndarray): Array of redshifts for the calculations.
         """
         self.background = background
+        
+        # Avoid unnecessary computations
 
-        self.kmax = 300.
+        self.background.interface_args['CAMBparams'].WantCls = False
+        self.background.interface_args['CAMBparams'].DoLensing = False
+        self.background.interface_args['CAMBparams'].Want_CMB = False
+        self.background.interface_args['CAMBparams'].Want_CMB_lensing = False
+        self.background.interface_args['CAMBparams'].Want_cl_2D_array = False
+        self.background.interface_args['CAMBparams'].WantTransfer = True
+
+        self.kmax = 10.
         self.z = redshifts
 
         self.background.interface_args['CAMBparams'].set_matter_power(
