@@ -163,8 +163,7 @@ class ClusterStatistics:
                 #self.rint = np.zeros((self.zed_obs_div,len(self.k),L+1))
                 
                 # power spectrum at the center of observed redshift bins
-                pk  = self.perturbations.matter_power_spectrum(z_obs_mid, self.k,
-                      hubble_units=True, k_hunit=True, nonu=self.neutrino_cdm)          
+                pk  = self.haloStatistics.Pk_interp(z_obs_mid, self.k)          
                 
                 # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
                 photoz_corr0 = self.clustering.photoz_rsd_correction(z_obs_mid, 0)[0]  # can neglect richness dependence here
@@ -289,7 +288,7 @@ class ClusterStatistics:
             ############
             #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
             ############
-            pk_IR = self.perturbations.matter_power_spectrum(self.zed, self.k, hubble_units=True, k_hunit=True, nonu=self.neutrino_cdm) 
+            pk_IR = self.haloStatistics.Pk_interp(self.zed, self.k) 
             
             # LOOP OVER CLUSTERING RICHNESS BINS
             for lambda_bin in range(len(self.Lambda_obs_Cxi2_edges)-1):
