@@ -21,9 +21,9 @@ class Profile:
     def __init__(
         self,
         halo_statistics: HaloStatistics,
-        k: np.ndarray,
-        zed: np.ndarray, 
-        r_interp: np.ndarray,       
+        k: np.ndarray = np.geomspace(1e-4, 10, 500),
+        zed: np.ndarray = np.linspace(1.e-5, 6.0-1.e-5, 500), 
+        r_interp: np.ndarray = np.logspace(-10, 2.5, 200),       
         two_halo : str ="None",
         offcentering: bool = False,
         rms_off: float = 0.0,
@@ -63,14 +63,15 @@ class Profile:
 #        self.zed = np.linspace(z_min, z_max, self.z_div + 1)        
 
         self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=np.linspace(self.zed.min(), self.zed.max()+1.e-5, 2*len(self.zed)), 
-            y=self.background.angular_diameter_distance(np.linspace(self.zed.min(), 
-            self.zed.max()+1.e-5, 2*len(self.zed))), ext=0)    
+            x=zed, 
+            y=self.background.angular_diameter_distance(zed),
+            ext=2
+        )
 
         # ??? evaluated at true redshift
         self.nzsnorM = np.vectorize(self.n_zs_norM)(self.zed)
         self.nzs = self.n_zs(self.zed)
-#        self.r_interp = np.logspace(-10, 2.5, 200)
+        #self.r_interp = np.logspace(-10, 2.5, 200)
         
 
     def _validate_two_halo(self, two_halo):
