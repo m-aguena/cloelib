@@ -622,18 +622,6 @@ class Profile:
         else:
             z_for_interp = z
 
-        Pk_interp = interpolate.RectBivariateSpline(
-            z_for_interp,
-            kl_array,
-            self.perturbations.matter_power_spectrum(
-                z_for_interp[:, np.newaxis],
-                kl_array,
-                hubble_units=True,
-                k_hunit=True,
-                nonu=self.halo_statistics.nonu,
-            ),
-        )
-
         ## 2. Get radial distance in radians
         _theta = self.convert_distance(R, radius_units, "radians", D_A[:, np.newaxis])
         theta_outshape = _theta[:, np.newaxis]
@@ -644,7 +632,7 @@ class Profile:
         ## 3. Integrand function
         def integrand(kl):
             ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = Pk_interp(z, kl)[:, np.newaxis]  # add axis for correct shape
+            Pk_vals = self.halo_statistics.Pk_interp(z, kl)[:, np.newaxis]
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
 
         ## 4. Integration
