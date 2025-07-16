@@ -22,9 +22,9 @@ class Profile:
         self,
         halo_statistics: HaloStatistics,
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
-        zed: np.ndarray = np.linspace(1.e-5, 6.0-1.e-5, 500), 
-        r_interp: np.ndarray = np.logspace(-10, 2.5, 200),       
-        two_halo : str ="None",
+        zed: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
+        r_interp: np.ndarray = np.logspace(-10, 2.5, 200),
+        two_halo: str = "None",
         offcentering: bool = False,
         rms_off: float = 0.0,
         f_off: float = 0.0,
@@ -36,8 +36,8 @@ class Profile:
     ):
         self.halo_statistics = halo_statistics
         self.k = k
-        self.zed = zed 
-        self.r_interp = r_interp     
+        self.zed = zed
+        self.r_interp = r_interp
 
         self._validate_two_halo(two_halo)
         self.two_halo = two_halo
@@ -55,24 +55,21 @@ class Profile:
         self.alpha_nz = alpha_nz
 
         # true redshift array (integration variable)
-#        z_min = 1e-5
-#        z_max = (
-#            self.zs_max - 1e-5
-#        )  # correction needed for avoiding zero values in n_zs_norM computation
-#        self.z_div = 50
-#        self.zed = np.linspace(z_min, z_max, self.z_div + 1)        
+        #        z_min = 1e-5
+        #        z_max = (
+        #            self.zs_max - 1e-5
+        #        )  # correction needed for avoiding zero values in n_zs_norM computation
+        #        self.z_div = 50
+        #        self.zed = np.linspace(z_min, z_max, self.z_div + 1)
 
         self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=zed, 
-            y=self.background.angular_diameter_distance(zed),
-            ext=2
+            x=zed, y=self.background.angular_diameter_distance(zed), ext=2
         )
 
         # ??? evaluated at true redshift
         self.nzsnorM = np.vectorize(self.n_zs_norM)(self.zed)
         self.nzs = self.n_zs(self.zed)
-        #self.r_interp = np.logspace(-10, 2.5, 200)
-        
+        # self.r_interp = np.logspace(-10, 2.5, 200)
 
     def _validate_two_halo(self, two_halo):
         if two_halo not in ("None", "sum", "max"):
