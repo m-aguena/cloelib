@@ -9,8 +9,7 @@ class HaloCovariance:
             perturbations: Perturbations,
             k: np.ndarray,
             area: float,
-            nbins_zob: int,            
-            #L: int
+            nbins_zob: int
 ):
         self.background = perturbations.background
 
