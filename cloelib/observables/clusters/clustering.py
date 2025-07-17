@@ -14,8 +14,7 @@ class HaloClustering:
         perturbations: Perturbations,
         perturbations_fid: Perturbations,
         selectionfunction: SelectionFunction,
-        # Lambda_obs: np.ndarray,
-        k: np.ndarray,
+        k: np.ndarray = np.geomspace(1e-4, 10, 500),
         nonu: bool = False,
     ):
 
