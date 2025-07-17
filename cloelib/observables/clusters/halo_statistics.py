@@ -10,11 +10,10 @@ class HaloStatistics:
     def __init__(
         self,
         perturbations: Perturbations,
-        zed: np.ndarray = np.linspace(1.e-5, 2.0-1.e-5, 100),
-        k: np.ndarray = np.geomspace(1e-4, 10, 500),
         overdensity_type: str = 'vir',
         overdensity: int = 200,
         nonu: bool = False,
+        use_interpolation: bool = True,
     ):
         r"""
         A class computing halo mass function and halo bias.
@@ -38,6 +37,11 @@ class HaloStatistics:
         nonu : bool, optional
             If `True`, massive neutrinos are excluded from the density parameter
             summation.
+        use_interpolation : bool, optional
+            If true, class uses interpolation for matter power spectrum computation.
+            A default interpolation is set when class is instanciated with
+            use_interpolation=True. For a more customized interpolation, check
+            the interpolate_matter_power_spectrum function.
         """
         self.perturbations = perturbations
 
@@ -47,24 +51,17 @@ class HaloStatistics:
         self.overdensity = overdensity
 
         self.nonu = nonu
-        self.k = k
-        self.zed = zed
 
         # Power spectrum interpolation
-        self.Pk_interp = interpolate.RectBivariateSpline(
-            self.zed,
-            self.k,
-            self.perturbations.matter_power_spectrum(
-                self.zed,
-                self.k,
-                hubble_units=True,
-                k_hunit=True,
-                nonu=self.nonu,
-            ),
-        )
+        self.Pk_interp = None
 
         # internal value of sigma8
         self.__sigma8 = None
+
+        # set interpolation usage
+        self.use_interpolation = use_interpolation
+        if use_interpolation:
+            self.interpolate_matter_power_spectrum()
 
     @property
     def background(self):
@@ -82,6 +79,70 @@ class HaloStatistics:
         if self.__sigma8 is None:
             self.__sigma8 = self.sigma_z_R([0.0], np.array([8.0]))
         return self.__sigma8
+
+    @property
+    def use_interpolation(self):
+        r"""If true, class uses interpolation for matter power spectrum computation."""
+        return self.__use_interpolation
+
+    @use_interpolation.setter
+    def use_interpolation(self, use_interpolation):
+        """If true, makes class uses interpolation for matter power spectrum computation."""
+        if use_interpolation:
+            self.matter_power_spectrum = self.Pk_interp
+        else:
+            self.matter_power_spectrum = _matter_power_spectrum_not_interpolated
+        self.__use_interpolation = use_interpolation
+
+    def _matter_power_spectrum_not_interpolated(self, z, k):
+        r"""
+        Computes the non interpolated matter power spectrum.
+
+        Parameters
+        ----------
+        z: float or np.ndarray
+            Redshift.
+        k: float or np.ndarray
+               Wavenumber where W(kR) is evaluated.
+               Units: h Mpc^{-1}
+
+        Returns
+        -------
+        float or np.ndarray
+            Matter power spectrum.
+        """
+        return self.perturbations.matter_power_spectrum(
+            z,
+            k,
+            hubble_units=True,
+            k_hunit=True,
+            nonu=self.nonu,
+        )
+
+    def interpolate_matter_power_spectrum(
+        self,
+        z=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
+        k=np.geomspace(1e-4, 10, 500),
+    ):
+        r"""
+        Create internal interpolation of matter power spectrum.
+
+        Parameters
+        ----------
+        z: float or np.ndarray
+            Redshift.
+        k: float or np.ndarray
+               Wavenumber where W(kR) is evaluated.
+               Units: h Mpc^{-1}
+        """
+        self._Pk_interp_k = k
+        self._Pk_interp_z = z
+        # Power spectrum interpolation
+        self.Pk_interp = interpolate.RectBivariateSpline(
+            z,
+            k,
+            self._matter_power_spectrum_not_interpolated(z, k),
+        )
 
     def window(self, k, R):
         r"""
@@ -226,7 +287,7 @@ class HaloStatistics:
                 / (2.0 * np.pi**2)
                 * simps(
                     (k**2.0).reshape(1, 1, len(k))
-                    * self.Pk_interp(z, k).reshape(len(z), 1, len(k))
+                    * self.matter_power_spectrum(z, k).reshape(len(z), 1, len(k))
                     * (W**2.0).reshape(1, len(R), len(k)),
                     k,
                     axis=-1,
@@ -302,7 +363,7 @@ class HaloStatistics:
         W, dWdx = self.window(k, R)
         dsigma2_dR = np.pi**-2 * simps(
             k.reshape(1, 1, len(k)) ** 3
-            * self.Pk_interp(z, k).reshape(len(z), 1, len(k))
+            * self.matter_power_spectrum(z, k).reshape(len(z), 1, len(k))
             * W.reshape(1, len(R), len(k))
             * dWdx.reshape(1, len(R), len(k)),
             k,

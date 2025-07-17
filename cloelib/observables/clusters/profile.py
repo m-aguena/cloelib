@@ -33,6 +33,7 @@ class Profile:
         mean_nz: float = 0.4,
         sigma_nz: float = 0.3,
         alpha_nz: float = 0.4,
+        use_interpolation: bool = True,
     ):
         self.halo_statistics = halo_statistics
         self.k = k
@@ -62,14 +63,15 @@ class Profile:
         #        self.z_div = 50
         #        self.zed = np.linspace(z_min, z_max, self.z_div + 1)
 
-        self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=zed, y=self.background.angular_diameter_distance(zed), ext=2
-        )
-
         # ??? evaluated at true redshift
         self.nzsnorM = np.vectorize(self.n_zs_norM)(self.zed)
         self.nzs = self.n_zs(self.zed)
         # self.r_interp = np.logspace(-10, 2.5, 200)
+
+        # set interpolation usage
+        self.use_interpolation = use_interpolation
+        if use_interpolation:
+            self.interpolate_angular_diameter_distance()
 
     def _validate_two_halo(self, two_halo):
         if two_halo not in ("None", "sum", "max"):
@@ -88,6 +90,26 @@ class Profile:
         Returns the Background class instance
         """
         return self.perturbations.background
+
+    @property
+    def use_interpolation(self):
+        r"""If true, class uses interpolation for matter power spectrum computation."""
+        return self.__use_interpolation
+
+    @use_interpolation.setter
+    def use_interpolation(self, use_interpolation):
+        """If true, makes class uses interpolation for matter power spectrum computation."""
+        if use_interpolation:
+            self.angular_diameter_distance = self.interp_angular_dist
+        else:
+            self.angular_diameter_distance = self.background.angular_diameter_distance
+        self.__use_interpolation = use_interpolation
+
+    def interpolate_angular_diameter_distance(self):
+        r"""Create internal interpolation of angular diameter distance."""
+        self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
+            x=zed, y=self.background.angular_diameter_distance(self.zed), ext=2
+        )
 
     def convert_distance(
         self, distance, units_in, units_out, angular_diameter_distance=None
@@ -171,9 +193,9 @@ class Profile:
         fact = (units.SPEED_OF_LIGHT / 1.0e3 / units.MPC_TO_KM) ** 2.0 / (
             4.0 * np.pi * units.GRAVITATIONAL_CONSTANT
         )  # Msun/Mpc
-        d_a_sources = self.interp_angular_dist(z_sources)  # Mpc
+        d_a_sources = self.angular_diameter_distance(z_sources)  # Mpc
         d_m_sources = (1.0 + z_sources) * d_a_sources
-        d_a_lens = self.interp_angular_dist(z)[:, np.newaxis]  # Mpc
+        d_a_lens = self.angular_diameter_distance(z)[:, np.newaxis]  # Mpc
         d_m_lens = (1.0 + z[:, np.newaxis]) * d_a_lens
         d_h = units.SPEED_OF_LIGHT / 1e3 / self.background.H0  # Mpc
         d_a_lens_source = (
