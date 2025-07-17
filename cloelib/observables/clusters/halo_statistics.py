@@ -14,6 +14,8 @@ class HaloStatistics:
         overdensity: int = 200,
         nonu: bool = False,
         use_interpolation: bool = True,
+        zed=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
+        k=np.geomspace(1e-4, 10, 500),
     ):
         r"""
         A class computing halo mass function and halo bias.
@@ -59,9 +61,11 @@ class HaloStatistics:
         self.__sigma8 = None
 
         # set interpolation usage
+        self.zed = zed
+        self.k = k
         self.use_interpolation = use_interpolation
         if use_interpolation:
-            self.interpolate_matter_power_spectrum()
+            self.interpolate_matter_power_spectrum(self.zed, self.k)
 
     @property
     def background(self):
