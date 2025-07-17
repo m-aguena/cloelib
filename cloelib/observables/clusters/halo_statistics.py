@@ -12,7 +12,7 @@ class HaloStatistics:
         perturbations: Perturbations,
         zed: np.ndarray = np.linspace(1.e-5, 2.0-1.e-5, 100),
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
-        overdensity_type: str = 'crit',
+        overdensity_type: str = 'vir',
         overdensity: int = 200,
         nonu: bool = False,        
     ):
