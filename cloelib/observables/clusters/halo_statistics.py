@@ -14,7 +14,7 @@ class HaloStatistics:
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
         overdensity_type: str = 'vir',
         overdensity: int = 200,
-        nonu: bool = False,        
+        nonu: bool = False,
     ):
         r"""
         A class computing halo mass function and halo bias.
@@ -37,7 +37,7 @@ class HaloStatistics:
             200 times the chosen reference (`crit` or `mean`).
         nonu : bool, optional
             If `True`, massive neutrinos are excluded from the density parameter
-            summation.        
+            summation.
         """
         self.perturbations = perturbations
 
@@ -47,10 +47,10 @@ class HaloStatistics:
         self.overdensity = overdensity
 
         self.nonu = nonu
-        self.k = k        
+        self.k = k
         self.zed = zed
-        
-        # Power spectrum interpolation       
+
+        # Power spectrum interpolation
         self.Pk_interp = interpolate.RectBivariateSpline(
             self.zed,
             self.k,
@@ -226,7 +226,7 @@ class HaloStatistics:
                 / (2.0 * np.pi**2)
                 * simps(
                     (k**2.0).reshape(1, 1, len(k))
-                    * self.Pk_interp(z,k).reshape(len(z), 1, len(k))
+                    * self.Pk_interp(z, k).reshape(len(z), 1, len(k))
                     * (W**2.0).reshape(1, len(R), len(k)),
                     k,
                     axis=-1,
@@ -302,7 +302,7 @@ class HaloStatistics:
         W, dWdx = self.window(k, R)
         dsigma2_dR = np.pi**-2 * simps(
             k.reshape(1, 1, len(k)) ** 3
-            * self.Pk_interp(z,k).reshape(len(z), 1, len(k))
+            * self.Pk_interp(z, k).reshape(len(z), 1, len(k))
             * W.reshape(1, len(R), len(k))
             * dWdx.reshape(1, len(R), len(k)),
             k,
