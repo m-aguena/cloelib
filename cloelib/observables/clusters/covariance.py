@@ -6,13 +6,12 @@ from scipy.integrate import simpson as simps
 
 class HaloCovariance:
     def __init__(
-        self,
-        perturbations: Perturbations,
-        k: np.ndarray,
-        area: float,
-        nbins_zob: int,
-        # L: int
-    ):
+            self,
+            perturbations: Perturbations,
+            k: np.ndarray,
+            area: float,
+            nbins_zob: int
+        ):
         self.background = perturbations.background
 
         self.area = area

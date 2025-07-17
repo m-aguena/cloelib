@@ -10,7 +10,7 @@ class HaloStatistics:
     def __init__(
         self,
         perturbations: Perturbations,
-        overdensity_type: str = "crit",
+        overdensity_type: str = 'vir',
         overdensity: int = 200,
         nonu: bool = False,
         use_interpolation: bool = True,
