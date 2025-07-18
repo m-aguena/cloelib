@@ -55,18 +55,9 @@ class Profile:
         self.sigma_nz = sigma_nz
         self.alpha_nz = alpha_nz
 
-        # true redshift array (integration variable)
-        #        z_min = 1e-5
-        #        z_max = (
-        #            self.zs_max - 1e-5
-        #        )  # correction needed for avoiding zero values in n_zs_norM computation
-        #        self.z_div = 50
-        #        self.zed = np.linspace(z_min, z_max, self.z_div + 1)
-
         # ??? evaluated at true redshift
         self.nzsnorM = np.vectorize(self.n_zs_norM)(self.zed)
         self.nzs = self.n_zs(self.zed)
-        # self.r_interp = np.logspace(-10, 2.5, 200)
 
         # set interpolation usage
         self.use_interpolation = use_interpolation
