@@ -14,7 +14,7 @@ class HaloStatistics:
         overdensity: int = 200,
         nonu: bool = False,
         use_interpolation: bool = True,
-        zed=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
+        z=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
         k=np.geomspace(1e-4, 10, 500),
     ):
         r"""
@@ -61,10 +61,10 @@ class HaloStatistics:
         self.__sigma8 = None
 
         # set interpolation usage
-        self.zed = zed
+        self.z = z
         self.k = k
         if use_interpolation:
-            self.interpolate_matter_power_spectrum(self.zed, self.k)
+            self.interpolate_matter_power_spectrum(self.z, self.k)
         self.use_interpolation = use_interpolation
 
     @property

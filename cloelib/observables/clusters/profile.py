@@ -22,7 +22,7 @@ class Profile:
         self,
         halo_statistics: HaloStatistics,
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
-        zed: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
+        z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         r_interp: np.ndarray = np.logspace(-10, 2.5, 200),
         two_halo: str = "None",
         offcentering: bool = False,
@@ -37,7 +37,7 @@ class Profile:
     ):
         self.halo_statistics = halo_statistics
         self.k = k
-        self.zed = zed
+        self.z = z
         self.r_interp = r_interp
 
         self._validate_two_halo(two_halo)
@@ -56,8 +56,8 @@ class Profile:
         self.alpha_nz = alpha_nz
 
         # ??? evaluated at true redshift
-        self.nzsnorM = np.vectorize(self.n_zs_norM)(self.zed)
-        self.nzs = self.n_zs(self.zed)
+        self.nzsnorM = np.vectorize(self.n_zs_norM)(self.z)
+        self.nzs = self.n_zs(self.z)
 
         # set interpolation usage
         self.interp_angular_dist = None
@@ -100,7 +100,7 @@ class Profile:
     def interpolate_angular_diameter_distance(self):
         r"""Create internal interpolation of angular diameter distance."""
         self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=self.zed, y=self.background.angular_diameter_distance(self.zed), ext=2
+            x=self.z, y=self.background.angular_diameter_distance(self.z), ext=2
         )
 
     def convert_distance(
@@ -243,9 +243,9 @@ class Profile:
         n_zs: float or np.ndarray
             Galaxy number density per redshift
         """
-        n_zs = np.zeros((z.size, len(self.zed)))
-        for z_ind, zed in enumerate(z):
-            z_s = np.linspace(zed + 1.0e-5, self.zs_max, len(self.zed))
+        n_zs = np.zeros((z.size, len(self.z)))
+        for z_ind, _z in enumerate(z):
+            z_s = np.linspace(_z + 1.0e-5, self.zs_max, len(self.z))
             n_zs[z_ind] = skewnorm.pdf(z_s, self.alpha_nz, self.mean_nz, self.sigma_nz)
 
         return n_zs
@@ -269,7 +269,7 @@ class Profile:
         m_sigma_crit_m1: float
             Effective inverse critical surface mass density (units : pc^2 / Msun / h)
         """
-        z_s = np.linspace(z + 1.0e-5, self.zs_max, len(self.zed), axis=1)
+        z_s = np.linspace(z + 1.0e-5, self.zs_max, len(self.z), axis=1)
         sig_crit_m1 = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s)
 
         return self.nzsnorM[zbin] * simps(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
