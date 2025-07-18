@@ -60,6 +60,7 @@ class Profile:
         self.nzs = self.n_zs(self.zed)
 
         # set interpolation usage
+        self.interp_angular_dist = None
         if use_interpolation:
             self.interpolate_angular_diameter_distance()
         self.use_interpolation = use_interpolation
