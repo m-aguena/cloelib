@@ -395,7 +395,7 @@ class HaloStatistics:
         f_sigma_nu: numpy.ndarray
             f_sigma_nu[i,j], where i is the redshift axis and j the mass axis.
         """
-        NotImplementedError
+        raise NotImplementedError
 
     def dn_dm(self, z, M):
         r"""
