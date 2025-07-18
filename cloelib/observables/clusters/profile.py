@@ -651,7 +651,7 @@ class Profile:
         ## 3. Integrand function
         def integrand(kl):
             ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = self.halo_statistics.Pk_interp(z, kl)[:, np.newaxis]
+            Pk_vals = self.halo_statistics.matter_power_spectrum(z, kl)[:, np.newaxis]
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
 
         ## 4. Integration
