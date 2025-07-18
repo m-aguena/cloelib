@@ -63,9 +63,9 @@ class HaloStatistics:
         # set interpolation usage
         self.zed = zed
         self.k = k
-        self.use_interpolation = use_interpolation
         if use_interpolation:
             self.interpolate_matter_power_spectrum(self.zed, self.k)
+        self.use_interpolation = use_interpolation
 
     @property
     def background(self):
