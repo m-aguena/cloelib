@@ -60,9 +60,9 @@ class Profile:
         self.nzs = self.n_zs(self.zed)
 
         # set interpolation usage
-        self.use_interpolation = use_interpolation
         if use_interpolation:
             self.interpolate_angular_diameter_distance()
+        self.use_interpolation = use_interpolation
 
     def _validate_two_halo(self, two_halo):
         if two_halo not in ("None", "sum", "max"):
