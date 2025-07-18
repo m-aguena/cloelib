@@ -100,7 +100,7 @@ class Profile:
     def interpolate_angular_diameter_distance(self):
         r"""Create internal interpolation of angular diameter distance."""
         self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=zed, y=self.background.angular_diameter_distance(self.zed), ext=2
+            x=self.zed, y=self.background.angular_diameter_distance(self.zed), ext=2
         )
 
     def convert_distance(
