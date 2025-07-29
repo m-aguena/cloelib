@@ -139,8 +139,6 @@ class HaloStatistics:
                Wavenumber where W(kR) is evaluated.
                Units: h Mpc^{-1}
         """
-        self._Pk_interp_k = k
-        self._Pk_interp_z = z
         # Power spectrum interpolation
         self.Pk_interp = interpolate.RectBivariateSpline(
             z,

@@ -20,7 +20,7 @@ def _bessel_j2(x):
 class Profile:
     def __init__(
         self,
-        halo_statistics: HaloStatistics,
+        halostatistics: HaloStatistics,
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         r_interp: np.ndarray = np.logspace(-10, 2.5, 200),
@@ -35,7 +35,7 @@ class Profile:
         alpha_nz: float = 0.4,
         use_interpolation: bool = True,
     ):
-        self.halo_statistics = halo_statistics
+        self.halostatistics = halostatistics
         self.k = k
         self.z = z
         self.r_interp = r_interp
@@ -74,7 +74,7 @@ class Profile:
         r"""
         Returns the Perturbations class instance
         """
-        return self.halo_statistics.perturbations
+        return self.halostatistics.perturbations
 
     @property
     def background(self):
@@ -100,8 +100,8 @@ class Profile:
     def interpolate_angular_diameter_distance(self):
         r"""Create internal interpolation of angular diameter distance."""
         self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=self.z, y=self.background.angular_diameter_distance(self.z), ext=2
-        )
+            x=np.linspace(self.z.min(), self.z.max()+1.e-5, len(self.z)), y=self.background.angular_diameter_distance(np.linspace(self.z.min(),
+            self.z.max()+1.e-5, len(self.z))), ext=2)
 
     def convert_distance(
         self, distance, units_in, units_out, angular_diameter_distance=None
@@ -443,7 +443,7 @@ class Profile:
             Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
         """
         densityThreshold = np.atleast_1d(
-            self.halo_statistics.get_Delta_crit(z)
+            self.halostatistics.get_Delta_crit(z)
             * self.background.rho_crit(z)
             / self.background.h**2.0
         )[:, np.newaxis, np.newaxis]
@@ -619,7 +619,7 @@ class Profile:
 
         # Ensure bias has shape (nz, nM, 1)
         if bias_z is None:
-            bias_z = self.halo_statistics.bias(z, M)
+            bias_z = self.halostatistics.bias(z, M)
         bias_z_outshape = np.asarray(bias_z)[:, :, np.newaxis]
 
         # Two point correlation part
@@ -627,11 +627,6 @@ class Profile:
         ## 1. Power spectrum interpolation
 
         kl_array = self.k
-
-        if z.size < 10:
-            z_for_interp = np.linspace(z.min() * 0.9, z.max() * 1.1, 10)
-        else:
-            z_for_interp = z
 
         ## 2. Get radial distance in radians
         _theta = self.convert_distance(R, radius_units, "radians", D_A[:, np.newaxis])
@@ -643,7 +638,7 @@ class Profile:
         ## 3. Integrand function
         def integrand(kl):
             ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = self.halo_statistics.matter_power_spectrum(z, kl)[:, np.newaxis]
+            Pk_vals = self.halostatistics.matter_power_spectrum(z, kl)[:, np.newaxis]
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
 
         ## 4. Integration
