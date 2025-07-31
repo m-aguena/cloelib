@@ -6,6 +6,7 @@ from astropy import units as ap_units
 from scipy import interpolate
 from scipy.integrate import quad_vec
 from scipy.special import j0, j1
+from scipy import interpolate
 
 from ...auxiliary import units
 from .halo_statistics import HaloStatistics
@@ -19,18 +20,25 @@ def _bessel_j2(x):
 class Profile:
     def __init__(
         self,
-        halo_statistics: HaloStatistics,
-        two_halo="None",
-        offcentering=False,
-        rms_off=0.0,
-        f_off=0.0,
-        trunc_fact=3.0,
-        zs_max=2.0,
-        mean_nz=0.4,
-        sigma_nz=0.3,
-        alpha_nz=0.4,
+        halostatistics: HaloStatistics,
+        k: np.ndarray = np.geomspace(1e-4, 10, 500),
+        z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
+        r_interp: np.ndarray = np.logspace(-10, 2.5, 200),
+        two_halo: str = "None",
+        offcentering: bool = False,
+        rms_off: float = 0.0,
+        f_off: float = 0.0,
+        trunc_fact: float = 3.0,
+        zs_max: float = 2.0,
+        mean_nz: float = 0.4,
+        sigma_nz: float = 0.3,
+        alpha_nz: float = 0.4,
+        use_interpolation: bool = True,
     ):
-        self.halo_statistics = halo_statistics
+        self.halostatistics = halostatistics
+        self.k = k
+        self.z = z
+        self.r_interp = r_interp
 
         self._validate_two_halo(two_halo)
         self.two_halo = two_halo
@@ -47,18 +55,15 @@ class Profile:
         self.sigma_nz = sigma_nz
         self.alpha_nz = alpha_nz
 
-        # true redshift array (integration variable)
-        z_min = 1e-5
-        z_max = (
-            self.zs_max - 1e-5
-        )  # correction needed for avoiding zero values in n_zs_norM computation
-        self.z_div = 50
-        self.zed = np.linspace(z_min, z_max, self.z_div + 1)
-
         # ??? evaluated at true redshift
-        self.nzsnorM = np.vectorize(self.n_zs_norM)(self.zed)
-        self.nzs = self.n_zs(self.zed)
-        self.r_interp = np.logspace(-10, 2.5, 200)
+        self.nzsnorM = np.vectorize(self.n_zs_norM)(self.z)
+        self.nzs = self.n_zs(self.z)
+
+        # set interpolation usage
+        self.interp_angular_dist = None
+        if use_interpolation:
+            self.interpolate_angular_diameter_distance()
+        self.use_interpolation = use_interpolation
 
     def _validate_two_halo(self, two_halo):
         if two_halo not in ("None", "sum", "max"):
@@ -69,7 +74,7 @@ class Profile:
         r"""
         Returns the Perturbations class instance
         """
-        return self.halo_statistics.perturbations
+        return self.halostatistics.perturbations
 
     @property
     def background(self):
@@ -77,6 +82,26 @@ class Profile:
         Returns the Background class instance
         """
         return self.perturbations.background
+
+    @property
+    def use_interpolation(self):
+        r"""If true, class uses interpolation for matter power spectrum computation."""
+        return self.__use_interpolation
+
+    @use_interpolation.setter
+    def use_interpolation(self, use_interpolation):
+        """If true, makes class uses interpolation for matter power spectrum computation."""
+        if use_interpolation:
+            self.angular_diameter_distance = self.interp_angular_dist
+        else:
+            self.angular_diameter_distance = self.background.angular_diameter_distance
+        self.__use_interpolation = use_interpolation
+
+    def interpolate_angular_diameter_distance(self):
+        r"""Create internal interpolation of angular diameter distance."""
+        self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
+            x=np.linspace(self.z.min(), self.z.max()+1.e-5, len(self.z)), y=self.background.angular_diameter_distance(np.linspace(self.z.min(),
+            self.z.max()+1.e-5, len(self.z))), ext=2)
 
     def convert_distance(
         self, distance, units_in, units_out, angular_diameter_distance=None
@@ -104,13 +129,13 @@ class Profile:
             Distance in output units. If z is array and physical to
             angular conversion used, output shape is (z.size, distance.size).
         """
-        angular_units_bank = {
+        angular_units_dict = {
             "radians": ap_units.rad,
             "degrees": ap_units.deg,
             "arcmin": ap_units.arcmin,
             "arcsec": ap_units.arcsec,
         }
-        _valid_units = ["mpc/h", *angular_units_bank.keys()]
+        _valid_units = ["mpc/h", *angular_units_dict.keys()]
         if units_in.lower() not in _valid_units:
             raise ValueError(f"units_in (={units_in}) must be in {_valid_units}")
         if units_out.lower() not in _valid_units:
@@ -119,20 +144,20 @@ class Profile:
         if units_in.lower() == units_out.lower():
             return distance
 
-        if units_out.lower() not in angular_units_bank:
+        if units_out.lower() not in angular_units_dict:
             # converting to mpc/h
             theta = (
-                (distance * angular_units_bank[units_in]).to(ap_units.rad).value
+                (distance * angular_units_dict[units_in]).to(ap_units.rad).value
             )  # distance in radians
             out = theta * angular_diameter_distance
-        elif units_in.lower() not in angular_units_bank:
+        elif units_in.lower() not in angular_units_dict:
             # converting to angular units
             theta = distance / angular_diameter_distance  # distance in radians
-            out = (theta * ap_units.rad).to(angular_units_bank[units_out]).value
+            out = (theta * ap_units.rad).to(angular_units_dict[units_out]).value
         else:
             out = (
-                (distance * angular_units_bank[units_in])
-                .to(angular_units_bank[units_out])
+                (distance * angular_units_dict[units_in])
+                .to(angular_units_dict[units_out])
                 .value
             )
 
@@ -160,9 +185,9 @@ class Profile:
         fact = (units.SPEED_OF_LIGHT / 1.0e3 / units.MPC_TO_KM) ** 2.0 / (
             4.0 * np.pi * units.GRAVITATIONAL_CONSTANT
         )  # Msun/Mpc
-        d_a_sources = self.background.angular_diameter_distance(z_sources)  # Mpc
+        d_a_sources = self.angular_diameter_distance(z_sources)  # Mpc
         d_m_sources = (1.0 + z_sources) * d_a_sources
-        d_a_lens = self.background.angular_diameter_distance(z)[:, np.newaxis]  # Mpc
+        d_a_lens = self.angular_diameter_distance(z)[:, np.newaxis]  # Mpc
         d_m_lens = (1.0 + z[:, np.newaxis]) * d_a_lens
         d_h = units.SPEED_OF_LIGHT / 1e3 / self.background.H0  # Mpc
         d_a_lens_source = (
@@ -218,9 +243,9 @@ class Profile:
         n_zs: float or np.ndarray
             Galaxy number density per redshift
         """
-        n_zs = np.zeros((z.size, self.z_div + 1))
-        for z_ind, zed in enumerate(z):
-            z_s = np.linspace(zed + 1.0e-5, self.zs_max, self.z_div + 1)
+        n_zs = np.zeros((z.size, len(self.z)))
+        for z_ind, _z in enumerate(z):
+            z_s = np.linspace(_z + 1.0e-5, self.zs_max, len(self.z))
             n_zs[z_ind] = skewnorm.pdf(z_s, self.alpha_nz, self.mean_nz, self.sigma_nz)
 
         return n_zs
@@ -244,8 +269,8 @@ class Profile:
         m_sigma_crit_m1: float
             Effective inverse critical surface mass density (units : pc^2 / Msun / h)
         """
-        z_s = np.linspace(z + 1.0e-5, self.zs_max, self.z_div + 1, axis=1)
-        sig_crit_m1[:] = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s[:])
+        z_s = np.linspace(z + 1.0e-5, self.zs_max, len(self.z), axis=1)
+        sig_crit_m1 = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s)
 
         return self.nzsnorM[zbin] * simps(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
 
@@ -418,7 +443,7 @@ class Profile:
             Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
         """
         densityThreshold = np.atleast_1d(
-            self.halo_statistics.get_Delta_crit(z)
+            self.halostatistics.get_Delta_crit(z)
             * self.background.rho_crit(z)
             / self.background.h**2.0
         )[:, np.newaxis, np.newaxis]
@@ -594,32 +619,14 @@ class Profile:
 
         # Ensure bias has shape (nz, nM, 1)
         if bias_z is None:
-            bias_z = self.halo_statistics.bias(z, M)
+            bias_z = self.halostatistics.bias(z, M)
         bias_z_outshape = np.asarray(bias_z)[:, :, np.newaxis]
 
         # Two point correlation part
 
         ## 1. Power spectrum interpolation
 
-        kl_min, kl_max, kl_num = 1e-4, 1e2, 500
-        kl_array = np.logspace(np.log10(kl_min), np.log10(kl_max), kl_num)
-
-        if z.size < 10:
-            z_for_interp = np.linspace(z.min() * 0.9, z.max() * 1.1, 10)
-        else:
-            z_for_interp = z
-
-        Pk_interp = interpolate.RectBivariateSpline(
-            z_for_interp,
-            kl_array,
-            self.perturbations.matter_power_spectrum(
-                z_for_interp[:, np.newaxis],
-                kl_array,
-                hubble_units=True,
-                k_hunit=True,
-                nonu=self.halo_statistics.nonu,
-            ),
-        )
+        kl_array = self.k
 
         ## 2. Get radial distance in radians
         _theta = self.convert_distance(R, radius_units, "radians", D_A[:, np.newaxis])
@@ -631,12 +638,12 @@ class Profile:
         ## 3. Integrand function
         def integrand(kl):
             ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = Pk_interp(z, kl)[:, np.newaxis]  # add axis for correct shape
+            Pk_vals = self.halostatistics.matter_power_spectrum(z, kl)[:, np.newaxis]
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
 
         ## 4. Integration
         two_point_corr_outshape = (
-            quad_vec(integrand, kl_min, kl_max, epsrel=1e-1)[0]
+            quad_vec(integrand, kl_array.min(), kl_array.max(), epsrel=1e-1)[0]
             * (1.0 + z_outshape)
             * D_A_outshape
         )

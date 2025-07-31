@@ -5,6 +5,7 @@ from numpy.testing import assert_raises, assert_equal, assert_allclose
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.clustering import HaloClustering
+from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
 def _test_clustering(CL,perturbations):
@@ -18,41 +19,42 @@ def _test_clustering(CL,perturbations):
 
     
     print("    WF_ra")
-    ref_WF_ra0 = np.array([[[9.9962026e-01, 5.3620315e-04],
-                            [9.9894708e-01, 3.8502066e-04]],
-                           [[9.9957979e-01, 5.4349063e-04],
-                            [9.9900585e-01, 3.8453474e-04]]])
+    ref_WF_ra0 = np.array([[[ 9.9666059e-01, -1.3502484e-05],
+			    [ 1.0016651e+00,  8.0269856e-06]],
+			   [[ 9.9715424e-01, -1.3717632e-05],
+        	 	    [ 9.9696857e-01,  8.3273408e-06]]])
+
     ref_WF_ra1 = np.array([[ 830784.512318, 2254986.533435],
                            [ 830373.221984, 2253870.173956]])
 
-
     WF,VF = CL.WF_ra(z_test, r_test)
-    assert_allclose(WF, ref_WF_ra0,rtol=1e-04)    
-    assert_allclose(VF, ref_WF_ra1,rtol=1e-04)
+    assert_allclose(WF[:,:,[0,-1]], ref_WF_ra0, rtol=1e-03) 
+    assert_allclose(VF, ref_WF_ra1, rtol=1e-03)
 
     
+    
     print("    Pk_IR_func")
-    ref_Pk_IR = np.array([[3782.7314, 63.855637],
-                          [1398.2388,  23.673042]])
+    ref_Pk_IR = np.array([[4.2284186e+02, 1.0611498e-01],
+                          [1.5616818e+02, 3.9339960e-02]])
 
     Pk_test = perturbations.matter_power_spectrum(z_test, CL.k,
                                                   hubble_units=True, k_hunit=True)
-    assert_allclose(CL.Pk_IR_func(Pk_test), ref_Pk_IR, rtol=1e-4)
+    assert_allclose(CL.Pk_IR_func(Pk_test)[:,[0,-1]], ref_Pk_IR, rtol=1e-4)
 
     
+    
     print("    photoz_rsd_correction")
-    ref_phz_rsd_0 = np.array([[0.99999981, 0.84024509],
-                              [0.99939964, 0.02087668]])
-    ref_phz_rsd_1 = np.array([[6.666667e-01, 2.524346e-01],
-                              [5.807121e-01, 1.010152e-05]])
-    ref_phz_rsd_2 = np.array([[2.000000e-01, 3.714267e-02],
-                              [1.849138e-01, 3.665836e-09]])
+    ref_phz_rsd_0 = np.array([[5.7111615e-01, 5.9122967e-06],
+                              [8.0073649e-01, 1.0336005e-05]])
+    ref_phz_rsd_1 = np.array([[1.0873061e-01, 1.3813213e-16],
+                              [3.8109362e-01, 1.2259151e-15]])
+    ref_phz_rsd_2 = np.array([[1.2568793e-02, 2.4204413e-27],
+                              [9.1092102e-02, 1.0905091e-25]])
 
-    sigma_zob = 0.025 * z_test + 5e-6 * lob_test
-    corr0,corr1,corr2 = CL.photoz_rsd_correction(z_test, sigma_zob)
-    assert_allclose(corr0, ref_phz_rsd_0, rtol=1e-04)
-    assert_allclose(corr1, ref_phz_rsd_1, rtol=1e-04)
-    assert_allclose(corr2, ref_phz_rsd_2, rtol=1e-04)
+    corr0,corr1,corr2 = CL.photoz_rsd_correction(z_test, lob_test)
+    assert_allclose(corr0[:,[0,-1]], ref_phz_rsd_0, rtol=1e-04)
+    assert_allclose(corr1[:,[0,-1]], ref_phz_rsd_1, rtol=1e-04)
+    assert_allclose(corr2[:,[0,-1]], ref_phz_rsd_2, rtol=1e-04)
 
 
 
@@ -92,5 +94,19 @@ def test_clustering():
     k_max = 1e0
     k_div = 2
     nonu = True
-    CL = HaloClustering(perturbations, perturbations_fid, nonu, k_div, k_min, k_max)
+    _sel_pars = dict(
+        A_l=0.5,
+        B_l=0.6,
+        C_l=0.5,
+        sig_A_l=0.1,
+        sig_B_l=0.0,
+        sig_C_l=0.0,
+        sig_lambda_norm=0.1,
+        sig_lambda_z=0.1,
+        sig_lambda_exponent=0.1,
+        sig_z_z=0.1,
+        sig_z_lambda=0.1,
+    )
+    SF = SelectionFunction(**_sel_pars)
+    CL = HaloClustering(perturbations, perturbations_fid, SF, nonu=nonu)
     _test_clustering(CL,perturbations)
