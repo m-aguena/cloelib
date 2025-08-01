@@ -70,11 +70,20 @@ class Profile:
             raise ValueError("Invalid 'two_halo' definition, %s." % two_halo)
 
     @property
+    def perturbations(self):
+
+
+        r"""
+        Returns the Perturbations class instance
+        """
+        return self.halostatistics.perturbations
+
+    @property
     def background(self):
         r"""
         Returns the Background class instance
         """
-        return self.halostatistics.perturbations.background
+        return self.perturbations.background
 
     @property
     def use_interpolation(self):
