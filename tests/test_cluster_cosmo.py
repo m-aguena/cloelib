@@ -9,37 +9,6 @@ from cloelib.cosmology.camb_cosmology import (
     CAMBNonLinearPerturbations,
 )
 
-from cloelib.cosmology.class_cosmology import (
-    CLASSBackground,
-    CLASSLinearPerturbations,
-    CLASSNonLinearPerturbations,
-)
-from cloelib.cosmology.jax_cosmology import (
-    JAXBackground,
-    JAXLinearPerturbations,
-    JAXNonLinearPerturbations,
-)
-
-# from cloelib.cosmology.HMcode2020Emu_cosmology import (
-#    HMemuLinearPerturbations,
-#    HMemuNonLinearPerturbations,
-# )
-
-
-def _safe_ni_assert(assert_func, func, args, kwargs, reference, **kwargs_assert):
-    if kwargs_assert is None:
-        kwargs_assert = {}
-    try:
-        assert_func(func(*args, **kwargs), reference, **kwargs_assert)
-    except Exception as e:
-        if not isinstance(e, NotImplementedError):
-            raise e
-
-
-def assert_less_than(value_smaller, value_larger):
-    assert value_smaller < value_larger
-
-
 def test_cosmo():
     # Cosmology parameters
     print("# Cosmology parameters")
