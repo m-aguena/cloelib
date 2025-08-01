@@ -74,7 +74,7 @@ class Profile:
         r"""
         Returns the Background class instance
         """
-        return self.halo_statistics.perturbations.background
+        return self.halostatistics.perturbations.background
 
     @property
     def use_interpolation(self):

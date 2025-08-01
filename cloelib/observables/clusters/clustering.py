@@ -157,7 +157,6 @@ class HaloClustering:
         ns = self.background.ns
         h = self.background.h
         Obh2 = self.background.Omega_b(0.0) * h**2
-        Omh2 = self.background.Omega_m(0.0, self.nonu) * h**2
         Omh2 = self._Omega_m(0.0) * h**2
         Tcmb = 2.73
 

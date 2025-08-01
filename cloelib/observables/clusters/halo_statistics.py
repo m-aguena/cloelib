@@ -135,12 +135,11 @@ class HaloStatistics:
         float or np.ndarray
             Matter power spectrum.
         """
-        return self.perturbations.matter_power_spectrum(
+        return self._matter_power_spectrum(
             z,
             k,
             hubble_units=True,
             k_hunit=True,
-            nonu=self.nonu,
         )
 
     def interpolate_matter_power_spectrum(
