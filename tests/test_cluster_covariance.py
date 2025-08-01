@@ -35,7 +35,6 @@ def test_count_covariance():
 
     area = 15000
     nbins_z = 10
-    L = 20
 
     k_min = 1e-4
     k_max = 2e0
@@ -44,7 +43,7 @@ def test_count_covariance():
     zbins = np.linspace(0, 2, nbins_z + 1)
     k_test = np.geomspace(k_min, k_max, k_div)
 
-    CC = HaloCovariance(perturbations, area, nbins_z, k_test, L)
+    CC = HaloCovariance(perturbations, k_test, area, nbins_z)
 
     print("    Covariance coefficients")
     KL = CC.Kl_coeff()

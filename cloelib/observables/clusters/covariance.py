@@ -3,24 +3,23 @@ import numpy as np
 from scipy.special import eval_legendre, spherical_jn
 from scipy.integrate import simpson as simps
 
+
 class HaloCovariance:
     def __init__(
             self,
-            pertrurbations: Perturbations,
-            area: float,
-            nbins_zob: int,
+            perturbations: Perturbations,
             k: np.ndarray,
-            L: int
-):
-        self.background = pertrurbations.background
+            area: float,
+            nbins_zob: int
+        ):
+        self.background = perturbations.background
 
         self.area = area
         self.k = k
-        self.L = L
-        
-        self.rint = np.zeros((nbins_zob,len(self.k),L+1))
-        
-        
+        self.L = 20
+
+        self.rint = np.zeros((nbins_zob, len(self.k), self.L + 1))
+
     def Kl_coeff(self):
         """
         Coefficients of the spherical harmonics expansion of the angular part of the window function

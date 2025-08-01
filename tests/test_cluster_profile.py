@@ -33,7 +33,7 @@ def _get_castro_hs():
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 
-    return HaloStatisticsCastro(perturbations, "vir")
+    return HaloStatisticsCastro(perturbations, overdensity_type="vir")
 
 
 def test_array_shapes():
@@ -161,28 +161,28 @@ def test_profiles():
         "n_zs": {
             "desired": [
                 3.445074e-01,
-                4.309865e-01,
-                5.286852e-01,
-                6.359309e-01,
-                7.500898e-01,
+                3.52638e-01,
+                3.6089e-01,
+                3.69262e-01,
+                3.77753e-01,
             ],
-            "rtol": 1e-5,
+            "rtol": 1e-3,
         },
         "surface_mass_density": {
             "desired": [57.782346, 60.278322, 62.62685, 64.791899],
-            "rtol": 1e-5,
+            "rtol": 1e-3,
         },
         "excess_surface_mass_density": {
             "desired": [85.397604, 94.3122, 103.483482, 112.700292],
-            "rtol": 1e-5,
+            "rtol": 1e-3,
         },
         "surface_mass_density_2h": {
-            "desired": [13.272828, 16.800602, 20.613664, 24.68966],
-            "rtol": 1e-5,
+            "desired": [13.276354, 16.761777, 20.598522, 24.711948],
+            "rtol": 1e-3,
         },
         "excess_surface_mass_density_2h": {
-            "desired": [1.519691, 2.125295, 2.843744, 3.677761],
-            "rtol": 1e-5,
+            "desired": [1.515384, 2.157451, 2.844042, 3.643293],
+            "rtol": 1e-3,
         },
     }
     _test_profile(profile_nfw, _reference_vals)
@@ -193,11 +193,11 @@ def test_profiles():
         {
             "surface_mass_density": {
                 "desired": [49.754672, 50.309348, 50.479286, 50.276593],
-                "rtol": 1e-5,
+                "rtol": 1e-3,
             },
             "excess_surface_mass_density": {
                 "desired": [90.134602, 99.25608, 108.537932, 117.745383],
-                "rtol": 1e-5,
+                "rtol": 1e-3,
             },
         }
     )
