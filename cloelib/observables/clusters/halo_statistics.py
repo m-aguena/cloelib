@@ -310,7 +310,7 @@ class HaloStatistics:
                     (k**2.0).reshape(1, 1, len(k))
                     * self.matter_power_spectrum(z, k).reshape(len(z), 1, len(k))
                     * (W**2.0).reshape(1, len(R), len(k)),
-                    k,
+                    x=k,
                     axis=-1,
                 )
             )
@@ -387,7 +387,7 @@ class HaloStatistics:
             * self.matter_power_spectrum(z, k).reshape(len(z), 1, len(k))
             * W.reshape(1, len(R), len(k))
             * dWdx.reshape(1, len(R), len(k)),
-            k,
+            x=k,
             axis=-1,
         )
 
