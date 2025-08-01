@@ -250,7 +250,7 @@ class HaloClustering:
             Correction terms to the power spectrum monopole
         """
 
-        # growth rate                                                                                                                                                                                                
+        # growth rate
         f_gr = (self._Omega_m(z) ** 0.55)[:, np.newaxis]
 
         ks = self.k * (
