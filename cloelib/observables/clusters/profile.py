@@ -71,8 +71,6 @@ class Profile:
 
     @property
     def perturbations(self):
-
-
         r"""
         Returns the Perturbations class instance
         """
