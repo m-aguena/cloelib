@@ -104,6 +104,7 @@ class HaloStatistics:
             self._Omega_m = self.background.Omega_m
             self._matter_power_spectrum = self.perturbations.matter_power_spectrum
 
+    @property
     def use_interpolation(self):
         r"""If true, class uses interpolation for matter power spectrum computation."""
         return self.__use_interpolation
