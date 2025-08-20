@@ -20,6 +20,8 @@ jobs:
       run: |
         pip install astropy cython black
         pip install camb classy jax
+        pip install pyinstrument
+
     - name: Install the package
       run: |
         pip install .
