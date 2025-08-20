@@ -154,6 +154,20 @@ class CAMBBackground:
         """
         return self.Omega_m_cb(zs) + self.results.get_Omega("nu", z=zs)
 
+    def Omega_b(self, zs: np.ndarray) -> np.ndarray:
+        """
+        Return the baryon density as a function of redshift.
+
+        Args:
+            zs (np.ndarray): Array of redshifts.
+
+        Returns:
+            np.ndarray: Baryonic density values at specified redshifts.
+        """
+        return (
+            self.results.get_Omega("baryon", z=zs)
+        )
+
     @property
     def rdrag(self) -> float:
         """Sound horizon radius at last scattering in Mpc."""
