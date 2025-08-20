@@ -40,7 +40,7 @@ def test_cosmo():
         rtol=1e-03,
     )
     assert_allclose(dc.rho_crit(background, 0), 1.27203085e11, rtol=1e-03)
-    assert_allclose(background.rdrag(), 147.50225, rtol=1e-05)
+    assert_allclose(background.rdrag, 147.50225, rtol=1e-05)
 
     # camb linear
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
