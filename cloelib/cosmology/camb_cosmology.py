@@ -130,7 +130,7 @@ class CAMBBackground:
 
     def Omega_m_cb(self, zs: np.ndarray) -> np.ndarray:
         """
-        Returns the matter density (no neutrinos) as a function of redshift.
+        Return the matter density (no neutrinos) as a function of redshift.
 
         Args:
             zs (np.ndarray): Array of redshifts.
@@ -144,7 +144,7 @@ class CAMBBackground:
 
     def Omega_m(self, zs: np.ndarray) -> np.ndarray:
         """
-        Returns the matter density as a function of redshift.
+        Return the matter density as a function of redshift.
 
         Args:
             zs (np.ndarray): Array of redshifts.
