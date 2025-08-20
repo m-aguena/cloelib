@@ -2,6 +2,7 @@
 from cloelib.observables.clusters.halo_statistics import HaloStatistics, HaloStatisticsCastro, HaloStatisticsTinker
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.cosmology.cosmology import Perturbations
+from cloelib.cosmology import derived_cosmology as dc
 from cloelib.observables.clusters.profile import Profile, ProfileNFW, ProfileBMO
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
@@ -131,7 +132,7 @@ class ClusterStatistics:
         #############################################################      
 
         # volume element at the center of observed redshift bins
-        self.dvdzdomega_z1z2 = self.background.dV_dzdO(self.z, hubble_units=True)#*(self.background.H0/100.0)**3.0
+        self.dvdzdomega_z1z2 = dc.dV_dzdO(self.background, self.z, hubble_units=True)#*(self.background.H0/100.0)**3.0
 
         # hmf at the center of observed redshift bins
         self.dndm_z = self.haloStatistics.dn_dm(self.z, self.Mass) 
