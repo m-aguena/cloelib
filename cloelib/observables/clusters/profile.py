@@ -612,7 +612,7 @@ class Profile:
         z_outshape = np.asarray(z)[:, np.newaxis, np.newaxis]  # shape (nz, 1, 1)
         D_A_outshape = D_A[:, np.newaxis, np.newaxis]
         rho_m_outshape = (
-            self.background.Omega_m(z, nonu=False)
+            self.background.Omega_m(z)
             * self.background.rho_crit(z)
             / self.background.h**2
         )[:, np.newaxis, np.newaxis]

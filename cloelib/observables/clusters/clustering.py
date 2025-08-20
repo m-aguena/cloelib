@@ -26,6 +26,24 @@ class HaloClustering:
         # wavelength array (integration variable)
         self.k = k
 
+    @property
+    def nonu(self):
+        r"""
+        Includes or not neutrinos on matter density and matter power spectrum.
+        """
+        return self.__nonu
+
+    @nonu.setter
+    def nonu(self, value):
+        """Set nonu"""
+        if not isinstance(value, bool):
+            raise ValueError(f"value for nonu must be boolean, used {value}")
+        self.__nonu = value
+        if self.nonu:
+            self._Omega_m = self.background.Omega_m_cb
+        else:
+            self._Omega_m = self.background.Omega_m
+
     def WF_ra(self, z: np.ndarray, r: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Computes the window function and the volume of the spherical shells as a function of the radial separation
@@ -117,7 +135,7 @@ class HaloClustering:
             / self.background_fid.hubble_parameter(z)
         ) ** (1 / 3.0)
 
-        return (Dv / self.background.rdrag()) * (self.background_fid.rdrag() / Dv_fid)
+        return (Dv / self.background.rdrag) * (self.background_fid.rdrag / Dv_fid)
 
     # IR resummation of the bao wiggles in the Pk
     def Pk_IR_func(self, Pk: np.ndarray) -> np.ndarray:
@@ -139,7 +157,7 @@ class HaloClustering:
         ns = self.background.ns
         h = self.background.h
         Obh2 = self.background.Omega_b(0.0) * h**2
-        Omh2 = self.background.Omega_m(0.0, self.nonu) * h**2
+        Omh2 = self._Omega_m(0.0) * h**2
         Tcmb = 2.73
 
         k = self.k
@@ -232,7 +250,7 @@ class HaloClustering:
         """
 
         # growth rate
-        f_gr = (self.background.Omega_m(z, self.nonu) ** 0.55)[:, np.newaxis]
+        f_gr = (self._Omega_m(z) ** 0.55)[:, np.newaxis]
 
         ks = self.k * (
             self.selectionfunction.scatter_zobs_z(Lambda_obs, z)

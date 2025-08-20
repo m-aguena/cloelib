@@ -85,6 +85,26 @@ class HaloStatistics:
         return self.__sigma8
 
     @property
+    def nonu(self):
+        r"""
+        Includes or not neutrinos on matter density and matter power spectrum.
+        """
+        return self.__nonu
+
+    @nonu.setter
+    def nonu(self, value):
+        """Set nonu"""
+        if not isinstance(value, bool):
+            raise ValueError(f"value for nonu must be boolean, used {value}")
+        self.__nonu = value
+        if self.nonu:
+            self._Omega_m = self.background.Omega_m_cb
+            self._matter_power_spectrum = self.perturbations.matter_power_spectrum_cb
+        else:
+            self._Omega_m = self.background.Omega_m
+            self._matter_power_spectrum = self.perturbations.matter_power_spectrum
+
+    @property
     def use_interpolation(self):
         r"""If true, class uses interpolation for matter power spectrum computation."""
         return self.__use_interpolation
@@ -115,12 +135,11 @@ class HaloStatistics:
         float or np.ndarray
             Matter power spectrum.
         """
-        return self.perturbations.matter_power_spectrum(
+        return self._matter_power_spectrum(
             z,
             k,
             hubble_units=True,
             k_hunit=True,
-            nonu=self.nonu,
         )
 
     def interpolate_matter_power_spectrum(
@@ -192,7 +211,7 @@ class HaloStatistics:
         """
         rho_m_0 = (
             self.background.rho_crit(0.0)
-            * self.background.Omega_m(0.0, self.nonu)
+            * self._Omega_m(0.0)
             / self.background.h**2.0
         )
         return (M / rho_m_0 * (3.0 / (4.0 * np.pi))) ** (1 / 3.0)
@@ -254,10 +273,10 @@ class HaloStatistics:
             Delta = self.overdensity
 
         elif self.overdensity_type == "mean":
-            Delta = self.overdensity * self.background.Omega_m(z, self.nonu)
+            Delta = self.overdensity * self._Omega_m(z)
 
         elif self.overdensity_type == "vir":
-            x = self.background.Omega_m(z, self.nonu) - 1.0
+            x = self._Omega_m(z) - 1.0
             Delta = 18.0 * np.pi**2 + 82.0 * x - 39.0 * x**2
 
         return Delta
@@ -291,7 +310,7 @@ class HaloStatistics:
                     (k**2.0).reshape(1, 1, len(k))
                     * self.matter_power_spectrum(z, k).reshape(len(z), 1, len(k))
                     * (W**2.0).reshape(1, len(R), len(k)),
-                    k,
+                    x=k,
                     axis=-1,
                 )
             )
@@ -368,7 +387,7 @@ class HaloStatistics:
             * self.matter_power_spectrum(z, k).reshape(len(z), 1, len(k))
             * W.reshape(1, len(R), len(k))
             * dWdx.reshape(1, len(R), len(k)),
-            k,
+            x=k,
             axis=-1,
         )
 
@@ -416,7 +435,7 @@ class HaloStatistics:
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
         dlnsigmadlnR = self.dlns_dlnR(z, M)
-        rho_mean_0 = self.background.Omega_m(0, self.nonu) * self.background.rho_crit(0)
+        rho_mean_0 = self._Omega_m(0) * self.background.rho_crit(0)
         rho_mean_0 /= self.background.h**2.0
 
         return rho_mean_0 / M**2.0 * self.f_sigma_nu(z, M) * dlnsigmadlnR / (-3)
@@ -515,7 +534,7 @@ class HaloStatisticsCastro(HaloStatistics):
         qz = 0.0251
 
         dlnsigmadlnR = self.dlns_dlnR(z, M)
-        Ommz = self.background.Omega_m(z, self.nonu)[:, np.newaxis]
+        Ommz = self._Omega_m(z)[:, np.newaxis]
         nu = self.nu_z_M(z, M)
 
         aR = a1 + a2 * (dlnsigmadlnR + 0.6125) ** 2.0
@@ -568,7 +587,7 @@ class HaloStatisticsCastro(HaloStatistics):
             M = np.append(M, M[-1] * np.arange(2, 6))
 
         dlnsigmadlnR = self.dlns_dlnR(z, M)
-        Ommz = self.background.Omega_m(z, self.nonu)[:, np.newaxis]
+        Ommz = self._Omega_m(z)[:, np.newaxis]
         S8 = self.sigma8 * np.sqrt(self.background.Omega_m(0.0) / 0.3)
 
         nu = self.nu_z_M(z, M)

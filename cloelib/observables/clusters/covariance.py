@@ -86,7 +86,7 @@ class HaloCovariance:
                 * np.array(
                     [spherical_jn(l, kr, derivative=False) for l in range(self.L + 1)]
                 ),
-                rvec,
+                x=rvec,
                 axis=-1,
             ).T
         )
