@@ -50,6 +50,7 @@ def test_halostatistics():
     M_test = np.logspace(14, 15, 5)
 
     for HS in (HS_tinker, HS_castro):
+        print(f"  {HS.halo_statistics_model.name}")
         print("    window")
         W, dWdx = HS.window(k_test, R_test)
         _ref = [9.999999e-01, 9.999968e-01, 9.999000e-01, 9.968413e-01, 9.035060e-01]

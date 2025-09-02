@@ -4,7 +4,9 @@ from scipy.special import gamma
 
 
 class CastroHaloStatisticsModel:
-    def f_sigma_nu(self, z, M):
+    name = "castro"
+
+    def f_sigma_nu(halo_stat_obj, z, M):
         r"""
         Computation of the multiplicity function.
 
@@ -13,6 +15,8 @@ class CastroHaloStatisticsModel:
 
         Parameters
         ----------
+        halo_stat_obj: HaloStatistics
+            Main halo statistics object.
         z: numpy.ndarray
             Redshift points
         M: numpy.ndarray
@@ -32,9 +36,9 @@ class CastroHaloStatisticsModel:
         q2 = -0.2804
         qz = 0.0251
 
-        dlnsigmadlnR = self.dlns_dlnR(z, M)
-        Ommz = self._Omega_m(z)[:, np.newaxis]
-        nu = self.nu_z_M(z, M)
+        dlnsigmadlnR = halo_stat_obj.dlns_dlnR(z, M)
+        Ommz = halo_stat_obj._Omega_m(z)[:, np.newaxis]
+        nu = halo_stat_obj.nu_z_M(z, M)
 
         aR = a1 + a2 * (dlnsigmadlnR + 0.6125) ** 2.0
         a = aR * Ommz**az
@@ -55,7 +59,7 @@ class CastroHaloStatisticsModel:
             * (nu * np.sqrt(a)) ** (q - 1.0)
         ) * nu
 
-    def bias(self, z, M):
+    def bias(halo_stat_obj, z, M):
         r"""
         Computation of the halo bias.
 
@@ -64,6 +68,8 @@ class CastroHaloStatisticsModel:
 
         Parameters
         ----------
+        halo_stat_obj: HaloStatistics
+            Main halo statistics object.
         z: numpy.ndarray
             Redshift points
         M: numpy.ndarray
@@ -85,12 +91,12 @@ class CastroHaloStatisticsModel:
         if lenM_orig < 4:
             M = np.append(M, M[-1] * np.arange(2, 6))
 
-        dlnsigmadlnR = self.dlns_dlnR(z, M)
-        Ommz = self._Omega_m(z)[:, np.newaxis]
-        S8 = self.sigma8 * np.sqrt(self.background.Omega_m(0.0) / 0.3)
+        dlnsigmadlnR = halo_stat_obj.dlns_dlnR(z, M)
+        Ommz = halo_stat_obj._Omega_m(z)[:, np.newaxis]
+        S8 = halo_stat_obj.sigma8 * np.sqrt(halo_stat_obj.background.Omega_m(0.0) / 0.3)
 
-        nu = self.nu_z_M(z, M)
-        nufnu = self.f_sigma_nu(z, M)
+        nu = halo_stat_obj.nu_z_M(z, M)
+        nufnu = halo_stat_obj.f_sigma_nu(z, M)
         dlnnufnu_dlnnu = np.zeros(nufnu.shape)
         for i in range(len(z)):
             nufnu_int = interpolate.splrep(np.log(nu[i]), np.log(nufnu[i]), s=0)
@@ -98,7 +104,7 @@ class CastroHaloStatisticsModel:
 
         # parameters
         A0, a1, b1, b2, c1 = 1.150, 0.0929, 0.256, 0.173, -0.0372
-        b_pbs = 1 - 1 / self.delta_c(z)[:, np.newaxis] * dlnnufnu_dlnnu
+        b_pbs = 1 - 1 / halo_stat_obj.delta_c(z)[:, np.newaxis] * dlnnufnu_dlnnu
         f0 = 1 + a1 * Ommz
         f1 = 1 + b1 * dlnsigmadlnR + b2 * dlnsigmadlnR**2
         f2 = 1 + c1 * S8

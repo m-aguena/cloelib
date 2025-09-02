@@ -2,7 +2,9 @@ import numpy as np
 
 
 class TinkerHaloStatisticsModel:
-    def f_sigma_nu(self, z, M):
+    name = "tinker"
+
+    def f_sigma_nu(halo_stat_obj, z, M):
         r"""
         Computation of the multiplicity function.
 
@@ -11,6 +13,8 @@ class TinkerHaloStatisticsModel:
 
         Parameters
         ----------
+        halo_stat_obj: HaloStatistics
+            Main halo statistics object.
         z: numpy.ndarray
             Redshift points
         M: numpy.ndarray
@@ -23,7 +27,7 @@ class TinkerHaloStatisticsModel:
         """
         raise NotImplementedError
 
-    def bias(self, z, M):
+    def bias(halo_stat_obj, z, M):
         r"""
         Computation of the halo bias.
 
@@ -32,6 +36,8 @@ class TinkerHaloStatisticsModel:
 
         Parameters
         ----------
+        halo_stat_obj: HaloStatistics
+            Main halo statistics object.
         z: numpy.ndarray
             Redshift points
         M: numpy.ndarray
@@ -42,7 +48,7 @@ class TinkerHaloStatisticsModel:
         bias: numpy.ndarray
             bias[i,j], where i is the redshift axis and j the mass axis
         """
-        Delta = self.get_Delta_crit(z) / self.background.Omega_m(z)
+        Delta = halo_stat_obj.get_Delta_crit(z) / halo_stat_obj.background.Omega_m(z)
 
         # parameters
         p = [1.0, 0.24, 0.44, 0.88, 0.183, 1.5, 0.019, 0.107, 0.19, 2.4]
@@ -55,10 +61,10 @@ class TinkerHaloStatisticsModel:
         c_par = p[9]
 
         # bias
-        nu = self.nu_z_M(z, M).T
+        nu = halo_stat_obj.nu_z_M(z, M).T
         return (
             1.0
-            - A_par * nu**a_par / (nu**a_par + self.delta_c(z) ** a_par)
+            - A_par * nu**a_par / (nu**a_par + halo_stat_obj.delta_c(z) ** a_par)
             + B_par * nu**b_par
             + C_par * nu**c_par
         ).T
