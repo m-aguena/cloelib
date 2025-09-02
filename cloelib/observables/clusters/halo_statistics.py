@@ -1,13 +1,12 @@
 from cloelib.cosmology.cosmology import Perturbations
 from cloelib.cosmology import derived_cosmology as dc
-from cloelib.observables.clusters.halo_statistics_model.hs_model import (
+from cloelib.observables.clusters.halo_statistics_models.hs_model import (
     HaloStatisticsModel,
 )
 
 import numpy as np
+from scipy import interpolate
 from scipy.integrate import simpson as simps
-from scipy.special import gamma
-from scipy import integrate, interpolate
 
 
 class HaloStatistics:
@@ -50,6 +49,7 @@ class HaloStatistics:
             use_interpolation=True. For a more customized interpolation, check
             the interpolate_matter_power_spectrum function.
         """
+        self.halo_statistics_model = halo_statistics_model
         self.perturbations = perturbations
 
         if overdensity_type not in ["crit", "mean", "vir"]:
