@@ -85,10 +85,10 @@ class ClusterStatistics:
         self.z_obs_Cxi2_edges = z_obs_Cxi2_edges
 
         # integration variables
-        self.k = k # k array
+        self.k = k  # k array
         self.Mass = Mass  # mass array in Msun h^-1
-        self.Lambda = Lambda # true richness array
-        self.z = z # true redshift array
+        self.Lambda = Lambda  # true richness array
+        self.z = z  # true redshift array
 
         ################### SELECTION FUNCTION ###################
 
@@ -163,7 +163,7 @@ class ClusterStatistics:
         self._gamma_cov_Cxi2 = np.zeros((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
 
         ### cov_g, cov_ng are TWO TERMS OF EQ. 73
-        self._cov_g= np.zeros(
+        self._cov_g = np.zeros(
             (
                 self.z_obs_Cxi2_div,
                 self.Lambda_obs_Cxi2_div,
@@ -199,7 +199,33 @@ class ClusterStatistics:
             self.z, self.Mass
         )  # only work for virial overdensity
 
-    def _compute_counts(self, N_zbin_Lbin, cov_zbin_Lbin, cov=True):
+        ################### OUTPUTS ###################
+        self.N_zbin_Lbin = np.zeros((self.z_obs_div, self.Lambda_obs_div))
+        self.g_zbin_Lbin_Rbin = np.zeros(
+            (self.z_obs_div, self.Lambda_obs_div, self.Rad_obs_div)
+        )
+        self.Cxi2_zbin_Lbin_Rbin = np.zeros(
+            (
+                self.z_obs_Cxi2_div,
+                self.Lambda_obs_Cxi2_div + 1,
+                self.Rad_obs_Cxi2_div,
+            )
+        )
+        self.cov_N_zbin_Lbin = np.zeros(
+            (self.z_obs_div, self.z_obs_div, self.Lambda_obs_div, self.Lambda_obs_div)
+        )
+        self.cov_Cxi2_zbin_Lbin_Rbin = np.zeros(
+            (
+                self.z_obs_Cxi2_div,
+                self.z_obs_Cxi2_div,
+                self.Lambda_obs_Cxi2_div + 1,
+                self.Lambda_obs_Cxi2_div + 1,
+                self.Rad_obs_Cxi2_div,
+                self.Rad_obs_Cxi2_div,
+            )
+        )
+
+    def _compute_counts(self, cov=True):
         # computes cluster counts and optionally covariance
 
         # mean observed bins
@@ -228,29 +254,28 @@ class ClusterStatistics:
             for z_bin in range(len(z_obs_mid)):
 
                 self._dV_dzob[z_bin, lambda_bin] = self._volume_bin(z_bin, lambda_bin)
-                N_zbin_Lbin[z_bin, lambda_bin] = self._counts_bin(
+                self.N_zbin_Lbin[z_bin, lambda_bin] = self._counts_bin(
                     self._dV_dzob[z_bin, lambda_bin], self._n_lbdobs_z[lambda_bin]
                 )
 
                 if cov:
                     # N(lob,zob) * bias(lob,zob)
                     Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
-                        self._b_n_lbdobs_z[lambda_bin] * self._dV_dzob[z_bin, lambda_bin],
+                        self._b_n_lbdobs_z[lambda_bin]
+                        * self._dV_dzob[z_bin, lambda_bin],
                         self.z,
                         axis=0,
                     )
                     # shot-noise matrix
-                    self._shot_noise[z_bin, z_bin] = np.diag(N_zbin_Lbin[z_bin])
+                    self._shot_noise[z_bin, z_bin] = np.diag(self.N_zbin_Lbin[z_bin])
 
             if cov:
                 # total covariance = shot-noise + sample covariance
-                cov_zbin_Lbin = self._shot_noise + (
+                self.cov_N_zbin_Lbin = self._shot_noise + (
                     Nb_zbin_Lbin.reshape(1, self.z_obs_div, 1, self.Lambda_obs_div)
                     * Nb_zbin_Lbin.reshape(self.z_obs_div, 1, self.Lambda_obs_div, 1)
                     * sab.reshape(self.z_obs_div, self.z_obs_div, 1, 1)
                 )
-
-        return N_zbin_Lbin, cov_zbin_Lbin
 
     def _Plob_M_z_bin(self, lambda_bin):
         # returns # P(lob|M,ztr) for a richness bin
@@ -340,7 +365,7 @@ class ClusterStatistics:
 
         return sab
 
-    def _compute_reduced_shear(self, g_zbin_Lbin_Rbin, N_zbin_Lbin):
+    def _compute_reduced_shear(self, N_zbin_Lbin):
 
         Rad_obs = self.Rad_obs_edges
         Rad_obs_mid = _bin_midpoints(Rad_obs)
@@ -362,7 +387,7 @@ class ClusterStatistics:
                 )
 
                 for z_bin in range(len(self.z_obs_edges) - 1):
-                    g_zbin_Lbin_Rbin[z_bin, lambda_bin, rad_bin] = (
+                    self.g_zbin_Lbin_Rbin[z_bin, lambda_bin, rad_bin] = (
                         (1.0)
                         / N_zbin_Lbin[z_bin, lambda_bin]
                         * simps(
@@ -373,9 +398,7 @@ class ClusterStatistics:
                         )
                     )
 
-        return g_zbin_Lbin_Rbin
-
-    def _compute_Cxi2_zbin_Lbin_Rbin(self, Cxi2_zbin_Lbin_Rbin):
+    def _compute_Cxi2_zbin_Lbin_Rbin(self):
         ###This function uses Pl_M_z calculated during cluster counts!!!
         ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
         ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
@@ -516,11 +539,9 @@ class ClusterStatistics:
         # xi(lambda_i,lambda_j) = xi(lambda_j,lambda_i), so reshape and keep only one of them
         for z_bin in range(self.z_obs_Cxi2_div):
             for rad_bin in range(self.Rad_obs_Cxi2_div):
-                Cxi2_zbin_Lbin_Rbin[z_bin, :, rad_bin] = Cxi2_zbin_Lbin_Rbin_buf[
+                self.Cxi2_zbin_Lbin_Rbin[z_bin, :, rad_bin] = Cxi2_zbin_Lbin_Rbin_buf[
                     z_bin, :, :, rad_bin
                 ][np.triu_indices(self.Lambda_obs_Cxi2_div)]
-
-        return Cxi2_zbin_Lbin_Rbin
 
     def _compute_cov_Cxi2(self):
         # 2point correlation function covariance
@@ -610,7 +631,7 @@ class ClusterStatistics:
                     for lambda_bin_k in lambda_bin_numbers:
                         for lambda_bin_h in lambda_bin_numbers:
                             # NOTE: if more than 2 richness bins, this has to be modified
-                            cov_Cxi2[
+                            self.cov_Cxi2_zbin_Lbin_Rbin[
                                 z_bin,
                                 z_bin,
                                 lambda_bin_i + lambda_bin_j,
@@ -659,89 +680,31 @@ class ClusterStatistics:
 
         return alpha_n_ij, beta_pk_ij
 
-    def _initialize_output(self):
-        N_zbin_Lbin = np.zeros((self.z_obs_div, self.Lambda_obs_div))
-        g_zbin_Lbin_Rbin = np.zeros(
-            ((self.z_obs_div, self.Lambda_obs_div, self.Rad_obs_div))
-        )
-        Cxi2_zbin_Lbin_Rbin = np.zeros(
-            (
-                (
-                    (
-                        self.z_obs_Cxi2_div,
-                        self.Lambda_obs_Cxi2_div + 1,
-                        self.Rad_obs_Cxi2_div,
-                    )
-                )
-            )
-        )
-        cov_zbin_Lbin = np.zeros(
-            (self.z_obs_div, self.z_obs_div, self.Lambda_obs_div, self.Lambda_obs_div)
-        )
-        cov_Cxi2 = np.zeros(
-            (
-                self.z_obs_Cxi2_div,
-                self.z_obs_Cxi2_div,
-                self.Lambda_obs_Cxi2_div + 1,
-                self.Lambda_obs_Cxi2_div + 1,
-                self.Rad_obs_Cxi2_div,
-                self.Rad_obs_Cxi2_div,
-            )
-        )
-
-        cluster_output = [
-            N_zbin_Lbin,
-            g_zbin_Lbin_Rbin,
-            Cxi2_zbin_Lbin_Rbin,
-            cov_zbin_Lbin,
-            cov_Cxi2,
-        ]
-        return cluster_output
-
     def N_zbin_Lbin_Rbin(self):
         # main function
         # I think it is a bit weird that we have to always output everything, even if we are not using it
-        [
-            N_zbin_Lbin,
-            g_zbin_Lbin_Rbin,
-            Cxi2_zbin_Lbin_Rbin,
-            cov_zbin_Lbin,
-            cov_Cxi2,
-        ] = self._initialize_output()
 
         if self.CG_like_selection in ["CC", "CC_CWL", "CC_Cxi2", "CC_CWL_Cxi2"]:
 
-            N_zbin_Lbin, cov_zbin_Lbin = self._compute_counts(
-                N_zbin_Lbin,
-                cov_zbin_Lbin,
+            self._compute_counts(
                 cov=(self.CG_xi2_cov_selection in ["covCC", "covCC_covCxi2"]),
             )
 
-            if self.CG_like_selection in ["CC_CWL", "CC_CWL_Cxi2"]:
-                g_zbin_Lbin_Rbin = self._compute_reduced_shear(
-                    g_zbin_Lbin_Rbin, N_zbin_Lbin
-                )
+        if self.CG_like_selection in ["CC_CWL", "CC_CWL_Cxi2"]:
+            self._compute_reduced_shear(self.N_zbin_Lbin)
 
         ##########################################
         # 2point correlation function
         if self.CG_like_selection in ["CC_Cxi2", "CC_CWL_Cxi2"]:
-            Cxi2_zbin_Lbin_Rbin = self._compute_Cxi2_zbin_Lbin_Rbin()
+            self._compute_Cxi2_zbin_Lbin_Rbin()
 
             # 2point correlation function covariance
             if self.CG_xi2_cov_selection in ["covCxi2", "covCC_covCxi2"]:
-                cov_Cxi2 = self._compute_cov_Cxi2()
+                self._compute_cov_Cxi2()
                 # note: this function depends on these quantities, that are computed by the covariance function.
                 # (Pk_lambdai_lambdaj one_over_n_lambdai_lambdaj,W_rad,V_rad,V_zob,)
                 #   I made them class objects, but we could just put the covariance function inside the
                 # cluster clustering function as I did for cluster counts
-
-        return (
-            N_zbin_Lbin,
-            g_zbin_Lbin_Rbin,
-            Cxi2_zbin_Lbin_Rbin,
-            cov_zbin_Lbin,
-            cov_Cxi2,
-        )
 
 
 def _bin_midpoints(edges):
