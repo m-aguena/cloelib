@@ -135,7 +135,17 @@ class ClusterStatistics:
         self.beta_cov_Cxi2 = np.ones((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
         self.gamma_cov_Cxi2 = np.zeros((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
 
-        #############################################################
+        ################### INTERNAL QUANTITIES (OPTIONAL) ###################
+
+        self._Plob_M_z = None
+        self._dV_dzob = None
+        self._V_zob = None
+        self._one_over_n_lambdai_lambdaj = None
+        self._Pk_lambdai_lambdaj = None
+        self._W_rad = None
+        self._V_rad = None
+
+        ################### INTERNAL QUANTITIES ###################
 
         # volume element at the center of observed redshift bins
         self.dvdzdomega_z1z2 = dc.dV_dzdO(
