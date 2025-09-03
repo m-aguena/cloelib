@@ -225,57 +225,30 @@ class ClusterStatistics:
             )
         )
 
-    def _compute_counts(self):
-        # computes cluster counts
+    ################
+    # cluster counts
+    ################
 
-        for lambda_bin in range(self.Lambda_obs_div):
+    def _volume_bin(self, z_bin, lambda_bin):
+        # computes volume in richness redshift bin for cluster counts
 
-            self._Plob_M_z[lambda_bin] = self._Plob_M_z_bin(lambda_bin)
-            # N(lob,ztr)
-            self._n_lbdobs_z[lambda_bin] = simps(
-                self._Plob_M_z[lambda_bin] * self.dndm_z, self.Mass, axis=1
-            )
-
-            for z_bin in range(self.z_obs_div):
-
-                self._dV_dzob[z_bin, lambda_bin] = self._volume_bin(z_bin, lambda_bin)
-                self.N_zbin_Lbin[z_bin, lambda_bin] = self._counts_bin(
-                    self._dV_dzob[z_bin, lambda_bin], self._n_lbdobs_z[lambda_bin]
-                )
-
-    def _compute_counts_cov(self):
-        # computes cluster counts covariance
-
-        sab = self._compute_sab(
-            _bin_midpoints(self.z_obs_edges)  # mean observed redshift
+        z_tab = np.linspace(
+            self.z_obs_edges[z_bin], self.z_obs_edges[z_bin + 1], self.z_tab_sig
         )
-
-        for lambda_bin in range(self.Lambda_obs_div):
-
-            # N(lob,ztr) * bias(lob,ztr)
-            self._b_n_lbdobs_z[lambda_bin] = simps(
-                self._Plob_M_z[lambda_bin] * self.dndm_z * self.bias_z,
-                self.Mass,
-                axis=1,
-            )
-
-            for z_bin in range(self.z_obs_div):
-
-                # N(lob,zob) * bias(lob,zob)
-                self._Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
-                    self._b_n_lbdobs_z[lambda_bin] * self._dV_dzob[z_bin, lambda_bin],
-                    self.z,
-                    axis=0,
-                )
-                # shot-noise matrix
-                self._shot_noise[z_bin, z_bin] = np.diag(self.N_zbin_Lbin[z_bin])
-
-        # total covariance = shot-noise + sample covariance
-        self.cov_N_zbin_Lbin = self._shot_noise + (
-            self._Nb_zbin_Lbin.reshape(1, self.z_obs_div, 1, self.Lambda_obs_div)
-            * self._Nb_zbin_Lbin.reshape(self.z_obs_div, 1, self.Lambda_obs_div, 1)
-            * sab.reshape(self.z_obs_div, self.z_obs_div, 1, 1)
+        # P(zob|ztr)
+        Pzob_z = simps(
+            self.selectionfunction.P_zobs_z(
+                z_tab, self.Lambda_obs_edges[lambda_bin], self.z
+            ),
+            z_tab,
+            axis=0,
         )
+        # observed volume element dV/dz_ob
+        dV_dzob_bin = (
+            self.dvdzdomega_z1z2 * Pzob_z * (self.area) * (np.pi**2.0 / 180.0**2.0)
+        )
+        # N(lob,zob)
+        return dV_dzob_bin
 
     def _Plob_M_z_bin(self, lambda_bin):
         # returns # P(lob|M,ztr) for a richness bin
@@ -303,30 +276,31 @@ class ClusterStatistics:
         )
         return Plob_M_z
 
-    def _volume_bin(self, z_bin, lambda_bin):
-        # computes volume in richness redshift bin for cluster counts
-
-        z_tab = np.linspace(
-            self.z_obs_edges[z_bin], self.z_obs_edges[z_bin + 1], self.z_tab_sig
-        )
-        # P(zob|ztr)
-        Pzob_z = simps(
-            self.selectionfunction.P_zobs_z(
-                z_tab, self.Lambda_obs_edges[lambda_bin], self.z
-            ),
-            z_tab,
-            axis=0,
-        )
-        # observed volume element dV/dz_ob
-        dV_dzob_bin = (
-            self.dvdzdomega_z1z2 * Pzob_z * (self.area) * (np.pi**2.0 / 180.0**2.0)
-        )
-        # N(lob,zob)
-        return dV_dzob_bin
-
     def _counts_bin(self, dV_dzob_bin, n_lbdobs_z):
         # computes counts in a richness redshift bin
         return simps(n_lbdobs_z * dV_dzob_bin, self.z, axis=0)
+
+    def compute_counts(self):
+        # computes cluster counts
+
+        for lambda_bin in range(self.Lambda_obs_div):
+
+            self._Plob_M_z[lambda_bin] = self._Plob_M_z_bin(lambda_bin)
+            # N(lob,ztr)
+            self._n_lbdobs_z[lambda_bin] = simps(
+                self._Plob_M_z[lambda_bin] * self.dndm_z, self.Mass, axis=1
+            )
+
+            for z_bin in range(self.z_obs_div):
+
+                self._dV_dzob[z_bin, lambda_bin] = self._volume_bin(z_bin, lambda_bin)
+                self.N_zbin_Lbin[z_bin, lambda_bin] = self._counts_bin(
+                    self._dV_dzob[z_bin, lambda_bin], self._n_lbdobs_z[lambda_bin]
+                )
+
+    ####################
+    # cluster counts cov
+    ####################
 
     def _compute_sab(self, z_obs_mid):
         # initialization
@@ -365,7 +339,45 @@ class ClusterStatistics:
 
         return sab
 
-    def _compute_reduced_shear(self, N_zbin_Lbin):
+    def compute_counts_cov(self):
+        # computes cluster counts covariance
+
+        sab = self._compute_sab(
+            _bin_midpoints(self.z_obs_edges)  # mean observed redshift
+        )
+
+        for lambda_bin in range(self.Lambda_obs_div):
+
+            # N(lob,ztr) * bias(lob,ztr)
+            self._b_n_lbdobs_z[lambda_bin] = simps(
+                self._Plob_M_z[lambda_bin] * self.dndm_z * self.bias_z,
+                self.Mass,
+                axis=1,
+            )
+
+            for z_bin in range(self.z_obs_div):
+
+                # N(lob,zob) * bias(lob,zob)
+                self._Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
+                    self._b_n_lbdobs_z[lambda_bin] * self._dV_dzob[z_bin, lambda_bin],
+                    self.z,
+                    axis=0,
+                )
+                # shot-noise matrix
+                self._shot_noise[z_bin, z_bin] = np.diag(self.N_zbin_Lbin[z_bin])
+
+        # total covariance = shot-noise + sample covariance
+        self.cov_N_zbin_Lbin = self._shot_noise + (
+            self._Nb_zbin_Lbin.reshape(1, self.z_obs_div, 1, self.Lambda_obs_div)
+            * self._Nb_zbin_Lbin.reshape(self.z_obs_div, 1, self.Lambda_obs_div, 1)
+            * sab.reshape(self.z_obs_div, self.z_obs_div, 1, 1)
+        )
+
+    ###############
+    # reduced shear
+    ###############
+
+    def compute_reduced_shear(self, N_zbin_Lbin):
 
         for rad_bin in range(self.Rad_obs_div):
             excess_surface_mass_density = self.profile.excess_surface_mass_density(
@@ -395,7 +407,11 @@ class ClusterStatistics:
                         )
                     )
 
-    def _compute_Cxi2_zbin_Lbin_Rbin(self):
+    ###################
+    # 2pt corr function
+    ###################
+
+    def compute_Cxi2(self):
         ###This function uses Pl_M_z calculated during cluster counts!!!
         ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
         ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
@@ -540,7 +556,26 @@ class ClusterStatistics:
                     z_bin, :, :, rad_bin
                 ][np.triu_indices(self.Lambda_obs_Cxi2_div)]
 
-    def _compute_cov_Cxi2(self):
+    ##############################
+    # 2pt corr function covariance
+    ##############################
+
+    def _compute_alpha_beta(self):
+        # combine and reshape
+        alpha_ij = (1 + self._alpha_cov_Cxi2[:, :, np.newaxis, np.newaxis]) * (
+            1 + self._alpha_cov_Cxi2[:, np.newaxis, :, np.newaxis]
+        )
+        beta_ij = (
+            self._beta_cov_Cxi2[:, :, np.newaxis, np.newaxis]
+            * self._beta_cov_Cxi2[:, np.newaxis, :, np.newaxis]
+        )
+
+        beta_pk_ij = beta_ij * self._Pk_lambdai_lambdaj
+        alpha_n_ij = alpha_ij * self._one_over_n_lambdai_lambdaj
+
+        return alpha_n_ij, beta_pk_ij
+
+    def compute_Cxi2_cov(self):
         # 2point correlation function covariance
 
         # define cluster clustering bin numbers for loops
@@ -662,41 +697,26 @@ class ClusterStatistics:
 
         return cov_Cxi2
 
-    def _compute_alpha_beta(self):
-        # combine and reshape
-        alpha_ij = (1 + self._alpha_cov_Cxi2[:, :, np.newaxis, np.newaxis]) * (
-            1 + self._alpha_cov_Cxi2[:, np.newaxis, :, np.newaxis]
-        )
-        beta_ij = (
-            self._beta_cov_Cxi2[:, :, np.newaxis, np.newaxis]
-            * self._beta_cov_Cxi2[:, np.newaxis, :, np.newaxis]
-        )
-
-        beta_pk_ij = beta_ij * self._Pk_lambdai_lambdaj
-        alpha_n_ij = alpha_ij * self._one_over_n_lambdai_lambdaj
-
-        return alpha_n_ij, beta_pk_ij
-
     def N_zbin_Lbin_Rbin(self):
         # main function
         # I think it is a bit weird that we have to always output everything, even if we are not using it
 
         if self.CG_like_selection in ["CC", "CC_CWL", "CC_Cxi2", "CC_CWL_Cxi2"]:
-            self._compute_counts()
+            self.compute_counts()
             if self.CG_xi2_cov_selection in ["covCC", "covCC_covCxi2"]:
-                self._compute_counts_cov()
+                self.compute_counts_cov()
 
         if self.CG_like_selection in ["CC_CWL", "CC_CWL_Cxi2"]:
-            self._compute_reduced_shear(self.N_zbin_Lbin)
+            self.compute_reduced_shear(self.N_zbin_Lbin)
 
         ##########################################
         # 2point correlation function
         if self.CG_like_selection in ["CC_Cxi2", "CC_CWL_Cxi2"]:
-            self._compute_Cxi2_zbin_Lbin_Rbin()
+            self.compute_Cxi2()
 
             # 2point correlation function covariance
             if self.CG_xi2_cov_selection in ["covCxi2", "covCC_covCxi2"]:
-                self._compute_cov_Cxi2()
+                self.compute_Cxi2_cov()
                 # note: this function depends on these quantities, that are computed by the covariance function.
                 # (Pk_lambdai_lambdaj one_over_n_lambdai_lambdaj,W_rad,V_rad,V_zob,)
                 #   I made them class objects, but we could just put the covariance function inside the
