@@ -129,6 +129,7 @@ class ClusterStatistics:
         self._Plob_M_z = None
         self._dV_dzob = None
         self._n_lbdobs_z = None
+        self._Pl_M_z = None
 
         # computed in counts covariance
         self._Nb_zbin_Lbin = None
@@ -141,6 +142,7 @@ class ClusterStatistics:
         self._V_zob = None
         self._sqrt_Pk_zbin_lbin = None
         self._one_over_n_lambdai_lambdaj = None
+        self._Pk_lambdai_lambdaj = None
 
         # cluster clustering cov
         self._alpha_cov_Cxi2 = None
@@ -168,6 +170,10 @@ class ClusterStatistics:
         self.Cxi2_zbin_Lbin_Rbin = None
         self.cov_N_zbin_Lbin = None
         self.cov_Cxi2_zbin_Lbin_Rbin = None
+
+    def _missing_attributes(self, *attr):
+        """Checks if any of the provided attributes it None"""
+        return any(_attr is None for _attr in attr)
 
     ################
     # cluster counts
@@ -210,10 +216,6 @@ class ClusterStatistics:
         #       if external_richness_selection_function == 'CG_ESF':
         #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.z, self.Lambda).T
 
-        # P(ltrM,ztr)
-        # This quantity is also used by cluster clustering
-        self._Pl_M_z = self.selectionfunction.P_lnlbd(self.z, self.Mass, self.Lambda)
-
         # P(lob|M,ztr)
         Plob_M_z = simps(
             self._Pl_M_z[:, :, :] * Plob_l_z[:, np.newaxis, :], self.Lambda, axis=-1
@@ -229,12 +231,15 @@ class ClusterStatistics:
         self._Plob_M_z = np.zeros(self.Lambda_obs_div, dtype=list)
         self._dV_dzob = np.zeros((self.z_obs_div, self.Lambda_obs_div), dtype=list)
         self._n_lbdobs_z = np.zeros(self.Lambda_obs_div, dtype=list)
+        # P(ltrM,ztr), this quantity is also used by cluster clustering
+        self._Pl_M_z = self.selectionfunction.P_lnlbd(self.z, self.Mass, self.Lambda)
+
         # output
         self.N_zbin_Lbin = np.zeros((self.z_obs_div, self.Lambda_obs_div))
 
     def compute_counts(self):
-        # computes cluster counts
 
+        # prepare internal attributes
         self._init_counts_arrays()
 
         for lambda_bin in range(self.Lambda_obs_div):
@@ -306,7 +311,10 @@ class ClusterStatistics:
         )
 
     def compute_counts_cov(self):
-        # computes cluster counts covariance
+
+        # check precomputed attributes
+        if self._missing_attributes(self._Plob_M_z, self._dV_dzob, self._n_lbdobs_z):
+            raise ValueError("Run compute_counts first!")
 
         # prepare internal attributes
         self._init_counts_cov_arrays()
@@ -354,6 +362,11 @@ class ClusterStatistics:
 
     def compute_reduced_shear(self, N_zbin_Lbin):
 
+        # check precomputed attributes
+        if self._missing_attributes(self._Plob_M_z, self._dV_dzob):
+            raise ValueError("Run compute_counts first!")
+
+        # prepare internal attributes
         self._init_reduced_shear_arrays()
 
         for rad_bin in range(self.Rad_obs_div):
@@ -407,11 +420,16 @@ class ClusterStatistics:
         )
 
     def compute_Cxi2(self):
-        ###This function uses Pl_M_z calculated during cluster counts!!!
+
         ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
         ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
         ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
 
+        # check precomputed attributes
+        if self._missing_attributes(self._Pl_M_z):
+            raise ValueError("Run compute_counts first!")
+
+        # prepare internal attributes
         self._init_Cxi2_arrays()
 
         # this is never used
@@ -618,8 +636,18 @@ class ClusterStatistics:
         )
 
     def compute_Cxi2_cov(self):
-        # 2point correlation function covariance
 
+        # check precomputed attributes
+        if self._missing_attributes(
+            self._Pk_lambdai_lambdaj,
+            self._one_over_n_lambdai_lambdaj,
+            self._W_rad,
+            self._V_rad,
+            self._V_zob,
+        ):
+            raise ValueError("Run compute_Cxi2 first!")
+
+        # prepare internal attributes
         self._init_Cxi2_cov_arrays()
 
         # define cluster clustering bin numbers for loops
