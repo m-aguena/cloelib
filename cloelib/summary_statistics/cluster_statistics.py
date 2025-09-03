@@ -52,8 +52,6 @@ class ClusterStatistics:
         CG_like_selection: str = "CC_CWL_Cxi2",
         CG_xi2_cov_selection: str = "covCC_covCxi2",
         #        external_richness_selection_function: str = 'non_CG_ESF',
-        bias: str = "castro23",
-        neutrino_cdm: bool = True,
     ):
         """
         Initializes the cluster counts
@@ -62,6 +60,7 @@ class ClusterStatistics:
         - ....
 
         """
+        # observable objects
         self.perturbations = perturbations
         self.background = self.perturbations.background
         self.haloStatistics = haloStatistics
@@ -70,13 +69,14 @@ class ClusterStatistics:
         self.clustering = clustering
         self.covariance = covariance
 
+        # values
         self.area = area
         self.CG_like_selection = CG_like_selection
         self.CG_xi2_cov_selection = CG_xi2_cov_selection
         #        self.CG_xi2_cov_selection = 'non_CG_ESF'
-        self.bias = bias
-        self.neutrino_cdm = neutrino_cdm
+        self.halo_concentration = halo_concentration
 
+        # edges
         self.z_obs_edges = z_obs_edges
         self.Lambda_obs_edges = Lambda_obs_edges
         self.Rad_obs_edges = Rad_obs_edges
@@ -84,19 +84,11 @@ class ClusterStatistics:
         self.Rad_obs_Cxi2_edges = Rad_obs_Cxi2_edges
         self.z_obs_Cxi2_edges = z_obs_Cxi2_edges
 
-        self.halo_concentration = halo_concentration
-
-        # k array (integration variable)
-        self.k = k
-
-        # mass array (integration variable)
-        self.Mass = Mass  # in Msun h^-1
-
-        # true richness array (integration variable)
-        self.Lambda = Lambda
-
-        # true redshift array (integration variable)
-        self.z = z
+        # integration variables
+        self.k = k # k array
+        self.Mass = Mass  # mass array in Msun h^-1
+        self.Lambda = Lambda # true richness array
+        self.z = z # true redshift array
 
         ################### SELECTION FUNCTION ###################
 
@@ -131,10 +123,6 @@ class ClusterStatistics:
         # self.z_obs_Cxi2_edges = z_obs_Cxi2_edges #self.theory['obs_specifications']['CG']['z_obs_Cxi2_edges']
         self.z_obs_Cxi2_div = len(self.z_obs_Cxi2_edges) - 1
 
-        self.alpha_cov_Cxi2 = np.zeros((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
-        self.beta_cov_Cxi2 = np.ones((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
-        self.gamma_cov_Cxi2 = np.zeros((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
-
         ################### INTERNAL QUANTITIES (OPTIONAL) ###################
 
         self._Plob_M_z = None
@@ -144,6 +132,16 @@ class ClusterStatistics:
         self._Pk_lambdai_lambdaj = None
         self._W_rad = None
         self._V_rad = None
+
+        ### alpha(z,l), beta(z,l), gamma(z,l) are nuisance parameters to be fitted on (few, ~100) simulations
+        ### to correct for bias model inaccuracy, non-poissonian shot-noise and high-order terms
+        ### ref values are alpha=0,beta=1,gamma=0
+        ### (see Euclid Collaboration: Fumagalli et al. 2022)
+        ###cov_g, cov_ng are TWO TERMS OF EQ. 73
+
+        self._alpha_cov_Cxi2 = np.zeros((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
+        self._beta_cov_Cxi2 = np.ones((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
+        self._gamma_cov_Cxi2 = np.zeros((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
 
         ################### INTERNAL QUANTITIES ###################
 
@@ -164,7 +162,7 @@ class ClusterStatistics:
         self._Plob_M_z = np.zeros(self.Lambda_obs_div, dtype=list)
         self._dV_dzob = np.zeros((self.z_obs_div, self.Lambda_obs_div), dtype=list)
 
-        return n_lbdobs_z, self._dV_dzob
+        return n_lbdobs_z
 
     def _initialize_covariance(self):
         # array initialization for covariance
@@ -549,12 +547,6 @@ class ClusterStatistics:
     def _compute_cov_Cxi2(self):
         # 2point correlation function covariance
 
-        ### alpha(z,l), beta(z,l), gamma(z,l) are nuisance parameters to be fitted on (few, ~100) simulations
-        ### to correct for bias model inaccuracy, non-poissonian shot-noise and high-order terms
-        ### ref values are alpha=0,beta=1,gamma=0
-        ### (see Euclid Collaboration: Fumagalli et al. 2022)
-        ###cov_g, cov_ng are TWO TERMS OF EQ. 73
-
         # initialize
         cov_Cxi2, cov_g, cov_ng = self._initialize_clustering_cov()
 
@@ -588,11 +580,11 @@ class ClusterStatistics:
                             * beta_pk_ij[:, lambda_bin_i, lambda_bin_j, :],
                             x=self.k,
                         )
-                        * (1 + self.gamma_cov_Cxi2[:, lambda_bin_i])
+                        * (1 + self._gamma_cov_Cxi2[:, lambda_bin_i])
                         * self._one_over_n_lambdai_lambdaj[
                             :, lambda_bin_i, lambda_bin_i, 0
                         ]
-                        * (1 + self.gamma_cov_Cxi2[:, lambda_bin_j])
+                        * (1 + self._gamma_cov_Cxi2[:, lambda_bin_j])
                         * self._one_over_n_lambdai_lambdaj[
                             :, lambda_bin_j, lambda_bin_j, 0
                         ]
@@ -679,12 +671,12 @@ class ClusterStatistics:
 
     def _compute_alpha_beta(self):
         # combine and reshape
-        alpha_ij = (1 + self.alpha_cov_Cxi2[:, :, np.newaxis, np.newaxis]) * (
-            1 + self.alpha_cov_Cxi2[:, np.newaxis, :, np.newaxis]
+        alpha_ij = (1 + self._alpha_cov_Cxi2[:, :, np.newaxis, np.newaxis]) * (
+            1 + self._alpha_cov_Cxi2[:, np.newaxis, :, np.newaxis]
         )
         beta_ij = (
-            self.beta_cov_Cxi2[:, :, np.newaxis, np.newaxis]
-            * self.beta_cov_Cxi2[:, np.newaxis, :, np.newaxis]
+            self._beta_cov_Cxi2[:, :, np.newaxis, np.newaxis]
+            * self._beta_cov_Cxi2[:, np.newaxis, :, np.newaxis]
         )
 
         beta_pk_ij = beta_ij * self._Pk_lambdai_lambdaj
