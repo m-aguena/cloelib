@@ -99,7 +99,7 @@ class CastroHaloMassFunctionBias:
         )
 
         nu = self.halo_statistics.nu_z_M(z, M)
-        nufnu = self.halo_statistics.f_sigma_nu(z, M)
+        nufnu = self.f_sigma_nu(z, M)
         dlnnufnu_dlnnu = np.zeros(nufnu.shape)
         for i in range(len(z)):
             nufnu_int = interpolate.splrep(np.log(nu[i]), np.log(nufnu[i]), s=0)

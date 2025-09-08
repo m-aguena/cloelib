@@ -18,7 +18,7 @@ T = TypeVar("T", bound=Union[jnp.ndarray, np.ndarray])
 
 
 @runtime_checkable
-class HaloStatisticsModel(Protocol):
+class HaloMassFunctionBias(Protocol):
     def f_sigma_nu(self, z: T, M: T) -> T:
         r"""Computes the halo multiplicity function."""
         ...
