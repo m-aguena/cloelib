@@ -2,6 +2,8 @@
 Common functions for hmf_bias objects
 """
 
+from cloelib.cosmology import derived_cosmology as dc
+
 
 def dn_dm(self, z, M):
     r"""

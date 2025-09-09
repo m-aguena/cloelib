@@ -140,4 +140,4 @@ class CastroHaloMassFunctionBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        cf.dn_dm(self, z, M)
+        return cf.dn_dm(self, z, M)
