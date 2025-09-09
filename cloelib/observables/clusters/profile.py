@@ -74,7 +74,7 @@ class Profile:
         r"""
         Returns the Perturbations class instance
         """
-        return self.hmf_bias.halostatistics.perturbations
+        return self.hmf_bias.halo_statistics.perturbations
 
     @property
     def background(self):
@@ -447,7 +447,7 @@ class Profile:
             Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
         """
         densityThreshold = np.atleast_1d(
-            self.hmf_bias.halostatistics.get_Delta_crit(z)
+            self.hmf_bias.halo_statistics.get_Delta_crit(z)
             * dc.rho_crit(self.background, z)
             / self.background.h**2.0
         )[:, np.newaxis, np.newaxis]
@@ -642,7 +642,7 @@ class Profile:
         ## 3. Integrand function
         def integrand(kl):
             ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = self.hmf_bias.halostatistics.matter_power_spectrum(z, kl)[
+            Pk_vals = self.hmf_bias.halo_statistics.matter_power_spectrum(z, kl)[
                 :, np.newaxis
             ]
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
