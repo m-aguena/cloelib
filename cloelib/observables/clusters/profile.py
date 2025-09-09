@@ -8,7 +8,7 @@ from scipy.special import j0, j1
 from scipy import interpolate
 
 from ...auxiliary import units
-from .halo_statistics import HaloStatistics
+from .hmf_bias import HaloMassFunctionBias
 from cloelib.cosmology import derived_cosmology as dc
 
 
@@ -20,7 +20,7 @@ def _bessel_j2(x):
 class Profile:
     def __init__(
         self,
-        halostatistics: HaloStatistics,
+        hmf_bias: HaloMassFunctionBias,
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         r_interp: np.ndarray = np.logspace(-10, 2.5, 200),
@@ -35,7 +35,7 @@ class Profile:
         alpha_nz: float = 0.4,
         use_interpolation: bool = True,
     ):
-        self.halostatistics = halostatistics
+        self.hmf_bias = hmf_bias
         self.k = k
         self.z = z
         self.r_interp = r_interp
@@ -74,7 +74,7 @@ class Profile:
         r"""
         Returns the Perturbations class instance
         """
-        return self.halostatistics.perturbations
+        return self.hmf_bias.halostatistics.perturbations
 
     @property
     def background(self):
@@ -100,8 +100,12 @@ class Profile:
     def interpolate_angular_diameter_distance(self):
         r"""Create internal interpolation of angular diameter distance."""
         self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=np.linspace(self.z.min(), self.z.max()+1.e-5, len(self.z)), y=self.background.angular_diameter_distance(np.linspace(self.z.min(),
-            self.z.max()+1.e-5, len(self.z))), ext=2)
+            x=np.linspace(self.z.min(), self.z.max() + 1.0e-5, len(self.z)),
+            y=self.background.angular_diameter_distance(
+                np.linspace(self.z.min(), self.z.max() + 1.0e-5, len(self.z))
+            ),
+            ext=2,
+        )
 
     def convert_distance(
         self, distance, units_in, units_out, angular_diameter_distance=None
@@ -443,7 +447,7 @@ class Profile:
             Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
         """
         densityThreshold = np.atleast_1d(
-            self.halostatistics.get_Delta_crit(z)
+            self.hmf_bias.halostatistics.get_Delta_crit(z)
             * dc.rho_crit(self.background, z)
             / self.background.h**2.0
         )[:, np.newaxis, np.newaxis]
@@ -619,7 +623,7 @@ class Profile:
 
         # Ensure bias has shape (nz, nM, 1)
         if bias_z is None:
-            bias_z = self.halostatistics.bias(z, M)
+            bias_z = self.hmf_bias.bias(z, M)
         bias_z_outshape = np.asarray(bias_z)[:, :, np.newaxis]
 
         # Two point correlation part
@@ -638,7 +642,9 @@ class Profile:
         ## 3. Integrand function
         def integrand(kl):
             ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = self.halostatistics.matter_power_spectrum(z, kl)[:, np.newaxis]
+            Pk_vals = self.hmf_bias.halostatistics.matter_power_spectrum(z, kl)[
+                :, np.newaxis
+            ]
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
 
         ## 4. Integration
