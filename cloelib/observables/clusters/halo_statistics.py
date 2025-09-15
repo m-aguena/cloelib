@@ -1,5 +1,5 @@
 from cloelib.cosmology.cosmology import Perturbations
-from cloelib.cosmology import derived_cosmology as dc
+from cloelib.cosmology import derived_cosmology
 
 import numpy as np
 from scipy import interpolate
@@ -200,7 +200,7 @@ class HaloStatistics:
             Radius in h^{-1} Mpc
         """
         rho_m_0 = (
-            dc.rho_crit(self.background, 0.0)
+            derived_cosmology.rho_crit(self.background, 0.0)
             * self._Omega_m(0.0)
             / self.background.h**2.0
         )
