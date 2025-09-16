@@ -1,10 +1,10 @@
 # cloelib imports
-from cloelib.observables.clusters.halo_statistics import HaloStatistics#, HaloStatisticsCastro, HaloStatisticsTinker
+from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.observables.clusters.multipfunc_bias import MultiplicityFunctionBias
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.cosmology.cosmology import Perturbations
 from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.profile import Profile#, ProfileNFW, ProfileBMO
+from cloelib.observables.clusters.profile import Profile
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.auxiliary.units import SPEED_OF_LIGHT
