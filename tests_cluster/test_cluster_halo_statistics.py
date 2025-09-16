@@ -4,8 +4,8 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal, assert_allclose
 
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.castro_hmf_bias import CastroHaloMassFunctionBias
-from cloelib.observables.clusters.tinker_hmf_bias import TinkerHaloMassFunctionBias
+from cloelib.observables.clusters.castro_multipfunc_bias import CastroMultipFunctionBias
+from cloelib.observables.clusters.tinker_multipfunc_bias import TinkerMultipFunctionBias
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 
 
@@ -35,8 +35,8 @@ def test_halostatistics():
     # HaloStatistics
     print("# HaloStatistics")
     HS = HaloStatistics(perturbations, overdensity_type="vir")
-    HS_tinker = TinkerHaloMassFunctionBias(HS)
-    HS_castro = CastroHaloMassFunctionBias(HS)
+    HS_tinker = TinkerMultipFunctionBias(perturbations, HS)
+    HS_castro = CastroMultipFunctionBias(perturbations, HS)
 
     # tests
     z_test = np.linspace(0.01, 1.0, 5)
@@ -78,7 +78,7 @@ def test_halostatistics():
 
     print("    dn_dm Castro")
     _ref = [3.878612e-19, 9.651529e-20, 2.055990e-20, 3.477990e-21, 4.168748e-22]
-    assert_allclose(HS_castro.dn_dm(z_test, M_test)[0], _ref, rtol=5e-3)
+    assert_allclose(HS.dn_dm(HS_castro.f_sigma_nu, z_test, M_test)[0], _ref, rtol=5e-3)
 
     print("    bias Castro")
     _ref = [2.209025, 2.743319, 3.495205, 4.556624, 6.038308]

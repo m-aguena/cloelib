@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal, assert_allclose
 
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.castro_hmf_bias import CastroHaloMassFunctionBias
+from cloelib.observables.clusters.castro_multipfunc_bias import CastroMultipFunctionBias
 from cloelib.observables.clusters.profile import ProfileNFW, ProfileBMO
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 
@@ -33,7 +33,7 @@ def _get_castro_hs():
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
     HS = HaloStatistics(perturbations, overdensity_type="vir")
 
-    return CastroHaloMassFunctionBias(HS)
+    return perturbations, HS, CastroMultipFunctionBias(perturbations, HS)
 
 
 def test_array_shapes():
@@ -52,7 +52,8 @@ def test_array_shapes():
         sigma_nz=0.3,
         alpha_nz=0.4,
     )
-    profile_nfw = ProfileNFW(HS_castro, **_prof_kwargs)
+
+    profile_nfw = ProfileNFW(HS_castro[0], HS_castro[1], HS_castro[2], **_prof_kwargs)
 
     R_test = np.linspace(0.01, 1.0, 9)
     z_test = np.linspace(0.01, 0.5, 4)
@@ -144,7 +145,7 @@ def test_profiles():
     )
 
     print("  NFW")
-    profile_nfw = ProfileNFW(HS_castro, **_prof_kwargs)
+    profile_nfw = ProfileNFW(HS_castro[0], HS_castro[1], HS_castro[2], **_prof_kwargs)
     _reference_vals = {
         # All validation values have to be updated with extarnal values
         "sigma_crit": {
@@ -201,5 +202,5 @@ def test_profiles():
             },
         }
     )
-    profile_bmo = ProfileBMO(HS_castro, **_prof_kwargs)
+    profile_bmo = ProfileBMO(HS_castro[0], HS_castro[1], HS_castro[2], **_prof_kwargs)
     _test_profile(profile_bmo, _reference_vals)
