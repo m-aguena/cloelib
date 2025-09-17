@@ -38,10 +38,12 @@ def dV_dzdO(background, zs: np.ndarray, hubble_units=False) -> np.ndarray:
         Background class containing cosmology
     zs :np.ndarray
         Redshifts.
+    hubble_units: (Optional) bool
+        Flag to specify if output in h units, defaults to False
 
     Returns
     -------
-        np.ndarray: volume element in Mpc^3 h^{-3}
+        np.ndarray: volume element in Mpc^3 (h^{-3})
     """
     _dV_dzdO = (
         units.SPEED_OF_LIGHT
