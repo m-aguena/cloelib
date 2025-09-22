@@ -11,7 +11,7 @@ from cloelib.auxiliary import units
 from cloelib.cosmology.cosmology import Perturbations
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.multipfunc_bias import MultiplicityFunctionBias
+from cloelib.observables.clusters.hmf_bias import HMFBias
 
 
 def _bessel_j2(x):
@@ -24,7 +24,7 @@ class Profile:
         self,
         perturbations:  Perturbations,
         halostatistics: HaloStatistics,
-        multipfuncbias: MultiplicityFunctionBias,
+        hmfbias: HMFBias,
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         r_interp: np.ndarray = np.logspace(-10, 2.5, 200),
@@ -42,7 +42,7 @@ class Profile:
         self.perturbations = perturbations
         self.background = self.perturbations.background
         self.halostatistics = halostatistics
-        self.multipfuncbias = multipfuncbias       
+        self.hmfbias = hmfbias       
         
         self.k = k
         self.z = z
@@ -631,7 +631,7 @@ class Profile:
 
         # Ensure bias has shape (nz, nM, 1)
         if bias_z is None:
-            bias_z = self.multipfuncbias.bias(z, M)
+            bias_z = self.hmfbias.bias(z, M)
         bias_z_outshape = np.asarray(bias_z)[:, :, np.newaxis]
 
         # Two point correlation part

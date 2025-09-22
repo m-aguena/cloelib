@@ -6,7 +6,7 @@ from numpy.testing import assert_raises, assert_equal, assert_allclose
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.castro_multipfunc_bias import CastroMultipFunctionBias
+from cloelib.observables.clusters.castro_hmf_bias import CastroHMFBias
 from cloelib.observables.clusters.profile import ProfileNFW
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
@@ -91,7 +91,7 @@ def test_clustersummmarystatitistics():
    )
 
     HS = HaloStatistics(perturbations, z=zed, k=k, overdensity_type=overdensity_type)
-    HSCastro = CastroMultipFunctionBias(perturbations, HS)
+    HSCastro = CastroHMFBias(perturbations, HS)
 
     profileNFW = ProfileNFW(perturbations, HS, HSCastro, k=k, z=zed, **_prof_pars)
 

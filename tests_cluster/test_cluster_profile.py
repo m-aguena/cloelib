@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal, assert_allclose
 
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.castro_multipfunc_bias import CastroMultipFunctionBias
+from cloelib.observables.clusters.castro_hmf_bias import CastroHMFBias
 from cloelib.observables.clusters.profile import ProfileNFW, ProfileBMO
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 
@@ -33,7 +33,7 @@ def _get_castro_hs():
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
     HS = HaloStatistics(perturbations, overdensity_type="vir")
 
-    return perturbations, HS, CastroMultipFunctionBias(perturbations, HS)
+    return perturbations, HS, CastroHMFBias(perturbations, HS)
 
 
 def test_array_shapes():

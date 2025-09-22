@@ -1,6 +1,6 @@
 # cloelib imports
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.multipfunc_bias import MultiplicityFunctionBias
+from cloelib.observables.clusters.hmf_bias import HMFBias
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.cosmology.cosmology import Perturbations
 from cloelib.cosmology import derived_cosmology
@@ -29,7 +29,7 @@ class ClusterStatistics:
         perturbations: Perturbations,
         halostatistics: HaloStatistics,
         selectionfunction: SelectionFunction,
-        multipfuncbias: MultiplicityFunctionBias,
+        hmfbias: HMFBias,
         profile: Profile,
         clustering: HaloClustering,
         covariance: HaloCovariance,
@@ -61,7 +61,7 @@ class ClusterStatistics:
         self.perturbations = perturbations
         self.background = self.perturbations.background
         self.halostatistics = halostatistics
-        self.multipfuncbias = multipfuncbias
+        self.hmfbias = hmfbias
         self.selectionfunction = selectionfunction
         self.profile = profile
         self.clustering = clustering
@@ -138,9 +138,9 @@ class ClusterStatistics:
         self.dvdzdomega_z1z2 = derived_cosmology.dV_dzdO(self.background, self.z, hubble_units=True)
 
         # hmf at the center of observed redshift bins
-        self.dndm_z = self.halostatistics.dn_dm(self.multipfuncbias.f_sigma_nu, self.z, self.Mass) 
+        self.dndm_z = self.hmfbias.dn_dm(self.z, self.Mass) 
 
-        self.bias_z = self.multipfuncbias.bias(self.z, self.Mass)  # only work for virial overdensity        
+        self.bias_z = self.hmfbias.bias(self.z, self.Mass)  # only work for virial overdensity        
         
         
     def N_zbin_Lbin_Rbin(self): 
