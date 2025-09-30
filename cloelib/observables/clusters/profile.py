@@ -8,7 +8,6 @@ from scipy.special import j0, j1
 from scipy import interpolate
 
 from cloelib.auxiliary import units
-from cloelib.cosmology.cosmology import Perturbations
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.observables.clusters.hmf_bias import HMFBias
@@ -22,8 +21,6 @@ def _bessel_j2(x):
 class Profile:
     def __init__(
         self,
-        perturbations:  Perturbations,
-        halostatistics: HaloStatistics,
         hmfbias: HMFBias,
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
@@ -39,11 +36,8 @@ class Profile:
         alpha_nz: float = 0.4,
         use_interpolation: bool = True,
     ):
-        self.perturbations = perturbations
-        self.background = self.perturbations.background
-        self.halostatistics = halostatistics
-        self.hmfbias = hmfbias       
-        
+        self.hmfbias = hmfbias
+
         self.k = k
         self.z = z
         self.r_interp = r_interp
@@ -77,19 +71,23 @@ class Profile:
         if two_halo not in ("None", "sum", "max"):
             raise ValueError("Invalid 'two_halo' definition, %s." % two_halo)
 
-#    @property
-#    def perturbations(self):
-#        r"""
-#        Returns the Perturbations class instance
-#        """
-#        return self.hmf_bias.halo_statistics.perturbations
+    @property
+    def halo_statistics(self):
+        return self.hmfbias.halo_statistics
 
-#    @property
-#    def background(self):
-#        r"""
-#        Returns the Background class instance
-#        """
-#        return self.perturbations.background
+    @property
+    def perturbations(self):
+        r"""
+        Returns the Perturbations class instance
+        """
+        return self.halo_statistics.perturbations
+
+    @property
+    def background(self):
+        r"""
+        Returns the Background class instance
+        """
+        return self.perturbations.background
 
     @property
     def use_interpolation(self):
@@ -455,7 +453,7 @@ class Profile:
             Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
         """
         densityThreshold = np.atleast_1d(
-            self.halostatistics.get_Delta_crit(z)
+            self.halo_statistics.get_Delta_crit(z)
             * derived_cosmology.rho_crit(self.background, z)
             / self.background.h**2.0
         )[:, np.newaxis, np.newaxis]
@@ -650,9 +648,7 @@ class Profile:
         ## 3. Integrand function
         def integrand(kl):
             ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = self.halostatistics.matter_power_spectrum(z, kl)[
-                :, np.newaxis
-            ]
+            Pk_vals = self.halo_statistics.matter_power_spectrum(z, kl)[:, np.newaxis]
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
 
         ## 4. Integration

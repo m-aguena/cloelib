@@ -14,8 +14,8 @@ class HaloStatistics:
         overdensity: int = 200,
         nonu: bool = False,
         use_interpolation: bool = True,
-        z = np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
-        k = np.geomspace(1e-4, 10, 500),
+        z=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
+        k=np.geomspace(1e-4, 10, 500),
     ):
         r"""A class computing halo mass function and halo bias.
 

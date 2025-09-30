@@ -8,10 +8,7 @@ from cloelib.cosmology import derived_cosmology
 
 class CastroHMFBias:
 
-    def __init__(
-        self,
-        halo_statistics: HaloStatistics,
-    ):
+    def __init__(self, halo_statistics: HaloStatistics):
 
         self.halo_statistics = halo_statistics
 

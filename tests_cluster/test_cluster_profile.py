@@ -33,7 +33,7 @@ def _get_castro_hs():
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
     HS = HaloStatistics(perturbations, overdensity_type="vir")
 
-    return perturbations, HS, CastroHMFBias(HS)
+    return CastroHMFBias(HS)
 
 
 def test_array_shapes():
@@ -53,7 +53,7 @@ def test_array_shapes():
         alpha_nz=0.4,
     )
 
-    profile_nfw = ProfileNFW(HS_castro[0], HS_castro[1], HS_castro[2], **_prof_kwargs)
+    profile_nfw = ProfileNFW(HS_castro, **_prof_kwargs)
 
     R_test = np.linspace(0.01, 1.0, 9)
     z_test = np.linspace(0.01, 0.5, 4)
@@ -145,7 +145,7 @@ def test_profiles():
     )
 
     print("  NFW")
-    profile_nfw = ProfileNFW(HS_castro[0], HS_castro[1], HS_castro[2], **_prof_kwargs)
+    profile_nfw = ProfileNFW(HS_castro, **_prof_kwargs)
     _reference_vals = {
         # All validation values have to be updated with extarnal values
         "sigma_crit": {
@@ -202,5 +202,5 @@ def test_profiles():
             },
         }
     )
-    profile_bmo = ProfileBMO(HS_castro[0], HS_castro[1], HS_castro[2], **_prof_kwargs)
+    profile_bmo = ProfileBMO(HS_castro, **_prof_kwargs)
     _test_profile(profile_bmo, _reference_vals)
