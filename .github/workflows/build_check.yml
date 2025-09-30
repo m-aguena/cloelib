@@ -16,11 +16,6 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v3
       with:
         python-version: '3.13' 
-    - name: Install prereq using pip
-      run: |
-        pip install astropy cython black isort
-        pip install camb classy jax
-        pip install pyinstrument
     - name: Analysing the code formatting with black
       run: |
         pip install black black-configparser
@@ -29,6 +24,11 @@ jobs:
       run: |
         pip install isort
         isort --check --diff cloelib/observables/clusters/
+    - name: Install prereq using pip
+      run: |
+        pip install astropy cython
+        pip install camb classy jax
+        pip install pyinstrument
     - name: Install the package
       run: |
         pip install .
