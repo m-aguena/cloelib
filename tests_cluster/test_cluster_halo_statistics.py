@@ -76,9 +76,9 @@ def test_halostatistics():
     _ref = [2.218172, 2.762588, 3.537439, 4.660406, 6.319501]
     assert_allclose(HS_tinker.bias(z_test, M_test)[0], _ref, rtol=5e-3)
 
-    #    print("    dn_dm Castro")
-    #    _ref = [3.878612e-19, 9.651529e-20, 2.055990e-20, 3.477990e-21, 4.168748e-22]
-    #    assert_allclose(HS.dn_dm(HS_castro.f_sigma_nu, z_test, M_test)[0], _ref, rtol=5e-3)
+    print("    dn_dm Castro")
+    _ref = [3.878612e-19, 9.651529e-20, 2.055990e-20, 3.477990e-21, 4.168748e-22]
+    assert_allclose(HS_castro.dn_dm(z_test, M_test)[0], _ref, rtol=5e-3)
 
     print("    bias Castro")
     _ref = [2.209025, 2.743319, 3.495205, 4.556624, 6.038308]

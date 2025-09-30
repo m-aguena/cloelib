@@ -1,6 +1,5 @@
 import numpy as np
 
-from cloelib.cosmology.cosmology import Perturbations
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.cosmology import derived_cosmology
 
@@ -83,16 +82,13 @@ class TinkerHMFBias:
         ).T
 
     def dn_dm(self, z, M):
-        r"""
-        Derivative of the number density.
+        r"""Derivative of the number density.
 
         Computes the derivative of the number density
         at the requested redshift and mass points.
 
         Parameters
         ----------
-        self: HaloStatistics
-            halo_statistics object.
         z: numpy.ndarray
             Redshift points.
         M: numpy.ndarray
