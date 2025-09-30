@@ -9,18 +9,17 @@ from cloelib.cosmology import derived_cosmology
 
 class CastroHMFBias:
 
-    def __init__(self,
-                 perturbations: Perturbations, 
-                 halo_statistics: HaloStatistics, 
-                  ):
+    def __init__(
+        self,
+        halo_statistics: HaloStatistics,
+    ):
 
-        self.perturbations = perturbations
-        self.halo_statistics = halo_statistics        
-        
+        self.halo_statistics = halo_statistics
+
     @property
     def background(self):
         r"""Returns the Background class instance"""
-        return self.perturbations.background    
+        return self.halo_statistics.perturbations.background
 
     def f_sigma_nu(self, z, M):
         r"""
@@ -131,33 +130,33 @@ class CastroHMFBias:
             bias = bias[:, :lenM_orig]
 
         return bias
-        
+
     def dn_dm(self, z, M):
-            r"""
-            Derivative of the number density.
+        r"""
+        Derivative of the number density.
 
-            Computes the derivative of the number density
-            at the requested redshift and mass points.
+        Computes the derivative of the number density
+        at the requested redshift and mass points.
 
-            Parameters
-            ----------
-            self: HaloStatistics
-                halo_statistics object.
-            z: numpy.ndarray
-                Redshift points.
-            M: numpy.ndarray
-                Mass points in h^{-1} Msun.
+        Parameters
+        ----------
+        self: HaloStatistics
+            halo_statistics object.
+        z: numpy.ndarray
+            Redshift points.
+        M: numpy.ndarray
+            Mass points in h^{-1} Msun.
 
-            Returns
-            -------
-            dn_dm: numpy.ndarray
-                dn_dm[i,j], where i is the redshift axis and j the mass axis.
-                Units: h^4 Mpc^{-3} Ms^{-1}.
-            """
-            dlnsigmadlnR = self.halo_statistics.dlns_dlnR(z, M)
-            rho_mean_0 = self.halo_statistics._Omega_m(0) * derived_cosmology.rho_crit(
-                self.background, 0.0
-            )
-            rho_mean_0 /= self.background.h**2.0
+        Returns
+        -------
+        dn_dm: numpy.ndarray
+            dn_dm[i,j], where i is the redshift axis and j the mass axis.
+            Units: h^4 Mpc^{-3} Ms^{-1}.
+        """
+        dlnsigmadlnR = self.halo_statistics.dlns_dlnR(z, M)
+        rho_mean_0 = self.halo_statistics._Omega_m(0) * derived_cosmology.rho_crit(
+            self.background, 0.0
+        )
+        rho_mean_0 /= self.background.h**2.0
 
-            return rho_mean_0 / M**2.0 * self.f_sigma_nu(z, M) * dlnsigmadlnR / (-3)
+        return rho_mean_0 / M**2.0 * self.f_sigma_nu(z, M) * dlnsigmadlnR / (-3)

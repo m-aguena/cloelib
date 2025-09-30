@@ -1,4 +1,4 @@
-#import jax.numpy as np
+# import jax.numpy as np
 import numpy as np
 
 from numpy.testing import assert_raises, assert_equal, assert_allclose
@@ -35,21 +35,21 @@ def test_clustersummmarystatitistics():
 
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
-    
+
     _cosmo_pars_fid = {**_cosmo_pars}
     _cosmo_pars_fid["H0"] = 73.0
     background_fid = CAMBBackground(**_cosmo_pars_fid)
     perturbations_fid = CAMBLinearPerturbations(
         background_fid, np.linspace(0.0, 2.0, 100)
     )
-    
+
     area = 10313
     halo_concentration = 0.1
-    overdensity_type = 'vir'
-    CG_like_selection = 'CC_CWL_Cxi2'
-    CG_xi2_cov_selection = 'covCC_covCxi2'
-    bias = 'castro23'
-    neutrino_cdm = True 
+    overdensity_type = "vir"
+    CG_like_selection = "CC_CWL_Cxi2"
+    CG_xi2_cov_selection = "covCC_covCxi2"
+    bias = "castro23"
+    neutrino_cdm = True
 
     zed_obs_edges = np.linspace(0.2, 1.8, 9)
     Lambda_obs_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
@@ -61,7 +61,7 @@ def test_clustersummmarystatitistics():
     k = np.geomspace(1e-4, 10, 500)
     Mass = np.logspace(12.0, 16.0, 51)
     Lambda = np.geomspace(5.0, 250.0, 51)
-    zed   = np.linspace(1.e-5, 6.0-1.e-5, 200)
+    zed = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
 
     _sel_pars = dict(
         A_l=52.0,
@@ -74,24 +74,24 @@ def test_clustersummmarystatitistics():
         sig_lambda_z=0.1,
         sig_lambda_exponent=0.4,
         sig_z_z=0.025,
-        sig_z_lambda=5.e-6,
+        sig_z_lambda=5.0e-6,
     )
 
     _prof_pars = dict(
-        r_interp = np.logspace(-10, 2.5, 200),       
-        two_halo = 'None',
-        offcentering = False,
-        rms_off = 0.0,
-        f_off = 0.0,
-        trunc_fact = 3.0,
-        zs_max = 2.0,
-        mean_nz = 0.4,
-        sigma_nz = 0.3,
-        alpha_nz = 0.4
-   )
+        r_interp=np.logspace(-10, 2.5, 200),
+        two_halo="None",
+        offcentering=False,
+        rms_off=0.0,
+        f_off=0.0,
+        trunc_fact=3.0,
+        zs_max=2.0,
+        mean_nz=0.4,
+        sigma_nz=0.3,
+        alpha_nz=0.4,
+    )
 
     HS = HaloStatistics(perturbations, z=zed, k=k, overdensity_type=overdensity_type)
-    HSCastro = CastroHMFBias(perturbations, HS)
+    HSCastro = CastroHMFBias(HS)
 
     profileNFW = ProfileNFW(perturbations, HS, HSCastro, k=k, z=zed, **_prof_pars)
 

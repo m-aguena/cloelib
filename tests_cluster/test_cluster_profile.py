@@ -33,7 +33,7 @@ def _get_castro_hs():
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
     HS = HaloStatistics(perturbations, overdensity_type="vir")
 
-    return perturbations, HS, CastroHMFBias(perturbations, HS)
+    return perturbations, HS, CastroHMFBias(HS)
 
 
 def test_array_shapes():
