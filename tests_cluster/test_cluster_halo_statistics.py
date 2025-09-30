@@ -4,8 +4,8 @@ import numpy as np
 from numpy.testing import assert_raises, assert_equal, assert_allclose
 
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.castro_hmf_bias import CastroHaloMassFunctionBias
-from cloelib.observables.clusters.tinker_hmf_bias import TinkerHaloMassFunctionBias
+from cloelib.observables.clusters.castro_hmf_bias import CastroHMFBias
+from cloelib.observables.clusters.tinker_hmf_bias import TinkerHMFBias
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 
 
@@ -35,8 +35,8 @@ def test_halostatistics():
     # HaloStatistics
     print("# HaloStatistics")
     HS = HaloStatistics(perturbations, overdensity_type="vir")
-    HS_tinker = TinkerHaloMassFunctionBias(HS)
-    HS_castro = CastroHaloMassFunctionBias(HS)
+    HS_tinker = TinkerHMFBias(HS)
+    HS_castro = CastroHMFBias(HS)
 
     # tests
     z_test = np.linspace(0.01, 1.0, 5)

@@ -5,20 +5,14 @@ import numpy as np  # type: ignore
 import jax.numpy as jnp
 
 """
-## Notes:
- 
-- Refactored cosmology.py from the original CLOE to provide a more flexible framework,
-  enabling seamless integration with external cosmological codes while removing dependency on Cobaya.
-
-- Introduced the use of protocols to standardize external code interfaces,
-  providing a unified and extensible template for interaction.
+- Introducing a protocol for the halo statistics part that we might have many versions of it.
 """
 
 T = TypeVar("T", bound=Union[jnp.ndarray, np.ndarray])
 
 
 @runtime_checkable
-class HaloMassFunctionBias(Protocol):
+class HMFBias(Protocol):
     def f_sigma_nu(self, z: T, M: T) -> T:
         r"""Computes the halo multiplicity function."""
         ...
@@ -26,7 +20,7 @@ class HaloMassFunctionBias(Protocol):
     def bias(self, z: T, M: T) -> T:
         r"""Computes the halo bias."""
         ...
-
+        
     def dn_dm(self, z, M):
         r"""Derivative of the number density.
 
@@ -46,4 +40,4 @@ class HaloMassFunctionBias(Protocol):
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        ...
+        ...    

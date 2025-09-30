@@ -5,12 +5,9 @@ from numpy.testing import assert_raises, assert_equal, assert_allclose
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.selection_function import SelectionFunction
-from cloelib.observables.clusters.halo_statistics import (
-    HaloStatistics,
-    HaloStatisticsCastro,
-    HaloStatisticsTinker,
-)
-from cloelib.observables.clusters.profile import Profile, ProfileNFW, ProfileBMO
+from cloelib.observables.clusters.halo_statistics import HaloStatistics
+from cloelib.observables.clusters.castro_hmf_bias import CastroHMFBias
+from cloelib.observables.clusters.profile import ProfileNFW
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.summary_statistics.clusters.cluster_statistics import ClusterStatistics
@@ -94,46 +91,24 @@ def test_clustersummmarystatitistics():
     )
 
     HS = HaloStatistics(perturbations, z=zed, k=k, overdensity_type=overdensity_type)
-    HSCastro = HaloStatisticsCastro(
-        perturbations, z=zed, k=k, overdensity_type=overdensity_type
-    )
+    HSCastro = CastroHMFBias(HS)
 
-    profileNFW = ProfileNFW(HS, k=k, z=zed, **_prof_pars)
+    profileNFW = ProfileNFW(perturbations, HS, HSCastro, k=k, z=zed, **_prof_pars)
 
     selectionFunction = SelectionFunction(**_sel_pars)
 
-    haloClustering = HaloClustering(
-        perturbations, perturbations_fid, selectionFunction, k=k
-    )
+    haloClustering = HaloClustering(perturbations,perturbations_fid,selectionFunction,k=k)
 
-    covariance = HaloCovariance(
-        perturbations, area=area, nbins_zob=len(zed_obs_edges), k=k
-    )
+    covariance = HaloCovariance(perturbations,
+                                    area=area, nbins_zob=len(zed_obs_edges),
+                                    k=k)
 
-    clusterStatistics = ClusterStatistics(
-        perturbations,
-        HSCastro,
-        selectionFunction,
-        profileNFW,
-        haloClustering,
-        covariance,
-        z_obs_edges=zed_obs_edges,
-        Lambda_obs_edges=Lambda_obs_edges,
-        Rad_obs_edges=Rad_obs_edges,
-        Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges,
-        Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
-        z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
-        halo_concentration=halo_concentration,
-        k=k,
-        Mass=Mass,
-        Lambda=Lambda,
-        z=zed,
-        area=area,
-        CG_like_selection=CG_like_selection,
-        CG_xi2_cov_selection=CG_xi2_cov_selection,
-        bias=bias,
-        neutrino_cdm=neutrino_cdm,
-    )
+    clusterStatistics = ClusterStatistics(perturbations, HS, selectionFunction, HSCastro, profileNFW, haloClustering, covariance,
+                          z_obs_edges=zed_obs_edges, Lambda_obs_edges=Lambda_obs_edges, Rad_obs_edges=Rad_obs_edges,
+                          Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges, Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
+                          z_obs_Cxi2_edges=zed_obs_Cxi2_edges, halo_concentration=halo_concentration, k=k, Mass=Mass,
+                          Lambda=Lambda, z=zed, area=area, CG_like_selection=CG_like_selection,
+                          CG_xi2_cov_selection=CG_xi2_cov_selection, bias=bias, neutrino_cdm=neutrino_cdm)
 
     N_zbin_Lbin, g_zbin_Lbin_Rbin, Cxi2_zbin_Lbin_Rbin, cov_zbin_Lbin, cov_Cxi2 = clusterStatistics.N_zbin_Lbin_Rbin()
 
