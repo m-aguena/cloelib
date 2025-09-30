@@ -99,23 +99,48 @@ def test_clustersummmarystatitistics():
 
     selectionFunction = SelectionFunction(**_sel_pars)
 
-    haloClustering = HaloClustering(perturbations,perturbations_fid,selectionFunction,k=k)
+    haloClustering = HaloClustering(
+        perturbations, perturbations_fid, selectionFunction, k=k
+    )
 
-    covariance = HaloCovariance(perturbations,
-                                    area=area, nbins_zob=len(zed_obs_edges),
-                                    k=k)
+    covariance = HaloCovariance(
+        perturbations, area=area, nbins_zob=len(zed_obs_edges), k=k
+    )
 
-    clusterStatistics = ClusterStatistics(perturbations, HS, selectionFunction, HSCastro, profileNFW, haloClustering, covariance,
-                          z_obs_edges=zed_obs_edges, Lambda_obs_edges=Lambda_obs_edges, Rad_obs_edges=Rad_obs_edges,
-                          Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges, Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
-                          z_obs_Cxi2_edges=zed_obs_Cxi2_edges, halo_concentration=halo_concentration, k=k, Mass=Mass,
-                          Lambda=Lambda, z=zed, area=area, CG_like_selection=CG_like_selection,
-                          CG_xi2_cov_selection=CG_xi2_cov_selection, bias=bias, neutrino_cdm=neutrino_cdm)
+    clusterStatistics = ClusterStatistics(
+        perturbations,
+        HS,
+        selectionFunction,
+        HSCastro,
+        profileNFW,
+        haloClustering,
+        covariance,
+        z_obs_edges=zed_obs_edges,
+        Lambda_obs_edges=Lambda_obs_edges,
+        Rad_obs_edges=Rad_obs_edges,
+        Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges,
+        Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
+        z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
+        halo_concentration=halo_concentration,
+        k=k,
+        Mass=Mass,
+        Lambda=Lambda,
+        z=zed,
+        area=area,
+        CG_like_selection=CG_like_selection,
+        CG_xi2_cov_selection=CG_xi2_cov_selection,
+        bias=bias,
+        neutrino_cdm=neutrino_cdm,
+    )
 
-    N_zbin_Lbin, g_zbin_Lbin_Rbin, Cxi2_zbin_Lbin_Rbin, cov_zbin_Lbin, cov_Cxi2 = clusterStatistics.N_zbin_Lbin_Rbin()
+    N_zbin_Lbin, g_zbin_Lbin_Rbin, Cxi2_zbin_Lbin_Rbin, cov_zbin_Lbin, cov_Cxi2 = (
+        clusterStatistics.N_zbin_Lbin_Rbin()
+    )
 
     # test values
-    data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "benchmark_values")
+    data_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "benchmark_values"
+    )
     NC_ref = np.load(os.path.join(data_path, "NC_ref.npy"))
     assert_allclose(N_zbin_Lbin, NC_ref, rtol=1e-2)
 
