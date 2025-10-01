@@ -1,6 +1,4 @@
 # import jax.numpy as np
-import os
-
 import numpy as np
 
 from numpy.testing import assert_raises, assert_equal, assert_allclose
@@ -14,6 +12,7 @@ from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.summary_statistics.clusters.cluster_statistics import ClusterStatistics
 
+import benchmark_values
 
 def test_clustersummmarystatitistics():
     # Cosmology parameters
@@ -99,59 +98,27 @@ def test_clustersummmarystatitistics():
 
     selectionFunction = SelectionFunction(**_sel_pars)
 
-    haloClustering = HaloClustering(
-        perturbations, perturbations_fid, selectionFunction, k=k
-    )
+    haloClustering = HaloClustering(perturbations,perturbations_fid,selectionFunction,k=k)
 
-    covariance = HaloCovariance(
-        perturbations, area=area, nbins_zob=len(zed_obs_edges), k=k
-    )
+    covariance = HaloCovariance(perturbations,
+                                    area=area, nbins_zob=len(zed_obs_edges),
+                                    k=k)
 
-    clusterStatistics = ClusterStatistics(
-        perturbations,
-        HS,
-        selectionFunction,
-        HSCastro,
-        profileNFW,
-        haloClustering,
-        covariance,
-        z_obs_edges=zed_obs_edges,
-        Lambda_obs_edges=Lambda_obs_edges,
-        Rad_obs_edges=Rad_obs_edges,
-        Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges,
-        Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
-        z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
-        halo_concentration=halo_concentration,
-        k=k,
-        Mass=Mass,
-        Lambda=Lambda,
-        z=zed,
-        area=area,
-        CG_like_selection=CG_like_selection,
-        CG_xi2_cov_selection=CG_xi2_cov_selection,
-        bias=bias,
-        neutrino_cdm=neutrino_cdm,
-    )
+    clusterStatistics = ClusterStatistics(perturbations, HS, selectionFunction, HSCastro, profileNFW, haloClustering, covariance,
+                          z_obs_edges=zed_obs_edges, Lambda_obs_edges=Lambda_obs_edges, Rad_obs_edges=Rad_obs_edges,
+                          Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges, Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
+                          z_obs_Cxi2_edges=zed_obs_Cxi2_edges, halo_concentration=halo_concentration, k=k, Mass=Mass,
+                          Lambda=Lambda, z=zed, area=area, CG_like_selection=CG_like_selection,
+                          CG_xi2_cov_selection=CG_xi2_cov_selection, bias=bias, neutrino_cdm=neutrino_cdm)
 
-    N_zbin_Lbin, g_zbin_Lbin_Rbin, Cxi2_zbin_Lbin_Rbin, cov_zbin_Lbin, cov_Cxi2 = (
-        clusterStatistics.N_zbin_Lbin_Rbin()
-    )
+    N_zbin_Lbin, g_zbin_Lbin_Rbin, Cxi2_zbin_Lbin_Rbin, cov_zbin_Lbin, cov_Cxi2 = clusterStatistics.N_zbin_Lbin_Rbin()
 
-    # test values
-    data_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "benchmark_values"
-    )
-    NC_ref = np.load(os.path.join(data_path, "NC_ref.npy"))
-    assert_allclose(N_zbin_Lbin, NC_ref, rtol=1e-2)
+    assert_allclose(N_zbin_Lbin, benchmark_values.NC_ref, rtol=1e-2)
 
-    gWL = np.load(os.path.join(data_path, "gWL.npy"))
-    assert_allclose(g_zbin_Lbin_Rbin[0:2], gWL, rtol=1e-2)
+    assert_allclose(g_zbin_Lbin_Rbin[0:2], benchmark_values.gWL, rtol=1e-2)
 
-    Cxi2 = np.load(os.path.join(data_path, "Cxi2.npy"))
-    assert_allclose(Cxi2_zbin_Lbin_Rbin[0:2], Cxi2, rtol=1e-2)
+    assert_allclose(Cxi2_zbin_Lbin_Rbin[0:2], benchmark_values.Cxi2, rtol=1e-2)
 
-    NC_cov = np.load(os.path.join(data_path, "NC_cov.npy"))
-    assert_allclose(cov_zbin_Lbin[1:2], NC_cov, rtol=5e-2)
+    assert_allclose(cov_zbin_Lbin[1:2], benchmark_values.NC_cov, rtol=5e-2)
 
-    Cxi2_cov = np.load(os.path.join(data_path, "Cxi2_cov.npy"))
-    assert_allclose(cov_Cxi2[1, 1, 1:3, 1:3, 10:20, 10:20], Cxi2_cov, rtol=5e-2)
+    assert_allclose(cov_Cxi2[1, 1, 1:3, 1:3, 10:20, 10:20], benchmark_values.Cxi2_cov, rtol=5e-2)
