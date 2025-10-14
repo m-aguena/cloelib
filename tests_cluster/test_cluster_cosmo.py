@@ -4,9 +4,11 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
 
 from cloelib.cosmology import derived_cosmology
-from cloelib.cosmology.camb_cosmology import (CAMBBackground,
-                                              CAMBLinearPerturbations,
-                                              CAMBNonLinearPerturbations)
+from cloelib.cosmology.camb_cosmology import (
+    CAMBBackground,
+    CAMBLinearPerturbations,
+    CAMBNonLinearPerturbations,
+)
 
 
 def test_cosmo():
