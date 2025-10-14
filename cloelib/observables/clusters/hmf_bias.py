@@ -1,8 +1,8 @@
 # General imports
-from typing import Protocol, Union, TypeVar, runtime_checkable
+from typing import Protocol, TypeVar, Union, runtime_checkable
 
-import numpy as np  # type: ignore
 import jax.numpy as jnp
+import numpy as np  # type: ignore
 
 """
 - Introducing a protocol for the halo statistics part that we might have many versions of it.

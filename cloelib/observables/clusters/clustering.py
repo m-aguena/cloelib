@@ -1,11 +1,11 @@
+import jax.numpy as np
+from scipy.integrate import simpson as simps
+from scipy.special import erf, spherical_jn
+
 from cloelib.cosmology.cosmology import Perturbations
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 from ...auxiliary import units
-from scipy.special import erf
-import jax.numpy as np
-from scipy.integrate import simpson as simps
-from scipy.special import spherical_jn
 
 
 class HaloClustering:

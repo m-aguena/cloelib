@@ -1,9 +1,9 @@
 # import jax.numpy as np
 import numpy as np
+from numpy.testing import assert_allclose, assert_equal, assert_raises
 
-from numpy.testing import assert_raises, assert_equal, assert_allclose
-
-from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
+from cloelib.cosmology.camb_cosmology import (CAMBBackground,
+                                              CAMBLinearPerturbations)
 from cloelib.observables.clusters.covariance import HaloCovariance
 
 

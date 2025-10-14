@@ -1,7 +1,8 @@
-from cloelib.cosmology.cosmology import Perturbations
 import numpy as np
-from scipy.special import eval_legendre, spherical_jn
 from scipy.integrate import simpson as simps
+from scipy.special import eval_legendre, spherical_jn
+
+from cloelib.cosmology.cosmology import Perturbations
 
 
 class HaloCovariance:
