@@ -20,10 +20,12 @@ jobs:
       run: |
         pip install black black-configparser
         black --check --diff cloelib/observables/clusters/
+        black --check --diff tests_cluster/
     - name: Analysing the code import order with isort
       run: |
         pip install isort
         isort --check --diff cloelib/observables/clusters/
+        isort --check --diff tests_cluster/
     - name: Install prereq using pip
       run: |
         pip install astropy cython
