@@ -1,4 +1,4 @@
-#import jax.numpy as np
+# import jax.numpy as np
 import numpy as np
 
 from numpy.testing import assert_raises, assert_equal, assert_allclose
@@ -56,4 +56,8 @@ def test_count_covariance():
     iz = 0
     zarr_iz = np.linspace(zbins[iz], zbins[iz + 1], 31)
     # All validation values have to be updated with extarnal values
-    assert_allclose(CC.cov_window(iz, zarr_iz, KL)[0,:5], np.array([0.99959593, 0.99956826, 0.9995387,  0.99950711, 0.99947336]),rtol=1e-6)
+    assert_allclose(
+        CC.cov_window(iz, zarr_iz, KL)[0, :5],
+        np.array([0.99959593, 0.99956826, 0.9995387, 0.99950711, 0.99947336]),
+        rtol=1e-6,
+    )
