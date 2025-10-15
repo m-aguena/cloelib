@@ -16,19 +16,28 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v3
       with:
         python-version: '3.13' 
+    - name: Analysing the code formatting with black
+      run: |
+        pip install black black-configparser
+        black --check --diff cloelib/observables/clusters/
+        black --check --diff tests_cluster/
+    - name: Analysing the code import order with isort
+      run: |
+        pip install isort
+        isort --check --diff cloelib/observables/clusters/
+        isort --check --diff tests_cluster/
     - name: Install prereq using pip
       run: |
-        pip install astropy cython black
+        pip install astropy cython
         pip install camb classy jax
         pip install pyinstrument
-
     - name: Install the package
       run: |
         pip install .
     - name: Run the unit tests
       run: |
         pip install pytest pytest-cov
-        pytest tests_cluster/ --cov=cloelib/
+        pytest tests_cluster/ --cov=cloelib/ --ignore=tests_cluster/benchmark_values.py
       env:
         DISPLAY: test
 #    - name: Install Sphinx prereq

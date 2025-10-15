@@ -1,21 +1,18 @@
 # cloelib imports
-from cloelib.observables.clusters.halo_statistics import (
-    HaloStatistics,
-    HaloStatisticsCastro,
-    HaloStatisticsTinker,
-)
-from cloelib.observables.clusters.selection_function import SelectionFunction
-from cloelib.cosmology.cosmology import Perturbations
-from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.profile import Profile, ProfileNFW, ProfileBMO
-from cloelib.observables.clusters.clustering import HaloClustering
-from cloelib.observables.clusters.covariance import HaloCovariance
-from cloelib.auxiliary.units import SPEED_OF_LIGHT
-
 # General imports
 # import interpax
 import numpy as np
 from scipy.integrate import simpson as simps
+
+from cloelib.auxiliary.units import SPEED_OF_LIGHT
+from cloelib.cosmology import derived_cosmology
+from cloelib.cosmology.cosmology import Perturbations
+from cloelib.observables.clusters.clustering import HaloClustering
+from cloelib.observables.clusters.covariance import HaloCovariance
+from cloelib.observables.clusters.halo_statistics import HaloStatistics
+from cloelib.observables.clusters.hmf_bias import HMFBias
+from cloelib.observables.clusters.profile import Profile
+from cloelib.observables.clusters.selection_function import SelectionFunction
 
 # import jax
 
@@ -32,8 +29,9 @@ class ClusterStatistics:
     def __init__(
         self,
         perturbations: Perturbations,
-        haloStatistics: HaloStatistics,
+        halostatistics: HaloStatistics,
         selectionfunction: SelectionFunction,
+        hmfbias: HMFBias,
         profile: Profile,
         clustering: HaloClustering,
         covariance: HaloCovariance,
@@ -52,6 +50,8 @@ class ClusterStatistics:
         CG_like_selection: str = "CC_CWL_Cxi2",
         CG_xi2_cov_selection: str = "covCC_covCxi2",
         #        external_richness_selection_function: str = 'non_CG_ESF',
+        bias: str = "castro23",
+        neutrino_cdm: bool = True,
     ):
         """
         Initializes the cluster counts
@@ -63,7 +63,8 @@ class ClusterStatistics:
         # observable objects
         self.perturbations = perturbations
         self.background = self.perturbations.background
-        self.haloStatistics = haloStatistics
+        self.halostatistics = halostatistics
+        self.hmfbias = hmfbias
         self.selectionfunction = selectionfunction
         self.profile = profile
         self.clustering = clustering
@@ -74,6 +75,9 @@ class ClusterStatistics:
         self.CG_like_selection = CG_like_selection
         self.CG_xi2_cov_selection = CG_xi2_cov_selection
         #        self.CG_xi2_cov_selection = 'non_CG_ESF'
+        self.bias = bias
+        self.neutrino_cdm = neutrino_cdm
+
         self.halo_concentration = halo_concentration
 
         # edges
@@ -159,8 +163,8 @@ class ClusterStatistics:
         )
 
         # hmf at the center of observed redshift bins
-        self.dndm_z = self.haloStatistics.dn_dm(self.z, self.Mass)
-        self.bias_z = self.haloStatistics.bias(
+        self.dndm_z = self.hmfbias.dn_dm(self.z, self.Mass)
+        self.bias_z = self.hmfbias.bias(
             self.z, self.Mass
         )  # only work for virial overdensity
 
@@ -269,7 +273,7 @@ class ClusterStatistics:
         # self.rint = np.zeros((self.z_obs_div,len(self.k),L+1))
 
         # power spectrum at the center of observed redshift bins
-        pk = self.haloStatistics.matter_power_spectrum(z_obs_mid, self.k)
+        pk = self.halostatistics.matter_power_spectrum(z_obs_mid, self.k)
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
         photoz_corr0 = self.clustering.photoz_rsd_correction(z_obs_mid, 0)[
@@ -449,7 +453,7 @@ class ClusterStatistics:
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
         ############
-        pk_IR = self.haloStatistics.matter_power_spectrum(self.z, self.k)
+        pk_IR = self.halostatistics.matter_power_spectrum(self.z, self.k)
 
         # LOOP OVER CLUSTERING RICHNESS BINS
         for lambda_bin in range(self.Lambda_obs_Cxi2_div):
