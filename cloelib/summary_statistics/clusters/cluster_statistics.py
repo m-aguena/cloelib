@@ -194,7 +194,7 @@ class ClusterStatistics:
             self.selectionfunction.P_zobs_z(
                 z_tab, self.Lambda_obs_edges[lambda_bin], self.z
             ),
-            z_tab,
+            x=z_tab,
             axis=0,
         )
         # observed volume element dV/dz_ob
@@ -214,7 +214,7 @@ class ClusterStatistics:
         # P(lob|ltr,ztr)
         Plob_l_z = simps(
             self.selectionfunction.P_lbdobs_lbd(self.z, self.Lambda, l_tab),
-            l_tab,
+            x=l_tab,
             axis=-1,
         )
         #       if external_richness_selection_function == 'CG_ESF':
@@ -222,13 +222,13 @@ class ClusterStatistics:
 
         # P(lob|M,ztr)
         Plob_M_z = simps(
-            self._Pl_M_z[:, :, :] * Plob_l_z[:, np.newaxis, :], self.Lambda, axis=-1
+            self._Pl_M_z[:, :, :] * Plob_l_z[:, np.newaxis, :], x=self.Lambda, axis=-1
         )
         return Plob_M_z
 
     def _counts_bin(self, dV_dzob_bin, n_lbdobs_z):
         # computes counts in a richness redshift bin
-        return simps(n_lbdobs_z * dV_dzob_bin, self.z, axis=0)
+        return simps(n_lbdobs_z * dV_dzob_bin, x=self.z, axis=0)
 
     def _init_counts_arrays(self):
         # internal attributes
@@ -251,7 +251,7 @@ class ClusterStatistics:
             self._Plob_M_z[lambda_bin] = self._Plob_M_z_bin(lambda_bin)
             # N(lob,ztr)
             self._n_lbdobs_z[lambda_bin] = simps(
-                self._Plob_M_z[lambda_bin] * self.dndm_z, self.Mass, axis=1
+                self._Plob_M_z[lambda_bin] * self.dndm_z, x=self.Mass, axis=1
             )
 
             for z_bin in range(self.z_obs_div):
@@ -294,7 +294,7 @@ class ClusterStatistics:
                 * simps(
                     (self.k**2 * np.sqrt(pk[z_bin] * pk[: (z_bin + 1)]))
                     * self.covariance.cov_window(z_bin, z_tab, KL),
-                    self.k,
+                    x=self.k,
                     axis=-1,
                 )
             )
@@ -332,7 +332,7 @@ class ClusterStatistics:
             # N(lob,ztr) * bias(lob,ztr)
             self._b_n_lbdobs_z[lambda_bin] = simps(
                 self._Plob_M_z[lambda_bin] * self.dndm_z * self.bias_z,
-                self.Mass,
+                x=self.Mass,
                 axis=1,
             )
 
@@ -341,7 +341,7 @@ class ClusterStatistics:
                 # N(lob,zob) * bias(lob,zob)
                 self._Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
                     self._b_n_lbdobs_z[lambda_bin] * self._dV_dzob[z_bin, lambda_bin],
-                    self.z,
+                    x=self.z,
                     axis=0,
                 )
                 # shot-noise matrix
@@ -385,7 +385,7 @@ class ClusterStatistics:
                     self._Plob_M_z[lambda_bin]
                     * self.dndm_z
                     * np.squeeze(excess_surface_mass_density, axis=2),
-                    self.Mass,
+                    x=self.Mass,
                     axis=1,
                 )
 
@@ -397,7 +397,7 @@ class ClusterStatistics:
                             self.profile.m_sig_crit_m1(self.z, z_bin)
                             * self._dV_dzob[z_bin, lambda_bin]
                             * excesssurfacemassdensity,
-                            self.z,
+                            x=self.z,
                         )
                     )
 
@@ -469,23 +469,23 @@ class ClusterStatistics:
             # P(lob|ltr,ztr)
             Plob_l_z_Cxi2 = simps(
                 self.selectionfunction.P_lbdobs_lbd(self.z, self.Lambda, l_tab),
-                l_tab,
+                x=l_tab,
                 axis=-1,
             )
 
             # P(lob|M,ztr)
             Plob_M_z_Cxi2 = simps(
                 self._Pl_M_z[:, :, :] * Plob_l_z_Cxi2[:, np.newaxis, :],
-                self.Lambda,
+                x=self.Lambda,
                 axis=-1,
             )
 
             # n(lob,ztr)
-            n_lbdobs_z_Cxi2 = simps(Plob_M_z_Cxi2 * self.dndm_z, self.Mass, axis=1)
+            n_lbdobs_z_Cxi2 = simps(Plob_M_z_Cxi2 * self.dndm_z, x=self.Mass, axis=1)
 
             # n(lob,ztr) * b(lob,zob)
             n_b_lbdobs_z_Cxi2 = simps(
-                Plob_M_z_Cxi2 * self.dndm_z * self.bias_z, self.Mass, axis=1
+                Plob_M_z_Cxi2 * self.dndm_z * self.bias_z, x=self.Mass, axis=1
             )
 
             # effective halo bias
@@ -514,7 +514,7 @@ class ClusterStatistics:
                     self.selectionfunction.P_zobs_z(
                         z_tab, self.Lambda_obs_Cxi2_edges[lambda_bin], self.z
                     ),
-                    z_tab,
+                    x=z_tab,
                     axis=0,
                 )
 
@@ -527,16 +527,16 @@ class ClusterStatistics:
                 )
 
                 # volume of the observed redshift slice
-                self._V_zob[z_bin] = simps(dV_dzob, self.z, axis=0)
+                self._V_zob[z_bin] = simps(dV_dzob, x=self.z, axis=0)
 
                 # normalization factor
-                N_int_lbdobs_z_Cxi2 = simps(dV_dzob * n_lbdobs_z_Cxi2, self.z, axis=0)
+                N_int_lbdobs_z_Cxi2 = simps(dV_dzob * n_lbdobs_z_Cxi2, x=self.z, axis=0)
 
                 # power spectrum and shot-noise terms
                 self._sqrt_Pk_zbin_lbin[z_bin, lambda_bin, :] = (
                     simps(
                         (dV_dzob * n_lbdobs_z_Cxi2)[:, np.newaxis] * np.sqrt(pk_halo),
-                        self.z,
+                        x=self.z,
                         axis=0,
                     )
                     / N_int_lbdobs_z_Cxi2
@@ -564,7 +564,7 @@ class ClusterStatistics:
                 * self._W_rad[:, np.newaxis, np.newaxis, :, :]
                 * self._Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
             ),
-            self.k,
+            x=self.k,
             axis=-1,
         )
 
