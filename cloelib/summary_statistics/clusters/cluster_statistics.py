@@ -47,9 +47,6 @@ class ClusterStatistics:
         Lambda: np.ndarray,
         z: np.ndarray,
         area: float = 10313,
-        CG_like_selection: str = "CC_CWL_Cxi2",
-        CG_xi2_cov_selection: str = "covCC_covCxi2",
-        #        external_richness_selection_function: str = 'non_CG_ESF',
         bias: str = "castro23",
         neutrino_cdm: bool = True,
     ):
@@ -72,9 +69,6 @@ class ClusterStatistics:
 
         # values
         self.area = area
-        self.CG_like_selection = CG_like_selection
-        self.CG_xi2_cov_selection = CG_xi2_cov_selection
-        #        self.CG_xi2_cov_selection = 'non_CG_ESF'
         self.bias = bias
         self.neutrino_cdm = neutrino_cdm
 
@@ -769,25 +763,30 @@ class ClusterStatistics:
                                 )
                             )
 
-    def N_zbin_Lbin_Rbin(self):
+    def compute_all_quantities(
+        self,
+        CG_like_selection: str = "CC_CWL_Cxi2",
+        CG_xi2_cov_selection: str = "covCC_covCxi2",
+        #        external_richness_selection_function: str = 'non_CG_ESF',
+    ):
         # main function
         # I think it is a bit weird that we have to always output everything, even if we are not using it
 
-        if self.CG_like_selection in ["CC", "CC_CWL", "CC_Cxi2", "CC_CWL_Cxi2"]:
+        if CG_like_selection in ["CC", "CC_CWL", "CC_Cxi2", "CC_CWL_Cxi2"]:
             self.compute_counts()
-            if self.CG_xi2_cov_selection in ["covCC", "covCC_covCxi2"]:
+            if CG_xi2_cov_selection in ["covCC", "covCC_covCxi2"]:
                 self.compute_counts_cov()
 
-        if self.CG_like_selection in ["CC_CWL", "CC_CWL_Cxi2"]:
+        if CG_like_selection in ["CC_CWL", "CC_CWL_Cxi2"]:
             self.compute_reduced_shear(self.N_zbin_Lbin)
 
         ##########################################
         # 2point correlation function
-        if self.CG_like_selection in ["CC_Cxi2", "CC_CWL_Cxi2"]:
+        if CG_like_selection in ["CC_Cxi2", "CC_CWL_Cxi2"]:
             self.compute_Cxi2()
 
             # 2point correlation function covariance
-            if self.CG_xi2_cov_selection in ["covCxi2", "covCC_covCxi2"]:
+            if CG_xi2_cov_selection in ["covCxi2", "covCC_covCxi2"]:
                 self.compute_Cxi2_cov()
                 # note: this function depends on these quantities, that are computed by the covariance function.
                 # (Pk_lambdai_lambdaj one_over_n_lambdai_lambdaj,W_rad,V_rad,V_zob,)

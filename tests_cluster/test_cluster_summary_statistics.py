@@ -125,13 +125,14 @@ def test_clustersummmarystatitistics():
         Lambda=Lambda,
         z=zed,
         area=area,
-        CG_like_selection=CG_like_selection,
-        CG_xi2_cov_selection=CG_xi2_cov_selection,
         bias=bias,
         neutrino_cdm=neutrino_cdm,
     )
 
-    clusterStatistics.N_zbin_Lbin_Rbin()
+    clusterStatistics.compute_all_quantities(
+        CG_like_selection=CG_like_selection,
+        CG_xi2_cov_selection=CG_xi2_cov_selection,
+    )
 
     assert_allclose(clusterStatistics.N_zbin_Lbin, benchmark_values.NC_ref, rtol=1e-2)
 
