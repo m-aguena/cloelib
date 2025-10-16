@@ -282,7 +282,7 @@ class ClusterStatistics:
         pk *= photoz_corr0
 
         # richness-independent quantites that can be computed outside the lambda loop
-        for z_bin in range(z_obs_mid):
+        for z_bin in range(len(z_obs_mid)):
 
             z_tab = np.linspace(
                 self.z_obs_edges[z_bin], self.z_obs_edges[z_bin + 1], self.z_tab_sig
@@ -660,9 +660,7 @@ class ClusterStatistics:
         rad_bin_numbers = range(self.Rad_obs_Cxi2_div)
 
         # compute nuisance parameters
-        alpha_n_ij, beta_pk_ij = self._compute_alpha_beta(
-            self, self._Pk_lambdai_lambdaj, self._one_over_n_lambdai_lambdaj
-        )
+        alpha_n_ij, beta_pk_ij = self._compute_alpha_beta()
 
         for lambda_bin_i in lambda_bin_numbers:
             for lambda_bin_j in lambda_bin_numbers:
@@ -770,8 +768,6 @@ class ClusterStatistics:
                                     ]
                                 )
                             )
-
-        return cov_Cxi2
 
     def N_zbin_Lbin_Rbin(self):
         # main function

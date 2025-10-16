@@ -131,18 +131,24 @@ def test_clustersummmarystatitistics():
         neutrino_cdm=neutrino_cdm,
     )
 
-    N_zbin_Lbin, g_zbin_Lbin_Rbin, Cxi2_zbin_Lbin_Rbin, cov_zbin_Lbin, cov_Cxi2 = (
-        clusterStatistics.N_zbin_Lbin_Rbin()
-    )
+    clusterStatistics.N_zbin_Lbin_Rbin()
 
-    assert_allclose(N_zbin_Lbin, benchmark_values.NC_ref, rtol=1e-2)
-
-    assert_allclose(g_zbin_Lbin_Rbin[0:2], benchmark_values.gWL, rtol=1e-2)
-
-    assert_allclose(Cxi2_zbin_Lbin_Rbin[0:2], benchmark_values.Cxi2, rtol=1e-2)
-
-    assert_allclose(cov_zbin_Lbin[1:2], benchmark_values.NC_cov, rtol=5e-2)
+    assert_allclose(clusterStatistics.N_zbin_Lbin, benchmark_values.NC_ref, rtol=1e-2)
 
     assert_allclose(
-        cov_Cxi2[1, 1, 1:3, 1:3, 10:20, 10:20], benchmark_values.Cxi2_cov, rtol=5e-2
+        clusterStatistics.g_zbin_Lbin_Rbin[0:2], benchmark_values.gWL, rtol=1e-2
+    )
+
+    assert_allclose(
+        clusterStatistics.Cxi2_zbin_Lbin_Rbin[0:2], benchmark_values.Cxi2, rtol=1e-2
+    )
+
+    assert_allclose(
+        clusterStatistics.cov_N_zbin_Lbin[1:2], benchmark_values.NC_cov, rtol=5e-2
+    )
+
+    assert_allclose(
+        clusterStatistics.cov_Cxi2_zbin_Lbin_Rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
+        benchmark_values.Cxi2_cov,
+        rtol=5e-2,
     )
