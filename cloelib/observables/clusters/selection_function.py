@@ -1,5 +1,6 @@
 # General imports
-import jax.numpy as np  # type: ignore
+# import jax.numpy as np
+import numpy as np
 
 
 class SelectionFunction:

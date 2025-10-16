@@ -1,4 +1,5 @@
-import jax.numpy as np
+# import jax.numpy as np
+import numpy as np
 from scipy.integrate import simpson as simps
 from scipy.special import erf, spherical_jn
 
@@ -263,8 +264,9 @@ class HaloClustering:
         )
 
         # correct for numerical inaccuracy
+        # note: for jax, use corr1 = corr1.at[idx].set(2 / 3.0)
         idx = erf_ks < 0.02
-        corr1 = corr1.at[idx].set(2 / 3.0)
-        corr2 = corr2.at[idx].set(1 / 5.0)
+        corr1[idx] = 2 / 3.0
+        corr2[idx] = 1 / 5.0
 
         return corr0, corr1, corr2
