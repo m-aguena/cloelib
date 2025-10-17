@@ -49,8 +49,8 @@ def test_clustersummmarystatitistics():
     CG_like_selection = "CC_CWL_Cxi2"
     CG_xi2_cov_selection = "covCC_covCxi2"
 
-    zed_obs_edges = np.linspace(0.2, 1.8, 9)
-    Lambda_obs_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
+    zed_obs_NC_edges = np.linspace(0.2, 1.8, 9)
+    Lambda_obs_NC_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
     Rad_obs_edges = np.linspace(5.0, 100.0, 11)
     Lambda_obs_Cxi2_edges = np.array([20, 30, 500])
     Rad_obs_Cxi2_edges = np.geomspace(20.0, 130.0, 31)
@@ -100,7 +100,7 @@ def test_clustersummmarystatitistics():
     )
 
     covariance = HaloCovariance(
-        perturbations, area=area, nbins_zob=len(zed_obs_edges), k=k
+        perturbations, area=area, nbins_zob=len(zed_obs_NC_edges), k=k
     )
 
     clusterStatistics = ClusterStatistics(
@@ -111,8 +111,8 @@ def test_clustersummmarystatitistics():
         profileNFW,
         haloClustering,
         covariance,
-        z_obs_edges=zed_obs_edges,
-        Lambda_obs_edges=Lambda_obs_edges,
+        z_obs_NC_edges=zed_obs_NC_edges,
+        Lambda_obs_NC_edges=Lambda_obs_NC_edges,
         Rad_obs_edges=Rad_obs_edges,
         Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges,
         Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
@@ -141,7 +141,7 @@ def test_clustersummmarystatitistics():
     )
 
     assert_allclose(
-        clusterStatistics.cov_N_zbin_Lbin[1:2], benchmark_values.NC_cov, rtol=5e-2
+        clusterStatistics.cov_NC_zbin_Lbin[1:2], benchmark_values.NC_cov, rtol=5e-2
     )
 
     assert_allclose(

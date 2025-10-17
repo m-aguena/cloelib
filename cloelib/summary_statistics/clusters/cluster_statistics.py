@@ -35,8 +35,8 @@ class ClusterStatistics:
         profile: Profile,
         clustering: HaloClustering,
         covariance: HaloCovariance,
-        z_obs_edges: np.ndarray,
-        Lambda_obs_edges: np.ndarray,
+        z_obs_NC_edges: np.ndarray,
+        Lambda_obs_NC_edges: np.ndarray,
         Rad_obs_edges: np.ndarray,
         Lambda_obs_Cxi2_edges: np.ndarray,
         Rad_obs_Cxi2_edges: np.ndarray,
@@ -71,8 +71,8 @@ class ClusterStatistics:
         self.halo_concentration = halo_concentration
 
         # edges
-        self.z_obs_edges = z_obs_edges
-        self.Lambda_obs_edges = Lambda_obs_edges
+        self.z_obs_NC_edges = z_obs_NC_edges
+        self.Lambda_obs_NC_edges = Lambda_obs_NC_edges
         self.Rad_obs_edges = Rad_obs_edges
         self.Lambda_obs_Cxi2_edges = Lambda_obs_Cxi2_edges
         self.Rad_obs_Cxi2_edges = Rad_obs_Cxi2_edges
@@ -94,12 +94,12 @@ class ClusterStatistics:
         ################### OBSERVED BINS ###################
 
         # observed redshift bins for number counts and weak lensing
-        # self.z_obs_edges = z_obs_edges #self.theory['obs_specifications']['CG']['z_obs_edges']
-        self.z_obs_div = len(self.z_obs_edges) - 1
+        # self.z_obs_NC_edges = z_obs_NC_edges #self.theory['obs_specifications']['CG']['z_obs_NC_edges']
+        self.z_obs_NC_div = len(self.z_obs_NC_edges) - 1
 
         # observed richness bins for number counts and weak lensing
-        # self.Lambda_obs_edges = Lambda_obs_edges #self.theory['obs_specifications']['CG']['Lambda_obs_edges']
-        self.Lambda_obs_div = len(self.Lambda_obs_edges) - 1
+        # self.Lambda_obs_NC_edges = Lambda_obs_NC_edges #self.theory['obs_specifications']['CG']['Lambda_obs_NC_edges']
+        self.Lambda_obs_NC_div = len(self.Lambda_obs_NC_edges) - 1
 
         # observed radial separation bins for weak lensing
         # self.Rad_obs_edges = Rad_obs_edges #self.theory['obs_specifications']['CG']['Rad_obs_edges']
@@ -162,7 +162,7 @@ class ClusterStatistics:
         self.N_zbin_Lbin = None
         self.g_zbin_Lbin_Rbin = None
         self.Cxi2_zbin_Lbin_Rbin = None
-        self.cov_N_zbin_Lbin = None
+        self.cov_NC_zbin_Lbin = None
         self.cov_Cxi2_zbin_Lbin_Rbin = None
 
     def _missing_attributes(self, *attr):
@@ -177,12 +177,12 @@ class ClusterStatistics:
         # computes volume in richness redshift bin for cluster counts
 
         z_tab = np.linspace(
-            self.z_obs_edges[z_bin], self.z_obs_edges[z_bin + 1], self.z_tab_sig
+            self.z_obs_NC_edges[z_bin], self.z_obs_NC_edges[z_bin + 1], self.z_tab_sig
         )
         # P(zob|ztr)
         Pzob_z = simps(
             self.selectionfunction.P_zobs_z(
-                z_tab, self.Lambda_obs_edges[lambda_bin], self.z
+                z_tab, self.Lambda_obs_NC_edges[lambda_bin], self.z
             ),
             x=z_tab,
             axis=0,
@@ -197,8 +197,8 @@ class ClusterStatistics:
     def _Plob_M_z_bin(self, lambda_bin):
         # returns # P(lob|M,ztr) for a richness bin
         l_tab = np.geomspace(
-            self.Lambda_obs_edges[lambda_bin],
-            self.Lambda_obs_edges[lambda_bin + 1],
+            self.Lambda_obs_NC_edges[lambda_bin],
+            self.Lambda_obs_NC_edges[lambda_bin + 1],
             self.l_m_tab_sig[lambda_bin],
         )
         # P(lob|ltr,ztr)
@@ -222,21 +222,21 @@ class ClusterStatistics:
 
     def _init_counts_arrays(self):
         # internal attributes
-        self._Plob_M_z = np.zeros(self.Lambda_obs_div, dtype=list)
-        self._dV_dzob = np.zeros((self.z_obs_div, self.Lambda_obs_div), dtype=list)
-        self._n_lbdobs_z = np.zeros(self.Lambda_obs_div, dtype=list)
+        self._Plob_M_z = np.zeros(self.Lambda_obs_NC_div, dtype=list)
+        self._dV_dzob = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div), dtype=list)
+        self._n_lbdobs_z = np.zeros(self.Lambda_obs_NC_div, dtype=list)
         # P(ltrM,ztr), this quantity is also used by cluster clustering
         self._Pl_M_z = self.selectionfunction.P_lnlbd(self.z, self.Mass, self.Lambda)
 
         # output
-        self.N_zbin_Lbin = np.zeros((self.z_obs_div, self.Lambda_obs_div))
+        self.N_zbin_Lbin = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div))
 
     def compute_counts(self):
 
         # prepare internal attributes
         self._init_counts_arrays()
 
-        for lambda_bin in range(self.Lambda_obs_div):
+        for lambda_bin in range(self.Lambda_obs_NC_div):
 
             self._Plob_M_z[lambda_bin] = self._Plob_M_z_bin(lambda_bin)
             # N(lob,ztr)
@@ -244,7 +244,7 @@ class ClusterStatistics:
                 self._Plob_M_z[lambda_bin] * self.dndm_z, x=self.Mass, axis=1
             )
 
-            for z_bin in range(self.z_obs_div):
+            for z_bin in range(self.z_obs_NC_div):
 
                 self._dV_dzob[z_bin, lambda_bin] = self._volume_bin(z_bin, lambda_bin)
                 self.N_zbin_Lbin[z_bin, lambda_bin] = self._counts_bin(
@@ -255,27 +255,27 @@ class ClusterStatistics:
     # cluster counts cov
     ####################
 
-    def _compute_sab(self, z_obs_mid):
+    def _compute_sab(self, z_obs_NC_mid):
         # initialization
-        sab = np.zeros((self.z_obs_div, self.z_obs_div))
+        sab = np.zeros((self.z_obs_NC_div, self.z_obs_NC_div))
         # spherical harmonic expansion coefficients (covariance)
         KL = self.covariance.Kl_coeff()
-        # self.rint = np.zeros((self.z_obs_div,len(self.k),L+1))
+        # self.rint = np.zeros((self.z_obs_NC_div,len(self.k),L+1))
 
         # power spectrum at the center of observed redshift bins
-        pk = self.halostatistics.matter_power_spectrum(z_obs_mid, self.k)
+        pk = self.halostatistics.matter_power_spectrum(z_obs_NC_mid, self.k)
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
-        photoz_corr0 = self.clustering.photoz_rsd_correction(z_obs_mid, 0)[
+        photoz_corr0 = self.clustering.photoz_rsd_correction(z_obs_NC_mid, 0)[
             0
         ]  # can neglect richness dependence here
         pk *= photoz_corr0
 
         # richness-independent quantites that can be computed outside the lambda loop
-        for z_bin in range(len(z_obs_mid)):
+        for z_bin in range(len(z_obs_NC_mid)):
 
             z_tab = np.linspace(
-                self.z_obs_edges[z_bin], self.z_obs_edges[z_bin + 1], self.z_tab_sig
+                self.z_obs_NC_edges[z_bin], self.z_obs_NC_edges[z_bin + 1], self.z_tab_sig
             )
 
             sab[z_bin, : (z_bin + 1)] = (
@@ -294,14 +294,14 @@ class ClusterStatistics:
 
     def _init_counts_cov_arrays(self):
         # internal attributes
-        self._Nb_zbin_Lbin = np.zeros((self.z_obs_div, self.Lambda_obs_div))
-        self._b_n_lbdobs_z = np.zeros(self.Lambda_obs_div, dtype=list)
+        self._Nb_zbin_Lbin = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div))
+        self._b_n_lbdobs_z = np.zeros(self.Lambda_obs_NC_div, dtype=list)
         self._shot_noise = np.zeros(
-            (self.z_obs_div, self.z_obs_div, self.Lambda_obs_div, self.Lambda_obs_div)
+            (self.z_obs_NC_div, self.z_obs_NC_div, self.Lambda_obs_NC_div, self.Lambda_obs_NC_div)
         )
         # output
-        self.cov_N_zbin_Lbin = np.zeros(
-            (self.z_obs_div, self.z_obs_div, self.Lambda_obs_div, self.Lambda_obs_div)
+        self.cov_NC_zbin_Lbin = np.zeros(
+            (self.z_obs_NC_div, self.z_obs_NC_div, self.Lambda_obs_NC_div, self.Lambda_obs_NC_div)
         )
 
     def compute_counts_cov(self):
@@ -314,10 +314,10 @@ class ClusterStatistics:
         self._init_counts_cov_arrays()
 
         sab = self._compute_sab(
-            _bin_midpoints(self.z_obs_edges)  # mean observed redshift
+            _bin_midpoints(self.z_obs_NC_edges)  # mean observed redshift
         )
 
-        for lambda_bin in range(self.Lambda_obs_div):
+        for lambda_bin in range(self.Lambda_obs_NC_div):
 
             # N(lob,ztr) * bias(lob,ztr)
             self._b_n_lbdobs_z[lambda_bin] = simps(
@@ -326,7 +326,7 @@ class ClusterStatistics:
                 axis=1,
             )
 
-            for z_bin in range(self.z_obs_div):
+            for z_bin in range(self.z_obs_NC_div):
 
                 # N(lob,zob) * bias(lob,zob)
                 self._Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
@@ -338,10 +338,10 @@ class ClusterStatistics:
                 self._shot_noise[z_bin, z_bin] = np.diag(self.N_zbin_Lbin[z_bin])
 
         # total covariance = shot-noise + sample covariance
-        self.cov_N_zbin_Lbin = self._shot_noise + (
-            self._Nb_zbin_Lbin.reshape(1, self.z_obs_div, 1, self.Lambda_obs_div)
-            * self._Nb_zbin_Lbin.reshape(self.z_obs_div, 1, self.Lambda_obs_div, 1)
-            * sab.reshape(self.z_obs_div, self.z_obs_div, 1, 1)
+        self.cov_NC_zbin_Lbin = self._shot_noise + (
+            self._Nb_zbin_Lbin.reshape(1, self.z_obs_NC_div, 1, self.Lambda_obs_NC_div)
+            * self._Nb_zbin_Lbin.reshape(self.z_obs_NC_div, 1, self.Lambda_obs_NC_div, 1)
+            * sab.reshape(self.z_obs_NC_div, self.z_obs_NC_div, 1, 1)
         )
 
     ###############
@@ -351,7 +351,7 @@ class ClusterStatistics:
     def _init_reduced_shear_arrays(self):
         # output
         self.g_zbin_Lbin_Rbin = np.zeros(
-            (self.z_obs_div, self.Lambda_obs_div, self.Rad_obs_div)
+            (self.z_obs_NC_div, self.Lambda_obs_NC_div, self.Rad_obs_div)
         )
 
     def compute_reduced_shear(self, N_zbin_Lbin):
@@ -370,7 +370,7 @@ class ClusterStatistics:
                 self.Mass,
                 self.halo_concentration,
             )
-            for lambda_bin in range(self.Lambda_obs_div):
+            for lambda_bin in range(self.Lambda_obs_NC_div):
                 excesssurfacemassdensity = simps(
                     self._Plob_M_z[lambda_bin]
                     * self.dndm_z
@@ -379,7 +379,7 @@ class ClusterStatistics:
                     axis=1,
                 )
 
-                for z_bin in range(self.z_obs_div):
+                for z_bin in range(self.z_obs_NC_div):
                     self.g_zbin_Lbin_Rbin[z_bin, lambda_bin, rad_bin] = (
                         (1.0)
                         / N_zbin_Lbin[z_bin, lambda_bin]
