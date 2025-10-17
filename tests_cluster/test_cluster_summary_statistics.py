@@ -56,10 +56,10 @@ def test_clustersummmarystatitistics():
     Rad_obs_Cxi2_edges = np.geomspace(20.0, 130.0, 31)
     zed_obs_Cxi2_edges = np.arange(0.2, 1.81, 0.4)
 
-    k = np.geomspace(1e-4, 10, 500)
-    Mass = np.logspace(12.0, 16.0, 51)
-    Lambda = np.geomspace(5.0, 250.0, 51)
-    zed = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
+    integ_k_arr = np.geomspace(1e-4, 10, 500)
+    integ_mass_arr = np.logspace(12.0, 16.0, 51)
+    integ_lambda_arr = np.geomspace(5.0, 250.0, 51)
+    integ_z_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
 
     _sel_pars = dict(
         A_l=52.0,
@@ -88,19 +88,21 @@ def test_clustersummmarystatitistics():
         alpha_nz=0.4,
     )
 
-    HS = HaloStatistics(perturbations, z=zed, k=k, overdensity_type=overdensity_type)
+    HS = HaloStatistics(
+        perturbations, z=integ_z_arr, k=integ_k_arr, overdensity_type=overdensity_type
+    )
     HSCastro = CastroHMFBias(HS)
 
-    profileNFW = ProfileNFW(HSCastro, k=k, z=zed, **_prof_pars)
+    profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_z_arr, **_prof_pars)
 
     selectionFunction = SelectionFunction(**_sel_pars)
 
     haloClustering = HaloClustering(
-        perturbations, perturbations_fid, selectionFunction, k=k
+        perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
     )
 
     covariance = HaloCovariance(
-        perturbations, area=area, nbins_zob=len(zed_obs_NC_edges), k=k
+        perturbations, area=area, nbins_zob=len(zed_obs_NC_edges), k=integ_k_arr
     )
 
     clusterStatistics = ClusterStatistics(
@@ -112,10 +114,10 @@ def test_clustersummmarystatitistics():
         haloClustering,
         covariance,
         halo_concentration=halo_concentration,
-        k=k,
-        Mass=Mass,
-        Lambda=Lambda,
-        z=zed,
+        integ_k_arr=integ_k_arr,
+        integ_mass_arr=integ_mass_arr,
+        integ_lambda_arr=integ_lambda_arr,
+        integ_z_arr=integ_z_arr,
         area=area,
     )
 

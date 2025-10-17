@@ -36,10 +36,10 @@ class ClusterStatistics:
         clustering: HaloClustering,
         covariance: HaloCovariance,
         halo_concentration: float,
-        k: np.ndarray,
-        Mass: np.ndarray,
-        Lambda: np.ndarray,
-        z: np.ndarray,
+        integ_k_arr: np.ndarray,
+        integ_mass_arr: np.ndarray,
+        integ_lambda_arr: np.ndarray,
+        integ_z_arr: np.ndarray,
         area: float = 10313,
     ):
         """
@@ -64,10 +64,10 @@ class ClusterStatistics:
         self.halo_concentration = halo_concentration
 
         # integration variables
-        self.k = k  # k array
-        self.Mass = Mass  # mass array in Msun h^-1
-        self.Lambda = Lambda  # true richness array
-        self.z = z  # true redshift array
+        self.integ_k_arr = integ_k_arr  # k array
+        self.integ_mass_arr = integ_mass_arr  # mass array in Msun h^-1
+        self.integ_lambda_arr = integ_lambda_arr  # true richness array
+        self.integ_z_arr = integ_z_arr  # true redshift array
 
         # edges
         self.z_obs_NC_edges = None
@@ -102,13 +102,13 @@ class ClusterStatistics:
 
         # volume element at the center of observed redshift bins
         self.dvdzdomega_z1z2 = derived_cosmology.dV_dzdO(
-            self.background, self.z, hubble_units=True
+            self.background, self.integ_z_arr, hubble_units=True
         )
 
         # hmf at the center of observed redshift bins
-        self.dndm_z = self.hmfbias.dn_dm(self.z, self.Mass)
+        self.dndm_z = self.hmfbias.dn_dm(self.integ_z_arr, self.integ_mass_arr)
         self.bias_z = self.hmfbias.bias(
-            self.z, self.Mass
+            self.integ_z_arr, self.integ_mass_arr
         )  # only work for virial overdensity
 
         ################### OUTPUTS ###################
@@ -176,7 +176,7 @@ class ClusterStatistics:
         # P(zob|ztr)
         Pzob_z = simps(
             self.selectionfunction.P_zobs_z(
-                z_tab, self.Lambda_obs_NC_edges[lambda_bin], self.z
+                z_tab, self.Lambda_obs_NC_edges[lambda_bin], self.integ_z_arr
             ),
             x=z_tab,
             axis=0,
@@ -197,22 +197,26 @@ class ClusterStatistics:
         )
         # P(lob|ltr,ztr)
         Plob_l_z = simps(
-            self.selectionfunction.P_lbdobs_lbd(self.z, self.Lambda, l_tab),
+            self.selectionfunction.P_lbdobs_lbd(
+                self.integ_z_arr, self.integ_lambda_arr, l_tab
+            ),
             x=l_tab,
             axis=-1,
         )
         #       if external_richness_selection_function == 'CG_ESF':
-        #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.z, self.Lambda).T
+        #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.integ_z_arr, self.integ_lambda_arr).T
 
         # P(lob|M,ztr)
         Plob_M_z = simps(
-            Pl_M_z[:, :, :] * Plob_l_z[:, np.newaxis, :], x=self.Lambda, axis=-1
+            Pl_M_z[:, :, :] * Plob_l_z[:, np.newaxis, :],
+            x=self.integ_lambda_arr,
+            axis=-1,
         )
         return Plob_M_z
 
     def _compute_counts_bin(self, dV_dzob_bin, n_lbdobs_z):
         # computes counts in a richness redshift bin
-        return simps(n_lbdobs_z * dV_dzob_bin, x=self.z, axis=0)
+        return simps(n_lbdobs_z * dV_dzob_bin, x=self.integ_z_arr, axis=0)
 
     def _compute_counts(self, Pl_M_z):
 
@@ -230,7 +234,7 @@ class ClusterStatistics:
             _Plob_M_z[lambda_bin] = self._compute_Plob_M_z_bin(lambda_bin, Pl_M_z)
             # N(lob,ztr)
             _n_lbdobs_z[lambda_bin] = simps(
-                _Plob_M_z[lambda_bin] * self.dndm_z, x=self.Mass, axis=1
+                _Plob_M_z[lambda_bin] * self.dndm_z, x=self.integ_mass_arr, axis=1
             )
 
             for z_bin in range(self.z_obs_NC_div):
@@ -256,7 +260,7 @@ class ClusterStatistics:
             # N(lob,ztr) * bias(lob,ztr)
             _b_n_lbdobs_z = simps(
                 Plob_M_z[lambda_bin] * self.dndm_z * self.bias_z,
-                x=self.Mass,
+                x=self.integ_mass_arr,
                 axis=1,
             )
 
@@ -265,7 +269,7 @@ class ClusterStatistics:
                 # N(lob,zob) * bias(lob,zob)
                 Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
                     _b_n_lbdobs_z * dV_dzob[z_bin, lambda_bin],
-                    x=self.z,
+                    x=self.integ_z_arr,
                     axis=0,
                 )
 
@@ -280,10 +284,10 @@ class ClusterStatistics:
         sab = np.zeros((self.z_obs_NC_div, self.z_obs_NC_div))
         # spherical harmonic expansion coefficients (covariance)
         KL = self.covariance.Kl_coeff()
-        # self.rint = np.zeros((self.z_obs_NC_div,len(self.k),L+1))
+        # self.rint = np.zeros((self.z_obs_NC_div,len(self.integ_k_arr),L+1))
 
         # power spectrum at the center of observed redshift bins
-        pk = self.halostatistics.matter_power_spectrum(z_obs_NC_mid, self.k)
+        pk = self.halostatistics.matter_power_spectrum(z_obs_NC_mid, self.integ_k_arr)
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
         photoz_corr0 = self.clustering.photoz_rsd_correction(z_obs_NC_mid, 0)[
@@ -304,9 +308,9 @@ class ClusterStatistics:
                 1
                 / (2 * np.pi**2)
                 * simps(
-                    (self.k**2 * np.sqrt(pk[z_bin] * pk[: (z_bin + 1)]))
+                    (self.integ_k_arr**2 * np.sqrt(pk[z_bin] * pk[: (z_bin + 1)]))
                     * self.covariance.cov_window(z_bin, z_tab, KL),
-                    x=self.k,
+                    x=self.integ_k_arr,
                     axis=-1,
                 )
             )
@@ -354,8 +358,8 @@ class ClusterStatistics:
         for rad_bin in range(self.Rad_obs_div):
             excess_surface_mass_density = self.profile.excess_surface_mass_density(
                 np.atleast_1d(self.Rad_obs_edges[rad_bin]),
-                self.z,
-                self.Mass,
+                self.integ_z_arr,
+                self.integ_mass_arr,
                 self.halo_concentration,
             )
             for lambda_bin in range(self.Lambda_obs_NC_div):
@@ -363,7 +367,7 @@ class ClusterStatistics:
                     Plob_M_z[lambda_bin]
                     * self.dndm_z
                     * np.squeeze(excess_surface_mass_density, axis=2),
-                    x=self.Mass,
+                    x=self.integ_mass_arr,
                     axis=1,
                 )
 
@@ -372,10 +376,10 @@ class ClusterStatistics:
                         (1.0)
                         / N_zbin_Lbin[z_bin, lambda_bin]
                         * simps(
-                            self.profile.m_sig_crit_m1(self.z, z_bin)
+                            self.profile.m_sig_crit_m1(self.integ_z_arr, z_bin)
                             * dV_dzob[z_bin, lambda_bin]
                             * excesssurfacemassdensity,
-                            x=self.z,
+                            x=self.integ_z_arr,
                         )
                     )
         return g_zbin_Lbin_Rbin
@@ -394,13 +398,15 @@ class ClusterStatistics:
         Lambda_obs_Cxi2_mid = _bin_midpoints(self.Lambda_obs_Cxi2_edges)
 
         sqrt_Pk_zbin_lbin = np.zeros(
-            (self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))
+            (self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.integ_k_arr))
         )
 
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
         ############
-        pk_IR = self.halostatistics.matter_power_spectrum(self.z, self.k)
+        pk_IR = self.halostatistics.matter_power_spectrum(
+            self.integ_z_arr, self.integ_k_arr
+        )
 
         # LOOP OVER CLUSTERING RICHNESS BINS
         for lambda_bin in range(self.Lambda_obs_Cxi2_div):
@@ -415,7 +421,9 @@ class ClusterStatistics:
 
             # P(lob|ltr,ztr)
             Plob_l_z_Cxi2 = simps(
-                self.selectionfunction.P_lbdobs_lbd(self.z, self.Lambda, l_tab),
+                self.selectionfunction.P_lbdobs_lbd(
+                    self.integ_z_arr, self.integ_lambda_arr, l_tab
+                ),
                 x=l_tab,
                 axis=-1,
             )
@@ -423,16 +431,18 @@ class ClusterStatistics:
             # P(lob|M,ztr)
             Plob_M_z_Cxi2 = simps(
                 Pl_M_z[:, :, :] * Plob_l_z_Cxi2[:, np.newaxis, :],
-                x=self.Lambda,
+                x=self.integ_lambda_arr,
                 axis=-1,
             )
 
             # n(lob,ztr)
-            n_lbdobs_z_Cxi2 = simps(Plob_M_z_Cxi2 * self.dndm_z, x=self.Mass, axis=1)
+            n_lbdobs_z_Cxi2 = simps(
+                Plob_M_z_Cxi2 * self.dndm_z, x=self.integ_mass_arr, axis=1
+            )
 
             # n(lob,ztr) * b(lob,zob)
             n_b_lbdobs_z_Cxi2 = simps(
-                Plob_M_z_Cxi2 * self.dndm_z * self.bias_z, x=self.Mass, axis=1
+                Plob_M_z_Cxi2 * self.dndm_z * self.bias_z, x=self.integ_mass_arr, axis=1
             )
 
             # effective halo bias
@@ -441,7 +451,7 @@ class ClusterStatistics:
             # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
             photoz_corr0, photoz_corr1, photoz_corr2 = (
                 self.clustering.photoz_rsd_correction(
-                    self.z, Lambda_obs_Cxi2_mid[lambda_bin]
+                    self.integ_z_arr, Lambda_obs_Cxi2_mid[lambda_bin]
                 )
             )
             pk_halo = pk_IR * (
@@ -459,7 +469,7 @@ class ClusterStatistics:
                 # P(zob|ztr)
                 Pzob_z = simps(
                     self.selectionfunction.P_zobs_z(
-                        z_tab, self.Lambda_obs_Cxi2_edges[lambda_bin], self.z
+                        z_tab, self.Lambda_obs_Cxi2_edges[lambda_bin], self.integ_z_arr
                     ),
                     x=z_tab,
                     axis=0,
@@ -474,16 +484,18 @@ class ClusterStatistics:
                 )
 
                 # volume of the observed redshift slice
-                _V_zob[z_bin] = simps(dV_dzob, x=self.z, axis=0)
+                _V_zob[z_bin] = simps(dV_dzob, x=self.integ_z_arr, axis=0)
 
                 # normalization factor
-                N_int_lbdobs_z_Cxi2 = simps(dV_dzob * n_lbdobs_z_Cxi2, x=self.z, axis=0)
+                N_int_lbdobs_z_Cxi2 = simps(
+                    dV_dzob * n_lbdobs_z_Cxi2, x=self.integ_z_arr, axis=0
+                )
 
                 # power spectrum and shot-noise terms
                 sqrt_Pk_zbin_lbin[z_bin, lambda_bin, :] = (
                     simps(
                         (dV_dzob * n_lbdobs_z_Cxi2)[:, np.newaxis] * np.sqrt(pk_halo),
-                        x=self.z,
+                        x=self.integ_z_arr,
                         axis=0,
                     )
                     / N_int_lbdobs_z_Cxi2
@@ -510,12 +522,12 @@ class ClusterStatistics:
         # dim = [nz,nl,nl,nr]
         Cxi2_zbin_Lbin_Rbin_buf = simps(
             (
-                self.k**2.0
+                self.integ_k_arr**2.0
                 / (2.0 * np.pi**2)
                 * W_rad[:, np.newaxis, np.newaxis, :, :]
                 * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
             ),
-            x=self.k,
+            x=self.integ_k_arr,
             axis=-1,
         )
 
@@ -640,11 +652,11 @@ class ClusterStatistics:
                         rad_bin,
                     ] = (
                         simps(
-                            self.k**2.0
+                            self.integ_k_arr**2.0
                             / (2.0 * np.pi**2.0)
                             * W_rad[:, rad_bin, :]
                             * beta_pk_ij[:, lambda_bin_i, lambda_bin_j, :],
-                            x=self.k,
+                            x=self.integ_k_arr,
                         )
                         * (1 + gamma_cov_Cxi2[:, lambda_bin_i])
                         * one_over_n_lambdai_lambdaj[:, lambda_bin_i, lambda_bin_i, 0]
@@ -666,7 +678,7 @@ class ClusterStatistics:
                                 :,
                                 :,
                             ] = simps(
-                                self.k**2.0
+                                self.integ_k_arr**2.0
                                 / (2.0 * np.pi**2.0)
                                 * W_rad[:, np.newaxis, :, :]
                                 * W_rad[:, :, np.newaxis, :]
@@ -686,7 +698,7 @@ class ClusterStatistics:
                                     np.newaxis,
                                     :,
                                 ],
-                                x=self.k,
+                                x=self.integ_k_arr,
                                 axis=-1,
                             )
 
@@ -739,7 +751,9 @@ class ClusterStatistics:
     def compute_counts(self):
 
         # P(ltrM,ztr), this quantity is also used by cluster clustering
-        self._Pl_M_z = self.selectionfunction.P_lnlbd(self.z, self.Mass, self.Lambda)
+        self._Pl_M_z = self.selectionfunction.P_lnlbd(
+            self.integ_z_arr, self.integ_mass_arr, self.integ_lambda_arr
+        )
 
         self.N_zbin_Lbin, self._Plob_M_z, self._dV_dzob = self._compute_counts(
             self._Pl_M_z
@@ -782,7 +796,7 @@ class ClusterStatistics:
             raise ValueError("Run compute_counts first!")
 
         # this is never used
-        ###integ_zbin_lbin  = np.zeros(((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))))
+        ###integ_zbin_lbin  = np.zeros(((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.integ_k_arr))))
 
         # matter power spectrum + IR resummation
         self._Pk_lambdai_lambdaj, self._V_zob, self._one_over_n_lambdai_lambdaj = (
