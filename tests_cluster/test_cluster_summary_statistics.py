@@ -48,8 +48,6 @@ def test_clustersummmarystatitistics():
     overdensity_type = "vir"
     CG_like_selection = "CC_CWL_Cxi2"
     CG_xi2_cov_selection = "covCC_covCxi2"
-    bias = "castro23"
-    neutrino_cdm = True
 
     zed_obs_edges = np.linspace(0.2, 1.8, 9)
     Lambda_obs_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
@@ -125,8 +123,6 @@ def test_clustersummmarystatitistics():
         Lambda=Lambda,
         z=zed,
         area=area,
-        bias=bias,
-        neutrino_cdm=neutrino_cdm,
     )
 
     clusterStatistics.compute_all_quantities(

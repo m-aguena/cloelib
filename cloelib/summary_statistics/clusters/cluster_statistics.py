@@ -47,8 +47,6 @@ class ClusterStatistics:
         Lambda: np.ndarray,
         z: np.ndarray,
         area: float = 10313,
-        bias: str = "castro23",
-        neutrino_cdm: bool = True,
     ):
         """
         Initializes the cluster counts
@@ -69,8 +67,6 @@ class ClusterStatistics:
 
         # values
         self.area = area
-        self.bias = bias
-        self.neutrino_cdm = neutrino_cdm
 
         self.halo_concentration = halo_concentration
 
@@ -770,7 +766,6 @@ class ClusterStatistics:
         #        external_richness_selection_function: str = 'non_CG_ESF',
     ):
         # main function
-        # I think it is a bit weird that we have to always output everything, even if we are not using it
 
         if CG_like_selection in ["CC", "CC_CWL", "CC_Cxi2", "CC_CWL_Cxi2"]:
             self.compute_counts()
