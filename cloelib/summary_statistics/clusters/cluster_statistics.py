@@ -505,6 +505,10 @@ class ClusterStatistics:
                     _V_zob[z_bin] / N_int_lbdobs_z_Cxi2
                 )
 
+        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
+        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
+        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
+
         # cross Pk and shot-noise in two richness bins
         _Pk_lambdai_lambdaj = (
             sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
@@ -787,10 +791,6 @@ class ClusterStatistics:
 
     def compute_Cxi2(self):
 
-        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
-        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
-        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
-
         # check precomputed attributes
         if self._missing_attributes(self._Pl_M_z):
             raise ValueError("Run compute_counts first!")
@@ -875,10 +875,6 @@ class ClusterStatistics:
             # 2point correlation function covariance
             if CG_xi2_cov_selection in ["covCxi2", "covCC_covCxi2"]:
                 self.compute_Cxi2_cov()
-                # note: this function depends on these quantities, that are computed by the covariance function.
-                # (Pk_lambdai_lambdaj one_over_n_lambdai_lambdaj,W_rad,V_rad,V_zob,)
-                #   I made them class objects, but we could just put the covariance function inside the
-                # cluster clustering function as I did for cluster counts
 
 
 def _bin_midpoints(edges):
