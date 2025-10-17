@@ -223,7 +223,9 @@ class ClusterStatistics:
     def _init_counts_arrays(self):
         # internal attributes
         self._Plob_M_z = np.zeros(self.Lambda_obs_NC_div, dtype=list)
-        self._dV_dzob = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div), dtype=list)
+        self._dV_dzob = np.zeros(
+            (self.z_obs_NC_div, self.Lambda_obs_NC_div), dtype=list
+        )
         self._n_lbdobs_z = np.zeros(self.Lambda_obs_NC_div, dtype=list)
         # P(ltrM,ztr), this quantity is also used by cluster clustering
         self._Pl_M_z = self.selectionfunction.P_lnlbd(self.z, self.Mass, self.Lambda)
@@ -251,6 +253,46 @@ class ClusterStatistics:
                     self._dV_dzob[z_bin, lambda_bin], self._n_lbdobs_z[lambda_bin]
                 )
 
+    #####################
+    # cluster counts bias
+    #####################
+
+    def _init_bias_arrays(self):
+        # internal attributes
+        self._Nb_zbin_Lbin = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div))
+        self._b_n_lbdobs_z = np.zeros(self.Lambda_obs_NC_div, dtype=list)
+
+    def _compute_bias(self, Plob_M_z, dV_dzob):
+
+        for lambda_bin in range(self.Lambda_obs_NC_div):
+
+            # N(lob,ztr) * bias(lob,ztr)
+            self._b_n_lbdobs_z[lambda_bin] = simps(
+                Plob_M_z[lambda_bin] * self.dndm_z * self.bias_z,
+                x=self.Mass,
+                axis=1,
+            )
+
+            for z_bin in range(self.z_obs_NC_div):
+
+                # N(lob,zob) * bias(lob,zob)
+                self._Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
+                    self._b_n_lbdobs_z[lambda_bin] * dV_dzob[z_bin, lambda_bin],
+                    x=self.z,
+                    axis=0,
+                )
+
+    def compute_bias(self):
+
+        # check precomputed attributes
+        if self._missing_attributes(self._Plob_M_z, self._dV_dzob):
+            raise ValueError("Run compute_counts first!")
+
+        # prepare internal attributes
+        self._init_bias_arrays()
+
+        self._compute_bias(self._Plob_M_z, self._dV_dzob)
+
     ####################
     # cluster counts cov
     ####################
@@ -275,7 +317,9 @@ class ClusterStatistics:
         for z_bin in range(len(z_obs_NC_mid)):
 
             z_tab = np.linspace(
-                self.z_obs_NC_edges[z_bin], self.z_obs_NC_edges[z_bin + 1], self.z_tab_sig
+                self.z_obs_NC_edges[z_bin],
+                self.z_obs_NC_edges[z_bin + 1],
+                self.z_tab_sig,
             )
 
             sab[z_bin, : (z_bin + 1)] = (
@@ -294,55 +338,55 @@ class ClusterStatistics:
 
     def _init_counts_cov_arrays(self):
         # internal attributes
-        self._Nb_zbin_Lbin = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div))
-        self._b_n_lbdobs_z = np.zeros(self.Lambda_obs_NC_div, dtype=list)
         self._shot_noise = np.zeros(
-            (self.z_obs_NC_div, self.z_obs_NC_div, self.Lambda_obs_NC_div, self.Lambda_obs_NC_div)
+            (
+                self.z_obs_NC_div,
+                self.z_obs_NC_div,
+                self.Lambda_obs_NC_div,
+                self.Lambda_obs_NC_div,
+            )
         )
         # output
         self.cov_NC_zbin_Lbin = np.zeros(
-            (self.z_obs_NC_div, self.z_obs_NC_div, self.Lambda_obs_NC_div, self.Lambda_obs_NC_div)
+            (
+                self.z_obs_NC_div,
+                self.z_obs_NC_div,
+                self.Lambda_obs_NC_div,
+                self.Lambda_obs_NC_div,
+            )
         )
 
-    def compute_counts_cov(self):
-
-        # check precomputed attributes
-        if self._missing_attributes(self._Plob_M_z, self._dV_dzob, self._n_lbdobs_z):
-            raise ValueError("Run compute_counts first!")
-
-        # prepare internal attributes
-        self._init_counts_cov_arrays()
+    def _compute_counts_cov(self):
 
         sab = self._compute_sab(
             _bin_midpoints(self.z_obs_NC_edges)  # mean observed redshift
         )
 
-        for lambda_bin in range(self.Lambda_obs_NC_div):
-
-            # N(lob,ztr) * bias(lob,ztr)
-            self._b_n_lbdobs_z[lambda_bin] = simps(
-                self._Plob_M_z[lambda_bin] * self.dndm_z * self.bias_z,
-                x=self.Mass,
-                axis=1,
-            )
-
-            for z_bin in range(self.z_obs_NC_div):
-
-                # N(lob,zob) * bias(lob,zob)
-                self._Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
-                    self._b_n_lbdobs_z[lambda_bin] * self._dV_dzob[z_bin, lambda_bin],
-                    x=self.z,
-                    axis=0,
-                )
-                # shot-noise matrix
-                self._shot_noise[z_bin, z_bin] = np.diag(self.N_zbin_Lbin[z_bin])
+        # shut noise
+        for z_bin in range(self.z_obs_NC_div):
+            self._shot_noise[z_bin, z_bin] = np.diag(self.N_zbin_Lbin[z_bin])
 
         # total covariance = shot-noise + sample covariance
         self.cov_NC_zbin_Lbin = self._shot_noise + (
             self._Nb_zbin_Lbin.reshape(1, self.z_obs_NC_div, 1, self.Lambda_obs_NC_div)
-            * self._Nb_zbin_Lbin.reshape(self.z_obs_NC_div, 1, self.Lambda_obs_NC_div, 1)
+            * self._Nb_zbin_Lbin.reshape(
+                self.z_obs_NC_div, 1, self.Lambda_obs_NC_div, 1
+            )
             * sab.reshape(self.z_obs_NC_div, self.z_obs_NC_div, 1, 1)
         )
+
+    def compute_counts_cov(self):
+
+        # check precomputed attributes
+        if self._missing_attributes(self._b_n_lbdobs_z, self._Nb_zbin_Lbin):
+            raise ValueError("Run compute_bias first!")
+
+        # prepare internal attributes
+        self._init_counts_cov_arrays()
+
+        self._compute_counts_cov()
+
+        return
 
     ###############
     # reduced shear
@@ -770,6 +814,7 @@ class ClusterStatistics:
         if CG_like_selection in ["CC", "CC_CWL", "CC_Cxi2", "CC_CWL_Cxi2"]:
             self.compute_counts()
             if CG_xi2_cov_selection in ["covCC", "covCC_covCxi2"]:
+                self.compute_bias()
                 self.compute_counts_cov()
 
         if CG_like_selection in ["CC_CWL", "CC_CWL_Cxi2"]:
