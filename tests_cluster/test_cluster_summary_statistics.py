@@ -111,12 +111,6 @@ def test_clustersummmarystatitistics():
         profileNFW,
         haloClustering,
         covariance,
-        z_obs_NC_edges=zed_obs_NC_edges,
-        Lambda_obs_NC_edges=Lambda_obs_NC_edges,
-        Rad_obs_edges=Rad_obs_edges,
-        Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges,
-        Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
-        z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
         halo_concentration=halo_concentration,
         k=k,
         Mass=Mass,
@@ -128,6 +122,12 @@ def test_clustersummmarystatitistics():
     clusterStatistics.compute_all_quantities(
         CG_like_selection=CG_like_selection,
         CG_xi2_cov_selection=CG_xi2_cov_selection,
+        z_obs_NC_edges=zed_obs_NC_edges,
+        Lambda_obs_NC_edges=Lambda_obs_NC_edges,
+        Rad_obs_edges=Rad_obs_edges,
+        Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges,
+        Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
+        z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
     )
 
     assert_allclose(clusterStatistics.N_zbin_Lbin, benchmark_values.NC_ref, rtol=1e-2)

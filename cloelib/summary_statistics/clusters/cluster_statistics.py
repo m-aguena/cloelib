@@ -35,12 +35,6 @@ class ClusterStatistics:
         profile: Profile,
         clustering: HaloClustering,
         covariance: HaloCovariance,
-        z_obs_NC_edges: np.ndarray,
-        Lambda_obs_NC_edges: np.ndarray,
-        Rad_obs_edges: np.ndarray,
-        Lambda_obs_Cxi2_edges: np.ndarray,
-        Rad_obs_Cxi2_edges: np.ndarray,
-        z_obs_Cxi2_edges: np.ndarray,
         halo_concentration: float,
         k: np.ndarray,
         Mass: np.ndarray,
@@ -67,22 +61,21 @@ class ClusterStatistics:
 
         # values
         self.area = area
-
         self.halo_concentration = halo_concentration
-
-        # edges
-        self.z_obs_NC_edges = z_obs_NC_edges
-        self.Lambda_obs_NC_edges = Lambda_obs_NC_edges
-        self.Rad_obs_edges = Rad_obs_edges
-        self.Lambda_obs_Cxi2_edges = Lambda_obs_Cxi2_edges
-        self.Rad_obs_Cxi2_edges = Rad_obs_Cxi2_edges
-        self.z_obs_Cxi2_edges = z_obs_Cxi2_edges
 
         # integration variables
         self.k = k  # k array
         self.Mass = Mass  # mass array in Msun h^-1
         self.Lambda = Lambda  # true richness array
         self.z = z  # true redshift array
+
+        # edges
+        self.z_obs_NC_edges = None
+        self.Lambda_obs_NC_edges = None
+        self.Rad_obs_edges = None
+        self.Lambda_obs_Cxi2_edges = None
+        self.Rad_obs_Cxi2_edges = None
+        self.z_obs_Cxi2_edges = None
 
         ################### SELECTION FUNCTION ###################
 
@@ -129,31 +122,43 @@ class ClusterStatistics:
     @property
     def z_obs_NC_div(self):
         # observed redshift bins for number counts and weak lensing
+        if self.z_obs_NC_edges is None:
+            raise ValueError("z_obs_NC_edges not set")
         return len(self.z_obs_NC_edges) - 1
 
     @property
     def Lambda_obs_NC_div(self):
         # observed richness bins for number counts and weak lensing
+        if self.z_obs_NC_edges is None:
+            raise ValueError("z_obs_NC_edges not set")
         return len(self.Lambda_obs_NC_edges) - 1
 
     @property
     def Rad_obs_div(self):
         # observed radial separation bins for weak lensing
+        if self.Lambda_obs_NC_edges is None:
+            raise ValueError("Lambda_obs_NC_edges not set")
         return len(self.Rad_obs_edges) - 1
 
     @property
     def Lambda_obs_Cxi2_div(self):
         # observed richness bins for clustering
+        if self.Rad_obs_edges is None:
+            raise ValueError("Rad_obs_edges not set")
         return len(self.Lambda_obs_Cxi2_edges) - 1
 
     @property
     def Rad_obs_Cxi2_div(self):
         # observed radial separation bins for clustering
+        if self.Lambda_obs_Cxi2_edges is None:
+            raise ValueError("Lambda_obs_Cxi2_edges not set")
         return len(self.Rad_obs_Cxi2_edges) - 1
 
     @property
     def z_obs_Cxi2_div(self):
         # observed redshift bins for clustering
+        if self.Rad_obs_Cxi2_edges is None:
+            raise ValueError("Rad_obs_Cxi2_edges not set")
         return len(self.z_obs_Cxi2_edges) - 1
 
     # Core computation functions
@@ -820,7 +825,23 @@ class ClusterStatistics:
         CG_like_selection: str = "CC_CWL_Cxi2",
         CG_xi2_cov_selection: str = "covCC_covCxi2",
         #        external_richness_selection_function: str = 'non_CG_ESF',
+        z_obs_NC_edges: np.ndarray = None,
+        Lambda_obs_NC_edges: np.ndarray = None,
+        Rad_obs_edges: np.ndarray = None,
+        Lambda_obs_Cxi2_edges: np.ndarray = None,
+        Rad_obs_Cxi2_edges: np.ndarray = None,
+        z_obs_Cxi2_edges: np.ndarray = None,
     ):
+
+        # assing edges
+
+        self.z_obs_NC_edges = z_obs_NC_edges
+        self.Lambda_obs_NC_edges = Lambda_obs_NC_edges
+        self.Rad_obs_edges = Rad_obs_edges
+        self.Lambda_obs_Cxi2_edges = Lambda_obs_Cxi2_edges
+        self.Rad_obs_Cxi2_edges = Rad_obs_Cxi2_edges
+        self.z_obs_Cxi2_edges = z_obs_Cxi2_edges
+
         # main function
 
         if CG_like_selection in ["CC", "CC_CWL", "CC_Cxi2", "CC_CWL_Cxi2"]:
