@@ -126,15 +126,14 @@ class ClusterStatistics:
         self._Pl_M_z = None
 
         # computed in counts covariance
-        self._Nb_zbin_Lbin = None
-        self._b_n_lbdobs_z = None
+        self._b_n_lbdobs_z_ = None
         self._shot_noise = None
 
         # computed in clustering
         self._W_rad = None
         self._V_rad = None
         self._V_zob = None
-        self._sqrt_Pk_zbin_lbin = None
+        self._sqrt_Pk_zbin_lbin_ = None
         self._one_over_n_lambdai_lambdaj = None
         self._Pk_lambdai_lambdaj = None
 
@@ -160,6 +159,7 @@ class ClusterStatistics:
 
         ################### OUTPUTS ###################
         self.N_zbin_Lbin = None
+        self.Nb_zbin_Lbin = None
         self.g_zbin_Lbin_Rbin = None
         self.Cxi2_zbin_Lbin_Rbin = None
         self.cov_NC_zbin_Lbin = None
@@ -259,15 +259,15 @@ class ClusterStatistics:
 
     def _init_bias_arrays(self):
         # internal attributes
-        self._Nb_zbin_Lbin = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div))
-        self._b_n_lbdobs_z = np.zeros(self.Lambda_obs_NC_div, dtype=list)
+        self.Nb_zbin_Lbin = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div))
+        self._b_n_lbdobs_z_ = np.zeros(self.Lambda_obs_NC_div, dtype=list)
 
     def _compute_bias(self, Plob_M_z, dV_dzob):
 
         for lambda_bin in range(self.Lambda_obs_NC_div):
 
             # N(lob,ztr) * bias(lob,ztr)
-            self._b_n_lbdobs_z[lambda_bin] = simps(
+            self._b_n_lbdobs_z_[lambda_bin] = simps(
                 Plob_M_z[lambda_bin] * self.dndm_z * self.bias_z,
                 x=self.Mass,
                 axis=1,
@@ -276,8 +276,8 @@ class ClusterStatistics:
             for z_bin in range(self.z_obs_NC_div):
 
                 # N(lob,zob) * bias(lob,zob)
-                self._Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
-                    self._b_n_lbdobs_z[lambda_bin] * dV_dzob[z_bin, lambda_bin],
+                self.Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
+                    self._b_n_lbdobs_z_[lambda_bin] * dV_dzob[z_bin, lambda_bin],
                     x=self.z,
                     axis=0,
                 )
@@ -375,15 +375,13 @@ class ClusterStatistics:
     def compute_counts_cov(self):
 
         # check precomputed attributes
-        if self._missing_attributes(self._Nb_zbin_Lbin):
+        if self._missing_attributes(self.Nb_zbin_Lbin):
             raise ValueError("Run compute_bias first!")
 
         # prepare internal attributes
         self._init_counts_cov_arrays()
 
-        self._compute_counts_cov(self._Nb_zbin_Lbin)
-
-        return
+        self._compute_counts_cov(self.Nb_zbin_Lbin)
 
     ###############
     # reduced shear
@@ -439,7 +437,7 @@ class ClusterStatistics:
     def _init_Cxi2_arrays(self):
         # internal attributes
         self._V_zob = np.zeros(self.z_obs_Cxi2_div)
-        self._sqrt_Pk_zbin_lbin = np.zeros(
+        self._sqrt_Pk_zbin_lbin_ = np.zeros(
             (self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))
         )
         self._one_over_n_lambdai_lambdaj = np.zeros(
@@ -454,33 +452,10 @@ class ClusterStatistics:
             )
         )
 
-    def compute_Cxi2(self):
+    def _compute_pk_ir_resummation(self, Pl_M_z):
 
-        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
-        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
-        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
-
-        # check precomputed attributes
-        if self._missing_attributes(self._Pl_M_z):
-            raise ValueError("Run compute_counts first!")
-
-        # prepare internal attributes
-        self._init_Cxi2_arrays()
-
-        # this is never used
-        ###integ_zbin_lbin  = np.zeros(((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))))
-
-        # clustering bins
-        z_obs_Cxi2_mid = _bin_midpoints(self.z_obs_Cxi2_edges)
         Lambda_obs_Cxi2_mid = _bin_midpoints(self.Lambda_obs_Cxi2_edges)
 
-        # spherical shell window function W(R,K) and volume of the shell (compute once outside the redshift loop)
-        # these are used by covariance
-        self._W_rad, self._V_rad = self.clustering.WF_ra(
-            z_obs_Cxi2_mid, self.Rad_obs_Cxi2_edges
-        )
-
-        # matter power spectrum + IR resummation
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
         ############
@@ -506,7 +481,7 @@ class ClusterStatistics:
 
             # P(lob|M,ztr)
             Plob_M_z_Cxi2 = simps(
-                self._Pl_M_z[:, :, :] * Plob_l_z_Cxi2[:, np.newaxis, :],
+                Pl_M_z[:, :, :] * Plob_l_z_Cxi2[:, np.newaxis, :],
                 x=self.Lambda,
                 axis=-1,
             )
@@ -564,7 +539,7 @@ class ClusterStatistics:
                 N_int_lbdobs_z_Cxi2 = simps(dV_dzob * n_lbdobs_z_Cxi2, x=self.z, axis=0)
 
                 # power spectrum and shot-noise terms
-                self._sqrt_Pk_zbin_lbin[z_bin, lambda_bin, :] = (
+                self._sqrt_Pk_zbin_lbin_[z_bin, lambda_bin, :] = (
                     simps(
                         (dV_dzob * n_lbdobs_z_Cxi2)[:, np.newaxis] * np.sqrt(pk_halo),
                         x=self.z,
@@ -579,12 +554,43 @@ class ClusterStatistics:
 
         # cross Pk and shot-noise in two richness bins
         self._Pk_lambdai_lambdaj = (
-            self._sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
-            * self._sqrt_Pk_zbin_lbin[:, np.newaxis, :, :]
+            self._sqrt_Pk_zbin_lbin_[:, :, np.newaxis, :]
+            * self._sqrt_Pk_zbin_lbin_[:, np.newaxis, :, :]
         )  # dim = [nz,nl,nl,nk]
         self._one_over_n_lambdai_lambdaj = self._one_over_n_lambdai_lambdaj[
             :, :, :, np.newaxis
         ]  # dim = [nz,nl,nl,nk]
+
+    def compute_Cxi2(self):
+
+        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
+        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
+        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
+
+        # check precomputed attributes
+        if self._missing_attributes(self._Pl_M_z):
+            raise ValueError("Run compute_counts first!")
+
+        # prepare internal attributes
+        self._init_Cxi2_arrays()
+
+        # this is never used
+        ###integ_zbin_lbin  = np.zeros(((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))))
+
+        # spherical shell window function W(R,K) and volume of the shell (compute once outside the redshift loop)
+        # these are used by covariance
+        _z_obs_Cxi2_mid = _bin_midpoints(self.z_obs_Cxi2_edges)
+        self._W_rad, self._V_rad = self.clustering.WF_ra(
+            _z_obs_Cxi2_mid, self.Rad_obs_Cxi2_edges
+        )
+
+        # matter power spectrum + IR resummation
+        # fills:
+        #    self._Pk_lambdai_lambdaj
+        #    self._V_zob
+        #    self._one_over_n_lambdai_lambdaj
+        #    self._sqrt_Pk_zbin_lbin_
+        self._compute_pk_ir_resummation(self._Pl_M_z)
 
         # compute 2point correlation function
         # dim = [nz,nl,nl,nr]
