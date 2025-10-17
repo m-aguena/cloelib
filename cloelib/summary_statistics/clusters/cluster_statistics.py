@@ -91,32 +91,6 @@ class ClusterStatistics:
         self.l_m_tab_sig = [31, 31, 31, 51]
         self.z_tab_sig = 31
 
-        ################### OBSERVED BINS ###################
-
-        # observed redshift bins for number counts and weak lensing
-        # self.z_obs_NC_edges = z_obs_NC_edges #self.theory['obs_specifications']['CG']['z_obs_NC_edges']
-        self.z_obs_NC_div = len(self.z_obs_NC_edges) - 1
-
-        # observed richness bins for number counts and weak lensing
-        # self.Lambda_obs_NC_edges = Lambda_obs_NC_edges #self.theory['obs_specifications']['CG']['Lambda_obs_NC_edges']
-        self.Lambda_obs_NC_div = len(self.Lambda_obs_NC_edges) - 1
-
-        # observed radial separation bins for weak lensing
-        # self.Rad_obs_edges = Rad_obs_edges #self.theory['obs_specifications']['CG']['Rad_obs_edges']
-        self.Rad_obs_div = len(self.Rad_obs_edges) - 1
-
-        # observed richness bins for clustering
-        # self.Lambda_obs_Cxi2_edges = Lambda_obs_Cxi2_edges #self.theory['obs_specifications']['CG']['Lambda_obs_Cxi2_edges']
-        self.Lambda_obs_Cxi2_div = len(self.Lambda_obs_Cxi2_edges) - 1
-
-        # observed radial separation bins for clustering
-        # self.Rad_obs_Cxi2_edges = Rad_obs_Cxi2_edges #self.theory['obs_specifications']['CG']['Rad_obs_Cxi2_edges']
-        self.Rad_obs_Cxi2_div = len(self.Rad_obs_Cxi2_edges) - 1
-
-        # observed redshift bins for clustering
-        # self.z_obs_Cxi2_edges = z_obs_Cxi2_edges #self.theory['obs_specifications']['CG']['z_obs_Cxi2_edges']
-        self.z_obs_Cxi2_div = len(self.z_obs_Cxi2_edges) - 1
-
         ################### INTERMIDIATE QUANTITIES ###################
 
         # computed in counts
@@ -151,6 +125,36 @@ class ClusterStatistics:
         self.Cxi2_zbin_Lbin_Rbin = None
         self.cov_NC_zbin_Lbin = None
         self.cov_Cxi2_zbin_Lbin_Rbin = None
+
+    @property
+    def z_obs_NC_div(self):
+        # observed redshift bins for number counts and weak lensing
+        return len(self.z_obs_NC_edges) - 1
+
+    @property
+    def Lambda_obs_NC_div(self):
+        # observed richness bins for number counts and weak lensing
+        return len(self.Lambda_obs_NC_edges) - 1
+
+    @property
+    def Rad_obs_div(self):
+        # observed radial separation bins for weak lensing
+        return len(self.Rad_obs_edges) - 1
+
+    @property
+    def Lambda_obs_Cxi2_div(self):
+        # observed richness bins for clustering
+        return len(self.Lambda_obs_Cxi2_edges) - 1
+
+    @property
+    def Rad_obs_Cxi2_div(self):
+        # observed radial separation bins for clustering
+        return len(self.Rad_obs_Cxi2_edges) - 1
+
+    @property
+    def z_obs_Cxi2_div(self):
+        # observed redshift bins for clustering
+        return len(self.z_obs_Cxi2_edges) - 1
 
     # Core computation functions
 
