@@ -126,14 +126,12 @@ class ClusterStatistics:
         self._Pl_M_z = None
 
         # computed in counts covariance
-        self._b_n_lbdobs_z_ = None
         self._shot_noise = None
 
         # computed in clustering
         self._W_rad = None
         self._V_rad = None
         self._V_zob = None
-        self._sqrt_Pk_zbin_lbin_ = None
         self._one_over_n_lambdai_lambdaj = None
         self._Pk_lambdai_lambdaj = None
 
@@ -260,14 +258,13 @@ class ClusterStatistics:
     def _init_bias_arrays(self):
         # internal attributes
         self.Nb_zbin_Lbin = np.zeros((self.z_obs_NC_div, self.Lambda_obs_NC_div))
-        self._b_n_lbdobs_z_ = np.zeros(self.Lambda_obs_NC_div, dtype=list)
 
     def _compute_bias(self, Plob_M_z, dV_dzob):
 
         for lambda_bin in range(self.Lambda_obs_NC_div):
 
             # N(lob,ztr) * bias(lob,ztr)
-            self._b_n_lbdobs_z_[lambda_bin] = simps(
+            _b_n_lbdobs_z = simps(
                 Plob_M_z[lambda_bin] * self.dndm_z * self.bias_z,
                 x=self.Mass,
                 axis=1,
@@ -277,7 +274,7 @@ class ClusterStatistics:
 
                 # N(lob,zob) * bias(lob,zob)
                 self.Nb_zbin_Lbin[z_bin, lambda_bin] = simps(
-                    self._b_n_lbdobs_z_[lambda_bin] * dV_dzob[z_bin, lambda_bin],
+                    _b_n_lbdobs_z * dV_dzob[z_bin, lambda_bin],
                     x=self.z,
                     axis=0,
                 )
@@ -437,9 +434,6 @@ class ClusterStatistics:
     def _init_Cxi2_arrays(self):
         # internal attributes
         self._V_zob = np.zeros(self.z_obs_Cxi2_div)
-        self._sqrt_Pk_zbin_lbin_ = np.zeros(
-            (self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))
-        )
         self._one_over_n_lambdai_lambdaj = np.zeros(
             ((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, self.Lambda_obs_Cxi2_div))
         )
@@ -455,6 +449,10 @@ class ClusterStatistics:
     def _compute_pk_ir_resummation(self, Pl_M_z):
 
         Lambda_obs_Cxi2_mid = _bin_midpoints(self.Lambda_obs_Cxi2_edges)
+
+        sqrt_Pk_zbin_lbin = np.zeros(
+            (self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))
+        )
 
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
@@ -539,7 +537,7 @@ class ClusterStatistics:
                 N_int_lbdobs_z_Cxi2 = simps(dV_dzob * n_lbdobs_z_Cxi2, x=self.z, axis=0)
 
                 # power spectrum and shot-noise terms
-                self._sqrt_Pk_zbin_lbin_[z_bin, lambda_bin, :] = (
+                sqrt_Pk_zbin_lbin[z_bin, lambda_bin, :] = (
                     simps(
                         (dV_dzob * n_lbdobs_z_Cxi2)[:, np.newaxis] * np.sqrt(pk_halo),
                         x=self.z,
@@ -554,8 +552,8 @@ class ClusterStatistics:
 
         # cross Pk and shot-noise in two richness bins
         self._Pk_lambdai_lambdaj = (
-            self._sqrt_Pk_zbin_lbin_[:, :, np.newaxis, :]
-            * self._sqrt_Pk_zbin_lbin_[:, np.newaxis, :, :]
+            sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
+            * sqrt_Pk_zbin_lbin[:, np.newaxis, :, :]
         )  # dim = [nz,nl,nl,nk]
         self._one_over_n_lambdai_lambdaj = self._one_over_n_lambdai_lambdaj[
             :, :, :, np.newaxis
@@ -577,20 +575,19 @@ class ClusterStatistics:
         # this is never used
         ###integ_zbin_lbin  = np.zeros(((self.z_obs_Cxi2_div, self.Lambda_obs_Cxi2_div, len(self.k))))
 
-        # spherical shell window function W(R,K) and volume of the shell (compute once outside the redshift loop)
-        # these are used by covariance
-        _z_obs_Cxi2_mid = _bin_midpoints(self.z_obs_Cxi2_edges)
-        self._W_rad, self._V_rad = self.clustering.WF_ra(
-            _z_obs_Cxi2_mid, self.Rad_obs_Cxi2_edges
-        )
-
         # matter power spectrum + IR resummation
         # fills:
         #    self._Pk_lambdai_lambdaj
         #    self._V_zob
         #    self._one_over_n_lambdai_lambdaj
-        #    self._sqrt_Pk_zbin_lbin_
         self._compute_pk_ir_resummation(self._Pl_M_z)
+
+        # spherical shell window function W(R,K) and volume of the shell (compute once outside the redshift loop)
+        # these are used by covariance
+        self._W_rad, self._V_rad = self.clustering.WF_ra(
+            _bin_midpoints(self.z_obs_Cxi2_edges),  # z_obs_Cxi2_mid
+            self.Rad_obs_Cxi2_edges,
+        )
 
         # compute 2point correlation function
         # dim = [nz,nl,nl,nr]
