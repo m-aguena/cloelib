@@ -337,15 +337,6 @@ class ClusterStatistics:
         return sab
 
     def _init_counts_cov_arrays(self):
-        # internal attributes
-        self._shot_noise = np.zeros(
-            (
-                self.z_obs_NC_div,
-                self.z_obs_NC_div,
-                self.Lambda_obs_NC_div,
-                self.Lambda_obs_NC_div,
-            )
-        )
         # output
         self.cov_NC_zbin_Lbin = np.zeros(
             (
@@ -356,35 +347,41 @@ class ClusterStatistics:
             )
         )
 
-    def _compute_counts_cov(self):
+    def _compute_counts_cov(self, Nb_zbin_Lbin):
 
         sab = self._compute_sab(
             _bin_midpoints(self.z_obs_NC_edges)  # mean observed redshift
         )
 
         # shut noise
-        for z_bin in range(self.z_obs_NC_div):
-            self._shot_noise[z_bin, z_bin] = np.diag(self.N_zbin_Lbin[z_bin])
+        self._shot_noise = (
+            np.diag(self.N_zbin_Lbin.flatten())
+            .reshape(
+                self.z_obs_NC_div,
+                self.Lambda_obs_NC_div,
+                self.z_obs_NC_div,
+                self.Lambda_obs_NC_div,
+            )
+            .transpose(0, 2, 1, 3)
+        )
 
         # total covariance = shot-noise + sample covariance
         self.cov_NC_zbin_Lbin = self._shot_noise + (
-            self._Nb_zbin_Lbin.reshape(1, self.z_obs_NC_div, 1, self.Lambda_obs_NC_div)
-            * self._Nb_zbin_Lbin.reshape(
-                self.z_obs_NC_div, 1, self.Lambda_obs_NC_div, 1
-            )
+            Nb_zbin_Lbin.reshape(1, self.z_obs_NC_div, 1, self.Lambda_obs_NC_div)
+            * Nb_zbin_Lbin.reshape(self.z_obs_NC_div, 1, self.Lambda_obs_NC_div, 1)
             * sab.reshape(self.z_obs_NC_div, self.z_obs_NC_div, 1, 1)
         )
 
     def compute_counts_cov(self):
 
         # check precomputed attributes
-        if self._missing_attributes(self._b_n_lbdobs_z, self._Nb_zbin_Lbin):
+        if self._missing_attributes(self._Nb_zbin_Lbin):
             raise ValueError("Run compute_bias first!")
 
         # prepare internal attributes
         self._init_counts_cov_arrays()
 
-        self._compute_counts_cov()
+        self._compute_counts_cov(self._Nb_zbin_Lbin)
 
         return
 
