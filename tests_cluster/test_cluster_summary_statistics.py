@@ -125,8 +125,8 @@ def test_clustersummmarystatitistics():
     )
 
     clusterStatistics.compute_all_quantities(
-        CG_like_selection=CG_like_selection,
-        CG_xi2_cov_selection=CG_xi2_cov_selection,
+        like_selection=CG_like_selection,
+        cov_selection=CG_xi2_cov_selection,
         z_obs_nc_edges=zed_obs_nc_edges,
         lambda_obs_nc_edges=lambda_obs_nc_edges,
         radius_obs_profile_edges=radius_obs_profile_edges,
@@ -135,22 +135,22 @@ def test_clustersummmarystatitistics():
         z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
     )
 
-    assert_allclose(clusterStatistics.nc_zbin_Lbin, benchmark_values.NC_ref, rtol=1e-2)
+    assert_allclose(clusterStatistics.nc_zbin_lbin, benchmark_values.NC_ref, rtol=1e-2)
 
     assert_allclose(
-        clusterStatistics.g_zbin_Lbin_Rbin[0:2], benchmark_values.gWL, rtol=1e-2
+        clusterStatistics.g_zbin_lbin_rbin[0:2], benchmark_values.gWL, rtol=1e-2
     )
 
     assert_allclose(
-        clusterStatistics.Cxi2_zbin_Lbin_Rbin[0:2], benchmark_values.Cxi2, rtol=1e-2
+        clusterStatistics.Cxi2_zbin_lbin_rbin[0:2], benchmark_values.Cxi2, rtol=1e-2
     )
 
     assert_allclose(
-        clusterStatistics.cov_nc_zbin_Lbin[1:2], benchmark_values.NC_cov, rtol=5e-2
+        clusterStatistics.cov_nc_zbin_lbin[1:2], benchmark_values.NC_cov, rtol=5e-2
     )
 
     assert_allclose(
-        clusterStatistics.cov_Cxi2_zbin_Lbin_Rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
+        clusterStatistics.cov_Cxi2_zbin_lbin_rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
         benchmark_values.Cxi2_cov,
         rtol=5e-2,
     )
