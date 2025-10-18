@@ -503,10 +503,6 @@ class ClusterStatistics:
                     _volume_zob[z_bin] / N_int_lbdobs_z_Cxi2
                 )
 
-        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
-        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
-        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
-
         # cross Pk and shot-noise in two richness bins
         _Pk_lambdai_lambdaj = (
             sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
@@ -532,6 +528,10 @@ class ClusterStatistics:
             x=self.integ_k_arr,
             axis=-1,
         )
+
+        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
+        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
+        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
 
         # xi(lambda_i,lambda_j) = xi(lambda_j,lambda_i), so reshape and keep only one of them
         Cxi2_zbin_lbin_rbin = np.zeros(
