@@ -523,25 +523,10 @@ class ClusterStatistics:
             axis=-1,
         )
 
-        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
-        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
-        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
-
         # xi(lambda_i,lambda_j) = xi(lambda_j,lambda_i), so reshape and keep only one of them
-        Cxi2_zbin_lbin_rbin = np.zeros(
-            (
-                self.bins["z_obs_Cxi2"].size,
-                self.bins["lambda_obs_Cxi2"].size + 1,
-                self.bins["radius_obs_Cxi2"].size,
-            )
-        )
-        for z_bin in range(self.bins["z_obs_Cxi2"].size):
-            for rad_bin in range(self.bins["radius_obs_Cxi2"].size):
-                Cxi2_zbin_lbin_rbin[z_bin, :, rad_bin] = Cxi2_zbin_lbin_rbin_buf[
-                    z_bin, :, :, rad_bin
-                ][np.triu_indices(self.bins["lambda_obs_Cxi2"].size)]
 
-        return Cxi2_zbin_lbin_rbin
+        off_diag_indexes = np.triu_indices(self.bins["lambda_obs_Cxi2"].size)
+        return Cxi2_zbin_lbin_rbin_buf[:, off_diag_indexes[0], off_diag_indexes[1], :]
 
     # ----------------------
     # clustering covariance
@@ -623,17 +608,6 @@ class ClusterStatistics:
                 self.bins["radius_obs_Cxi2"].size,
             )
         )
-        # output
-        cov_Cxi2_zbin_lbin_rbin = np.zeros(
-            (
-                self.bins["z_obs_Cxi2"].size,
-                self.bins["z_obs_Cxi2"].size,
-                self.bins["lambda_obs_Cxi2"].size + 1,
-                self.bins["lambda_obs_Cxi2"].size + 1,
-                self.bins["radius_obs_Cxi2"].size,
-                self.bins["radius_obs_Cxi2"].size,
-            )
-        )
 
         # define cluster clustering bin numbers for loops
         z_bin_numbers = range(self.bins["z_obs_Cxi2"].size)
@@ -711,6 +685,17 @@ class ClusterStatistics:
         ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
         ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
         ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
+
+        cov_Cxi2_zbin_lbin_rbin = np.zeros(
+            (
+                self.bins["z_obs_Cxi2"].size,
+                self.bins["z_obs_Cxi2"].size,
+                self.bins["lambda_obs_Cxi2"].size + 1,
+                self.bins["lambda_obs_Cxi2"].size + 1,
+                self.bins["radius_obs_Cxi2"].size,
+                self.bins["radius_obs_Cxi2"].size,
+            )
+        )
 
         ### EQ. 89 + RESHAPE according to 2ptCF
         for z_bin in z_bin_numbers:
