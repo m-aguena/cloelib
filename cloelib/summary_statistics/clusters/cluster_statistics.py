@@ -131,9 +131,9 @@ class ClusterStatistics:
     #
     #####################################################################
 
-    #---------------
+    # ---------------
     # cluster counts
-    #---------------
+    # ---------------
 
     def _compute_volume_bin(self, z_bin, lambda_bin):
         # computes volume in richness redshift bin for cluster counts
@@ -223,9 +223,9 @@ class ClusterStatistics:
                 )
         return nc_zbin_lbin, _Plob_M_z, _dV_dzob
 
-    #----------
+    # ----------
     # halo bias
-    #----------
+    # ----------
 
     def _compute_bias(self, Plob_M_z, dV_dzob):
 
@@ -253,9 +253,9 @@ class ClusterStatistics:
 
         return hbias_zbin_lbin
 
-    #-------------------
+    # -------------------
     # cluster counts cov
-    #-------------------
+    # -------------------
 
     def _compute_sab(self, z_obs_nc_mid):
         # initialization
@@ -327,9 +327,9 @@ class ClusterStatistics:
 
         return cov_nc_zbin_lbin
 
-    #--------------
+    # --------------
     # reduced shear
-    #--------------
+    # --------------
 
     def _compute_reduced_shear(self, nc_zbin_lbin, Plob_M_z, dV_dzob):
 
@@ -370,9 +370,9 @@ class ClusterStatistics:
                     )
         return g_zbin_lbin_rbin
 
-    #-----------
+    # -----------
     # clustering
-    #-----------
+    # -----------
 
     def _compute_pk_ir_resummation(self, Pltrue_M_z):
 
@@ -549,9 +549,9 @@ class ClusterStatistics:
 
         return Cxi2_zbin_lbin_rbin
 
-    #----------------------
+    # ----------------------
     # clustering covariance
-    #----------------------
+    # ----------------------
 
     def _compute_alpha_beta(
         self,
@@ -710,6 +710,10 @@ class ClusterStatistics:
                                 axis=-1,
                             )
 
+        _cov_g_ng_sum_tsum = (_cov_g + _cov_ng) + (_cov_g + _cov_ng).transpose(
+            0, 1, 2, 4, 3, 5, 6
+        )
+
         ### EQ. 89 + RESHAPE according to 2ptCF
         for z_bin in z_bin_numbers:
             for lambda_bin_i in lambda_bin_numbers:
@@ -725,28 +729,16 @@ class ClusterStatistics:
                                 :,
                                 :,
                             ] = (
-                                1
+                                _cov_g_ng_sum_tsum[
+                                    z_bin,
+                                    lambda_bin_i,
+                                    lambda_bin_j,
+                                    lambda_bin_k,
+                                    lambda_bin_h,
+                                    :,
+                                    :,
+                                ]
                                 / volume_zob[z_bin]
-                                * (
-                                    (_cov_g + _cov_ng)[
-                                        z_bin,
-                                        lambda_bin_i,
-                                        lambda_bin_j,
-                                        lambda_bin_k,
-                                        lambda_bin_h,
-                                        :,
-                                        :,
-                                    ]
-                                    + (_cov_g + _cov_ng)[
-                                        z_bin,
-                                        lambda_bin_i,
-                                        lambda_bin_j,
-                                        lambda_bin_h,
-                                        lambda_bin_k,
-                                        :,
-                                        :,
-                                    ]
-                                )
                             )
         return cov_Cxi2_zbin_lbin_rbin
 
