@@ -46,15 +46,15 @@ def test_clustersummmarystatitistics():
     area = 10313
     halo_concentration = 0.1
     overdensity_type = "vir"
-    CG_like_selection = "CC_CWL_Cxi2"
-    CG_xi2_cov_selection = "covCC_covCxi2"
+    like_selection = "CC_CWL_Cxi2"
+    cov_selection = "covCC_covCxi2"
 
     zed_obs_nc_edges = np.linspace(0.2, 1.8, 9)
     lambda_obs_nc_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
     radius_obs_profile_edges = np.linspace(5.0, 100.0, 11)
-    lambda_obs_Cxi2_edges = np.array([20, 30, 500])
-    radius_obs_Cxi2_edges = np.geomspace(20.0, 130.0, 31)
-    zed_obs_Cxi2_edges = np.arange(0.2, 1.81, 0.4)
+    lambda_obs_xi2_edges = np.array([20, 30, 500])
+    radius_obs_xi2_edges = np.geomspace(20.0, 130.0, 31)
+    zed_obs_xi2_edges = np.arange(0.2, 1.81, 0.4)
 
     integ_k_arr = np.geomspace(1e-4, 10, 500)
     integ_mass_arr = np.logspace(12.0, 16.0, 51)
@@ -108,7 +108,7 @@ def test_clustersummmarystatitistics():
         perturbations, area=area, nbins_zob=len(zed_obs_nc_edges), k=integ_k_arr
     )
 
-    clusterStatistics = ClusterStatistics(
+    cluster_statistics = ClusterStatistics(
         perturbations,
         HS,
         selectionFunction,
@@ -124,33 +124,33 @@ def test_clustersummmarystatitistics():
         area=area,
     )
 
-    clusterStatistics.compute_all_quantities(
-        like_selection=CG_like_selection,
-        cov_selection=CG_xi2_cov_selection,
+    cluster_statistics.compute_all_quantities(
+        like_selection=like_selection,
+        cov_selection=cov_selection,
         z_obs_nc_edges=zed_obs_nc_edges,
         lambda_obs_nc_edges=lambda_obs_nc_edges,
         radius_obs_profile_edges=radius_obs_profile_edges,
-        lambda_obs_Cxi2_edges=lambda_obs_Cxi2_edges,
-        radius_obs_Cxi2_edges=radius_obs_Cxi2_edges,
-        z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
+        lambda_obs_xi2_edges=lambda_obs_xi2_edges,
+        radius_obs_xi2_edges=radius_obs_xi2_edges,
+        z_obs_xi2_edges=zed_obs_xi2_edges,
     )
 
-    assert_allclose(clusterStatistics.nc_zbin_lbin, benchmark_values.NC_ref, rtol=1e-2)
+    assert_allclose(cluster_statistics.nc_zbin_lbin, benchmark_values.nc_ref, rtol=1e-2)
 
     assert_allclose(
-        clusterStatistics.g_zbin_lbin_rbin[0:2], benchmark_values.gWL, rtol=1e-2
-    )
-
-    assert_allclose(
-        clusterStatistics.Cxi2_zbin_lbin_rbin[0:2], benchmark_values.Cxi2, rtol=1e-2
+        cluster_statistics.gt_zbin_lbin_rbin[0:2], benchmark_values.gt, rtol=1e-2
     )
 
     assert_allclose(
-        clusterStatistics.cov_nc_zbin_lbin[1:2], benchmark_values.NC_cov, rtol=5e-2
+        cluster_statistics.xi2_zbin_lbin_rbin[0:2], benchmark_values.xi2, rtol=1e-2
     )
 
     assert_allclose(
-        clusterStatistics.cov_Cxi2_zbin_lbin_rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
-        benchmark_values.Cxi2_cov,
+        cluster_statistics.cov_nc_zbin_lbin[1:2], benchmark_values.nc_cov, rtol=5e-2
+    )
+
+    assert_allclose(
+        cluster_statistics.cov_xi2_zbin_lbin_rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
+        benchmark_values.xi2_cov,
         rtol=5e-2,
     )
