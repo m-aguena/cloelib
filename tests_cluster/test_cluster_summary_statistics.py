@@ -49,17 +49,17 @@ def test_clustersummmarystatitistics():
     CG_like_selection = "CC_CWL_Cxi2"
     CG_xi2_cov_selection = "covCC_covCxi2"
 
-    zed_obs_NC_edges = np.linspace(0.2, 1.8, 9)
-    Lambda_obs_NC_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
-    Rad_obs_edges = np.linspace(5.0, 100.0, 11)
-    Lambda_obs_Cxi2_edges = np.array([20, 30, 500])
-    Rad_obs_Cxi2_edges = np.geomspace(20.0, 130.0, 31)
+    zed_obs_nc_edges = np.linspace(0.2, 1.8, 9)
+    lambda_obs_nc_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
+    radius_obs_profile_edges = np.linspace(5.0, 100.0, 11)
+    lambda_obs_Cxi2_edges = np.array([20, 30, 500])
+    rad_obs_Cxi2_edges = np.geomspace(20.0, 130.0, 31)
     zed_obs_Cxi2_edges = np.arange(0.2, 1.81, 0.4)
 
     integ_k_arr = np.geomspace(1e-4, 10, 500)
     integ_mass_arr = np.logspace(12.0, 16.0, 51)
     integ_lambda_arr = np.geomspace(5.0, 250.0, 51)
-    integ_z_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
+    integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
 
     _sel_pars = dict(
         A_l=52.0,
@@ -89,11 +89,14 @@ def test_clustersummmarystatitistics():
     )
 
     HS = HaloStatistics(
-        perturbations, z=integ_z_arr, k=integ_k_arr, overdensity_type=overdensity_type
+        perturbations,
+        z=integ_ztrue_arr,
+        k=integ_k_arr,
+        overdensity_type=overdensity_type,
     )
     HSCastro = CastroHMFBias(HS)
 
-    profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_z_arr, **_prof_pars)
+    profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
 
     selectionFunction = SelectionFunction(**_sel_pars)
 
@@ -102,7 +105,7 @@ def test_clustersummmarystatitistics():
     )
 
     covariance = HaloCovariance(
-        perturbations, area=area, nbins_zob=len(zed_obs_NC_edges), k=integ_k_arr
+        perturbations, area=area, nbins_zob=len(zed_obs_nc_edges), k=integ_k_arr
     )
 
     clusterStatistics = ClusterStatistics(
@@ -117,22 +120,22 @@ def test_clustersummmarystatitistics():
         integ_k_arr=integ_k_arr,
         integ_mass_arr=integ_mass_arr,
         integ_lambda_arr=integ_lambda_arr,
-        integ_z_arr=integ_z_arr,
+        integ_ztrue_arr=integ_ztrue_arr,
         area=area,
     )
 
     clusterStatistics.compute_all_quantities(
         CG_like_selection=CG_like_selection,
         CG_xi2_cov_selection=CG_xi2_cov_selection,
-        z_obs_NC_edges=zed_obs_NC_edges,
-        Lambda_obs_NC_edges=Lambda_obs_NC_edges,
-        Rad_obs_edges=Rad_obs_edges,
-        Lambda_obs_Cxi2_edges=Lambda_obs_Cxi2_edges,
-        Rad_obs_Cxi2_edges=Rad_obs_Cxi2_edges,
+        z_obs_nc_edges=zed_obs_nc_edges,
+        lambda_obs_nc_edges=lambda_obs_nc_edges,
+        radius_obs_profile_edges=radius_obs_profile_edges,
+        lambda_obs_Cxi2_edges=lambda_obs_Cxi2_edges,
+        rad_obs_Cxi2_edges=rad_obs_Cxi2_edges,
         z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
     )
 
-    assert_allclose(clusterStatistics.N_zbin_Lbin, benchmark_values.NC_ref, rtol=1e-2)
+    assert_allclose(clusterStatistics.nc_zbin_Lbin, benchmark_values.NC_ref, rtol=1e-2)
 
     assert_allclose(
         clusterStatistics.g_zbin_Lbin_Rbin[0:2], benchmark_values.gWL, rtol=1e-2
@@ -143,7 +146,7 @@ def test_clustersummmarystatitistics():
     )
 
     assert_allclose(
-        clusterStatistics.cov_NC_zbin_Lbin[1:2], benchmark_values.NC_cov, rtol=5e-2
+        clusterStatistics.cov_nc_zbin_Lbin[1:2], benchmark_values.NC_cov, rtol=5e-2
     )
 
     assert_allclose(
