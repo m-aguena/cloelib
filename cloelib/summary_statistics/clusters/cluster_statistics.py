@@ -511,7 +511,7 @@ class ClusterStatistics:
 
         return _Pk_lambdai_lambdaj, _volume_zob, _one_over_n_lambdai_lambdaj
 
-    def _compute_Cxi2(self, W_rad, Pk_lambdai_lambdaj):
+    def _compute_Cxi2(self, window_radial, Pk_lambdai_lambdaj):
 
         # compute 2point correlation function
         # dim = [nz,nl,nl,nr]
@@ -519,7 +519,7 @@ class ClusterStatistics:
             (
                 self.integ_k_arr**2.0
                 / (2.0 * np.pi**2)
-                * W_rad[:, np.newaxis, np.newaxis, :, :]
+                * window_radial[:, np.newaxis, np.newaxis, :, :]
                 * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
             ),
             x=self.integ_k_arr,
@@ -571,9 +571,9 @@ class ClusterStatistics:
         self,
         Pk_lambdai_lambdaj,
         one_over_n_lambdai_lambdaj,
-        W_rad,
-        V_rad,
-        V_zob,
+        window_radial,
+        volume_radial,
+        volume_zob,
     ):
         #    alpha(z,l), beta(z,l), gamma(z,l) are nuisance parameters to be
         #    fitted on (few, ~100) simulations to correct for bias model
@@ -655,7 +655,7 @@ class ClusterStatistics:
                         simps(
                             self.integ_k_arr**2.0
                             / (2.0 * np.pi**2.0)
-                            * W_rad[:, rad_bin, :]
+                            * window_radial[:, rad_bin, :]
                             * beta_pk_ij[:, lambda_bin_i, lambda_bin_j, :],
                             x=self.integ_k_arr,
                         )
@@ -663,7 +663,7 @@ class ClusterStatistics:
                         * one_over_n_lambdai_lambdaj[:, lambda_bin_i, lambda_bin_i, 0]
                         * (1 + gamma_cov_Cxi2[:, lambda_bin_j])
                         * one_over_n_lambdai_lambdaj[:, lambda_bin_j, lambda_bin_j, 0]
-                        / V_rad[:, rad_bin]
+                        / volume_radial[:, rad_bin]
                     )
 
                     for lambda_bin_k in lambda_bin_numbers:
@@ -681,8 +681,8 @@ class ClusterStatistics:
                             ] = simps(
                                 self.integ_k_arr**2.0
                                 / (2.0 * np.pi**2.0)
-                                * W_rad[:, np.newaxis, :, :]
-                                * W_rad[:, :, np.newaxis, :]
+                                * window_radial[:, np.newaxis, :, :]
+                                * window_radial[:, :, np.newaxis, :]
                                 * (beta_pk_ij + alpha_n_ij)[
                                     :,
                                     lambda_bin_i,
@@ -719,7 +719,7 @@ class ClusterStatistics:
                                 :,
                             ] = (
                                 1
-                                / V_zob[z_bin]
+                                / volume_zob[z_bin]
                                 * (
                                     (_cov_g + _cov_ng)[
                                         z_bin,
