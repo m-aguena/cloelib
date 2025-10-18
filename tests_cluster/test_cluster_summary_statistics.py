@@ -53,7 +53,7 @@ def test_clustersummmarystatitistics():
     lambda_obs_nc_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
     radius_obs_profile_edges = np.linspace(5.0, 100.0, 11)
     lambda_obs_Cxi2_edges = np.array([20, 30, 500])
-    rad_obs_Cxi2_edges = np.geomspace(20.0, 130.0, 31)
+    radius_obs_Cxi2_edges = np.geomspace(20.0, 130.0, 31)
     zed_obs_Cxi2_edges = np.arange(0.2, 1.81, 0.4)
 
     integ_k_arr = np.geomspace(1e-4, 10, 500)
@@ -131,7 +131,7 @@ def test_clustersummmarystatitistics():
         lambda_obs_nc_edges=lambda_obs_nc_edges,
         radius_obs_profile_edges=radius_obs_profile_edges,
         lambda_obs_Cxi2_edges=lambda_obs_Cxi2_edges,
-        rad_obs_Cxi2_edges=rad_obs_Cxi2_edges,
+        radius_obs_Cxi2_edges=radius_obs_Cxi2_edges,
         z_obs_Cxi2_edges=zed_obs_Cxi2_edges,
     )
 
