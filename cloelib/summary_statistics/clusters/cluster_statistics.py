@@ -855,22 +855,18 @@ class ClusterStatistics:
 
         # main function
 
-        if like_selection in ["CC", "CC_CWL", "CC_Cxi2", "CC_CWL_Cxi2"]:
+        if "CC" in like_selection:
             self.compute_counts()
-            if cov_selection in ["covCC", "covCC_covCxi2"]:
+            if "covCC" in cov_selection:
                 self.compute_bias()
                 self.compute_counts_cov()
 
-        if like_selection in ["CC_CWL", "CC_CWL_Cxi2"]:
+        if "CWL" in like_selection:
             self.compute_reduced_shear()
 
-        ##########################################
-        # 2point correlation function
-        if like_selection in ["CC_Cxi2", "CC_CWL_Cxi2"]:
+        if "Cxi2" in like_selection:
             self.compute_Cxi2()
-
-            # 2point correlation function covariance
-            if cov_selection in ["covCxi2", "covCC_covCxi2"]:
+            if "covCxi2" in cov_selection:
                 self.compute_Cxi2_cov()
 
 
