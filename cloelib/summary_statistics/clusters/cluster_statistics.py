@@ -714,6 +714,10 @@ class ClusterStatistics:
             0, 1, 2, 4, 3, 5, 6
         )
 
+        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
+        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
+        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
+
         ### EQ. 89 + RESHAPE according to 2ptCF
         for z_bin in z_bin_numbers:
             for lambda_bin_i in lambda_bin_numbers:
