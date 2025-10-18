@@ -122,11 +122,18 @@ class ClusterStatistics:
             self.integ_ztrue_arr, self.integ_mass_arr
         )  # only work for virial overdensity
 
+    #####################################################################
+    #
     # Core computation functions
+    #
+    #   These functions take explict arguments (and internal bins)
+    #   to do the computations, they do not assign internal properties.
+    #
+    #####################################################################
 
-    ################
+    #---------------
     # cluster counts
-    ################
+    #---------------
 
     def _compute_volume_bin(self, z_bin, lambda_bin):
         # computes volume in richness redshift bin for cluster counts
@@ -216,9 +223,9 @@ class ClusterStatistics:
                 )
         return nc_zbin_lbin, _Plob_M_z, _dV_dzob
 
-    #####################
-    # cluster counts bias
-    #####################
+    #----------
+    # halo bias
+    #----------
 
     def _compute_bias(self, Plob_M_z, dV_dzob):
 
@@ -246,9 +253,9 @@ class ClusterStatistics:
 
         return hbias_zbin_lbin
 
-    ####################
+    #-------------------
     # cluster counts cov
-    ####################
+    #-------------------
 
     def _compute_sab(self, z_obs_nc_mid):
         # initialization
@@ -320,9 +327,9 @@ class ClusterStatistics:
 
         return cov_nc_zbin_lbin
 
-    ###############
+    #--------------
     # reduced shear
-    ###############
+    #--------------
 
     def _compute_reduced_shear(self, nc_zbin_lbin, Plob_M_z, dV_dzob):
 
@@ -363,9 +370,9 @@ class ClusterStatistics:
                     )
         return g_zbin_lbin_rbin
 
-    ############
+    #-----------
     # clustering
-    ############
+    #-----------
 
     def _compute_pk_ir_resummation(self, Pltrue_M_z):
 
@@ -542,9 +549,9 @@ class ClusterStatistics:
 
         return Cxi2_zbin_lbin_rbin
 
-    #######################
+    #----------------------
     # clustering covariance
-    #######################
+    #----------------------
 
     def _compute_alpha_beta(
         self,
@@ -743,7 +750,14 @@ class ClusterStatistics:
                             )
         return cov_Cxi2_zbin_lbin_rbin
 
+    #####################################################################
+    #
     # Assignemnt functions
+    #
+    #   These functions use the core computation functions results and
+    #   assign them to internal properties.
+    #
+    #####################################################################
 
     def _missing_attributes(self, *attr):
         """Checks if any of the provided attributes it None"""
