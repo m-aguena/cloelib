@@ -302,27 +302,21 @@ class ClusterStatistics:
             _bin_midpoints(self.bins["z_obs_nc"].edges)  # mean observed redshift
         )
 
-        # shut noise
+        # shot noise
         _shot_noise = (
             np.diag(self.nc_zbin_lbin.flatten())
             .reshape(
-                self.bins["z_obs_nc"].size,
-                self.bins["lambda_obs_nc"].size,
-                self.bins["z_obs_nc"].size,
-                self.bins["lambda_obs_nc"].size,
+                *self.nc_zbin_lbin.shape,
+                *self.nc_zbin_lbin.shape,
             )
             .transpose(0, 2, 1, 3)
         )
 
         # total covariance = shot-noise + sample covariance
         cov_nc_zbin_lbin = _shot_noise + (
-            hbias_zbin_lbin.reshape(
-                1, self.bins["z_obs_nc"].size, 1, self.bins["lambda_obs_nc"].size
-            )
-            * hbias_zbin_lbin.reshape(
-                self.bins["z_obs_nc"].size, 1, self.bins["lambda_obs_nc"].size, 1
-            )
-            * sab.reshape(self.bins["z_obs_nc"].size, self.bins["z_obs_nc"].size, 1, 1)
+            hbias_zbin_lbin[np.newaxis, :, np.newaxis, :]
+            * hbias_zbin_lbin[:, np.newaxis, :, np.newaxis]
+            * sab[:, :, np.newaxis, np.newaxis]
         )
 
         return cov_nc_zbin_lbin
