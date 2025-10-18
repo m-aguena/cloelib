@@ -523,10 +523,10 @@ class ClusterStatistics:
             axis=-1,
         )
 
-        # xi(lambda_i,lambda_j) = xi(lambda_j,lambda_i), so reshape and keep only one of them
+        # xi(lambda_i, lambda_j) = xi(lambda_j, lambda_i),  so reshape and keep only one of them
 
-        off_diag_indexes = np.triu_indices(self.bins["lambda_obs_Cxi2"].size)
-        return Cxi2_zbin_lbin_rbin_buf[:, off_diag_indexes[0], off_diag_indexes[1], :]
+        triangle_indexes = np.triu_indices(self.bins["lambda_obs_Cxi2"].size)
+        return Cxi2_zbin_lbin_rbin_buf[:, triangle_indexes[0], triangle_indexes[1], :]
 
     # ----------------------
     # clustering covariance
@@ -614,6 +614,7 @@ class ClusterStatistics:
         lambda_bin_numbers = range(self.bins["lambda_obs_Cxi2"].size)
         rad_bin_numbers = range(self.bins["radius_obs_Cxi2"].size)
 
+        # note: this could be reduced to compute only half of the matrix
         for lambda_bin_i in lambda_bin_numbers:
             for lambda_bin_j in lambda_bin_numbers:
                 for rad_bin in rad_bin_numbers:
@@ -678,51 +679,38 @@ class ClusterStatistics:
                                 axis=-1,
                             )
 
-        _cov_g_ng_sum_tsum = (_cov_g + _cov_ng) + (_cov_g + _cov_ng).transpose(
-            0, 1, 2, 4, 3, 5, 6
-        )
-
-        ### !!!! note that the final number of richness bins is NL=nl+1 ONLY if we have two richness bins,
-        ### if nl>2, the effective number of richness bins is NL=factorial(nl)//(factorial(nl-2)*factorial(2)) + nl
-        ### this makes the reshape of the matrix more complex. Since we plan to use only two bins, for the moment it is not implemented.
-
-        cov_Cxi2_zbin_lbin_rbin = np.zeros(
-            (
-                self.bins["z_obs_Cxi2"].size,
-                self.bins["z_obs_Cxi2"].size,
-                self.bins["lambda_obs_Cxi2"].size + 1,
-                self.bins["lambda_obs_Cxi2"].size + 1,
-                self.bins["radius_obs_Cxi2"].size,
-                self.bins["radius_obs_Cxi2"].size,
+        # Compute the covariance
+        cov_Cxi2_zbin_lbin_rbin = (
+            (_cov_g + _cov_ng)
+            + (_cov_g + _cov_ng).transpose(
+                0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_Cxi2 bins
             )
-        )
+        ) / volume_zob[
+            :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis
+        ]
 
-        ### EQ. 89 + RESHAPE according to 2ptCF
-        for z_bin in z_bin_numbers:
-            for lambda_bin_i in lambda_bin_numbers:
-                for lambda_bin_j in lambda_bin_numbers:
-                    for lambda_bin_k in lambda_bin_numbers:
-                        for lambda_bin_h in lambda_bin_numbers:
-                            # NOTE: if more than 2 richness bins, this has to be modified
-                            cov_Cxi2_zbin_lbin_rbin[
-                                z_bin,
-                                z_bin,
-                                lambda_bin_i + lambda_bin_j,
-                                lambda_bin_k + lambda_bin_h,
-                                :,
-                                :,
-                            ] = (
-                                _cov_g_ng_sum_tsum[
-                                    z_bin,
-                                    lambda_bin_i,
-                                    lambda_bin_j,
-                                    lambda_bin_k,
-                                    lambda_bin_h,
-                                    :,
-                                    :,
-                                ]
-                                / volume_zob[z_bin]
-                            )
+        # cov_xi(lambda_i, lambda_j, lambda_k, lambda_l) = cov_xi(lambda_j, lambda_i, lambda_l, lambda_k)
+        # so reshape and keep only two of them
+        triangle_indexes = np.triu_indices(self.bins["lambda_obs_Cxi2"].size)
+        # simplify first pair
+        cov_Cxi2_zbin_lbin_rbin = cov_Cxi2_zbin_lbin_rbin[
+            :, triangle_indexes[0], triangle_indexes[1], :, :, :, :
+        ]
+        # simplify second pair
+        cov_Cxi2_zbin_lbin_rbin = cov_Cxi2_zbin_lbin_rbin[
+            :, :, triangle_indexes[0], triangle_indexes[1], :, :
+        ]
+
+        ### EQ. 89 + RESHAPE according to 2ptCF ###
+        # Current covariance is shape (nz, nl_red, nl_red, nrad, nrad),
+        # make it (nz, nz, nl_red, nl_red, nrad, nrad), being diagonal in (nz, nz)
+        # """
+        cov_Cxi2_zbin_lbin_rbin = (
+            np.diag(np.ones(self.bins["z_obs_Cxi2"].size))[
+                :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis
+            ]
+            * cov_Cxi2_zbin_lbin_rbin
+        )
         return cov_Cxi2_zbin_lbin_rbin
 
     #####################################################################
