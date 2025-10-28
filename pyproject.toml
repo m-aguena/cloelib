@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cloelib"
-version = "0.8.2"
+version = "0.9.0"
 description = "cloelib is a flexible and efficient library designed to compute cosmological observables for CLOE (Cosmology Likelihood for Observables in Euclid)"
 authors = [
     "M. Bonici <marco.bonici@uwaterloo.ca>",
@@ -22,8 +22,9 @@ quadax = "0.2.7"
 scipy = "<1.14"
 pytest = "8.3.5"
 pytest-cov = "6.1.1"
-pytest-pydocstyle = "2.4.0"
 mypy = "1.17"
+pyinstrument = "^4.6.2"
+cosmolib = { git = "https://github.com/astro-ph/cosmolib.git" }
 
 [tool.poetry.extras]
 camb = ["camb"]
@@ -42,7 +43,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-addopts = "--verbose --pydocstyle --cov=cloelib"
+addopts = "--verbose --cov=cloelib"
 
 [tool.black]
 force-exclude = "tests_cluster/benchmark_values.py"
