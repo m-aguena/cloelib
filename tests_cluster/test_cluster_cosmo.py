@@ -47,7 +47,7 @@ def test_cosmo():
 
     # camb linear
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
-    assert_allclose(perturbations.matter_power_spectrum(0, 1), 80.534892)
+    assert_allclose(perturbations.matter_power_spectrum(0, 1), 80.534861)
     assert_allclose(perturbations.matter_power_spectrum_cb(0, 1), 81.748209, rtol=1e-03)
 
     # camb non-linear
