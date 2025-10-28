@@ -136,6 +136,21 @@ class ClusterStatistics:
     # ---------------
 
     def _compute_volume_bin(self, z_bin, lambda_bin):
+        """compute volume bin.
+        Computes volume in a given richness redshift bin for cluster counts.
+
+        Parameters
+        ----------
+        z_bin: int
+            integer corresponding to redshift bin number
+        lambda_bin: int
+            integer corresponding to richness bin number
+
+        Returns
+        -------
+        dV_dzob_bin: float
+            observed volume element dV/dz_ob
+        """
         # computes volume in richness redshift bin for cluster counts
 
         z_tab = np.linspace(
