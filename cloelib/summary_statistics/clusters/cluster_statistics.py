@@ -142,13 +142,13 @@ class ClusterStatistics:
         Parameters
         ----------
         z_bin: int
-            integer corresponding to redshift bin number
+            integer corresponding to redshift bin index
         lambda_bin: int
-            integer corresponding to richness bin number
+            integer corresponding to richness bin index
 
         Returns
         -------
-        dV_dzob_bin: float
+        dV_dzob_bin: numpy.ndarray
             observed volume element dV/dz_ob
         """
         # computes volume in richness redshift bin for cluster counts
@@ -176,6 +176,22 @@ class ClusterStatistics:
         return dV_dzob_bin
 
     def _compute_Plob_M_z_bin(self, lambda_bin, Pltrue_M_z):
+        """compute Plob_M_z_bin.
+        Compute the probability of the observed richness 
+        given true mass and redshift P(lob|M,ztr) for a richness bin.
+
+        Parameters
+        ----------
+        lambda_bin : int
+            integer corresponding to richness bin index
+        Pltrue_M_z : numpy.ndarray
+            probability of true richness given true mass and redshift  P(ltr|M,ztr)
+
+        Returns
+        -------
+        numpy.ndarray
+            P(lob|M,ztr)
+        """
         # returns # P(lob|M,ztr) for a richness bin
         l_tab = np.geomspace(
             self.bins["lambda_obs_nc"].edges[lambda_bin],
@@ -202,10 +218,43 @@ class ClusterStatistics:
         return Plob_M_z
 
     def _compute_counts_bin(self, dV_dzob_bin, n_lbdobs_z):
+        """compute counts bin.
+        Compute cluster counts in a single richness and redshift bin
+        Performs integral over z_true of the the volume*n_lbdobs_z
+
+        Parameters
+        ----------
+        dV_dzob_bin: numpy.ndarray
+            volume element of bin
+        n_lbdobs_z: numpy.ndarray
+            number of clusters with observed richness and true redshift
+
+        Returns
+        -------
+        numpy.ndarray
+            counts in a richness redshift bin
+        """
         # computes counts in a richness redshift bin
         return simps(n_lbdobs_z * dV_dzob_bin, x=self.integ_ztrue_arr, axis=0)
 
     def _compute_counts(self, Pltrue_M_z):
+        """compute counts.
+        Computes counts
+
+        Parameters
+        ----------
+        Pltrue_M_z: numpy.ndarray
+            Probability of lambda true given M_true and z_true
+
+        Returns
+        -------
+        nc_zbin_lbin: numpy.ndarray
+            number counts in richness and redshift bins
+        _Plob_M_z: numpy.ndarray
+            Probability of observed richness in redshift and true mass bins 
+        _dV_dzob: numpy.ndarray
+            array of bin volumes in redshift and richness
+        """
 
         _n_lbdobs_z = np.zeros(self.bins["lambda_obs_nc"].size, dtype=list)
 
@@ -243,6 +292,8 @@ class ClusterStatistics:
     # ----------
 
     def _compute_bias(self, Plob_M_z, dV_dzob):
+        """
+        """
 
         hbias_zbin_lbin = np.zeros(
             (self.bins["z_obs_nc"].size, self.bins["lambda_obs_nc"].size)
