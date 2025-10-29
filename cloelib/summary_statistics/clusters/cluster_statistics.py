@@ -292,7 +292,20 @@ class ClusterStatistics:
     # ----------
 
     def _compute_bias(self, Plob_M_z, dV_dzob):
-        """
+        """compute bias.
+        Compute halo bias used in counts covariance in bins of redshift and richness
+
+        Parameters
+        ----------
+        Plob_M_z : numpy.ndarray
+            probability of observed richness given true mass and redshift
+        dV_dzob : numpy.ndarray
+            array of bin volumes in redshift and richness
+            
+        Returns
+        -------
+        numpy.ndarray
+            halo bias in bins of z and lambda
         """
 
         hbias_zbin_lbin = np.zeros(
@@ -363,6 +376,19 @@ class ClusterStatistics:
         return sab
 
     def _compute_counts_cov(self, hbias_zbin_lbin):
+        """compute counts cov.
+        computes theoretical covariance for cluster counts, including shot noise and sample covariance
+        
+        Parameters
+        ----------
+        hbias_zbin_lbin : numpy.ndarray
+            halo bias, computed with compute_bias function
+
+        Returns
+        -------
+        numpy.ndarray
+            covariance array 
+        """
 
         sab = self._compute_sab(
             _bin_midpoints(self.bins["z_obs_nc"].edges)  # mean observed redshift
@@ -392,6 +418,23 @@ class ClusterStatistics:
     # --------------
 
     def _compute_reduced_shear(self, nc_zbin_lbin, Plob_M_z, dV_dzob):
+        """compute reduced shear.
+        returns reduced shear array 
+
+        Parameters
+        ----------
+        nc_zbin_lbin : numpy.ndarray
+            cluster number counts
+        Plob_M_z: numpy.ndarray
+            probablity of observed richness given mass and redshift
+        dV_dzob: numpy.ndarray
+            volume element
+        
+        Returns
+        -------
+        numpy.ndarray
+            reduced shear array
+        """
 
         gt_zbin_lbin_rbin = np.zeros(
             (
