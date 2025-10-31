@@ -21,12 +21,12 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 class ClusterWL:
     def __init__(
         self,
-        cluster_counts_statistics: ClusterCounts,
+        integ_tables: dict,
         profile: Profile,
         halo_concentration: float,
     ):
-        # cluster counts statistics, for integration tables
-        self.cluster_counts_statistics = cluster_counts_statistics
+        # integration tables
+        self.integ_tables = integ_tables
 
         # observable objects
         self.profile = profile
@@ -65,16 +65,16 @@ class ClusterWL:
         for ind_radius in range(radius_bins_size):
             excess_surface_mass_density = self.profile.excess_surface_mass_density(
                 np.atleast_1d(radius_bins[ind_radius]),
-                self.cluster_counts_statistics.integ_ztrue_arr,
-                self.cluster_counts_statistics.integ_mass_arr,
+                self.integ_tables["ztrue"],
+                self.integ_tables["mass"],
                 self.halo_concentration,
             )
             for ind_lambda in range(lambda_obs_bins_size):
                 excesssurfacemassdensity = simps(
                     Plob_M_z[ind_lambda]
-                    * self.cluster_counts_statistics.dndm_z
+                    * self.integ_tables["dndm_z"]
                     * np.squeeze(excess_surface_mass_density, axis=2),
-                    x=self.cluster_counts_statistics.integ_mass_arr,
+                    x=self.integ_tables["mass"],
                     axis=1,
                 )
 
@@ -84,11 +84,11 @@ class ClusterWL:
                         / nc_zbin_lbin[ind_z, ind_lambda]
                         * simps(
                             self.profile.m_sig_crit_m1(
-                                self.cluster_counts_statistics.integ_ztrue_arr, ind_z
+                                self.integ_tables["ztrue"], ind_z
                             )
                             * dV_dzob[ind_z, ind_lambda]
                             * excesssurfacemassdensity,
-                            x=self.cluster_counts_statistics.integ_ztrue_arr,
+                            x=self.integ_tables["ztrue"],
                         )
                     )
         return gt_zbin_lbin_rbin

@@ -7,7 +7,6 @@ from scipy.integrate import simpson as simps
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Perturbations
 from cloelib.observables.clusters.covariance import HaloCovariance
-from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.observables.clusters.hmf_bias import HMFBias
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
@@ -59,33 +58,32 @@ class ClusterCounts:
 
         ################### QUANTITIES FOR INTEGRATION ###################
 
-        # integration variables
-        self.integ_k_arr = integ_k_arr  # k array
-        self.integ_mass_arr = integ_mass_arr  # mass array in Msun h^-1
-        self.integ_lambda_arr = integ_lambda_arr  # true richness array
-        self.integ_ztrue_arr = integ_ztrue_arr  # true redshift array
-
         # hardcoded quantities
         self.l_m_tab_sig = [31, 31, 31, 51]
         self.z_tab_sig = 31
 
-        # P(ltrM,ztr), this quantity is also used by cluster clustering
-        self.Pltrue_M_z = self.selectionfunction.P_lnlbd(
-            self.integ_ztrue_arr, self.integ_mass_arr, self.integ_lambda_arr
-        )
-
-        # volume element at the center of observed redshift bins
-        self.dvdzdomega_z1z2 = derived_cosmology.dV_dzdO(
-            self.hmfbias.halo_statistics.perturbations.background,
-            self.integ_ztrue_arr,
-            hubble_units=True,
-        )
-
-        # hmf at the center of observed redshift bins
-        self.dndm_z = self.hmfbias.dn_dm(self.integ_ztrue_arr, self.integ_mass_arr)
-        self.bias_z = self.hmfbias.bias(
-            self.integ_ztrue_arr, self.integ_mass_arr
-        )  # only work for virial overdensity
+        # integration tables
+        self.integ_tables = {
+            "k": integ_k_arr,  # k array
+            "mass": integ_mass_arr,  # mass array in Msun h^-1
+            "lambda": integ_lambda_arr,  # true richness array
+            "ztrue": integ_ztrue_arr,  # true redshift array
+            # P(ltrM,ztr), this quantity is also used by cluster clustering
+            "Pltrue_M_z": self.selectionfunction.P_lnlbd(
+                integ_ztrue_arr, integ_mass_arr, integ_lambda_arr
+            ),
+            # volume element at the center of observed redshift bins
+            "dvdzdomega_z1z2": derived_cosmology.dV_dzdO(
+                self.hmfbias.halo_statistics.perturbations.background,
+                integ_ztrue_arr,
+                hubble_units=True,
+            ),
+            # hmf at the center of observed redshift bins
+            "dndm_z": self.hmfbias.dn_dm(integ_ztrue_arr, integ_mass_arr),
+            # halo bias at the center of observed redshift bins
+            # only work for virial overdensity
+            "bias_z": self.hmfbias.bias(integ_ztrue_arr, integ_mass_arr),
+        }
 
     def _compute_Plob_M_z_bin(self, lambda_min, lambda_max, integral_n_steps=31):
         """compute Plob_M_z_bin.
@@ -109,18 +107,18 @@ class ClusterCounts:
         # P(lob|ltr,ztr)
         Plob_l_z = simps(
             self.selectionfunction.P_lbdobs_lbd(
-                self.integ_ztrue_arr, self.integ_lambda_arr, l_tab
+                self.integ_tables["ztrue"], self.integ_tables["lambda"], l_tab
             ),
             x=l_tab,
             axis=-1,
         )
         #       if external_richness_selection_function == 'CG_ESF':
-        #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.integ_ztrue_arr, self.integ_lambda_arr).T
+        #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.integ_tables["ztrue"], self.integ_tables["lambda"]).T
 
         # P(lob|M,ztr)
         Plob_M_z = simps(
-            self.Pltrue_M_z[:, :, :] * Plob_l_z[:, np.newaxis, :],
-            x=self.integ_lambda_arr,
+            self.integ_tables["Pltrue_M_z"][:, :, :] * Plob_l_z[:, np.newaxis, :],
+            x=self.integ_tables["lambda"],
             axis=-1,
         )
         return Plob_M_z
@@ -146,13 +144,18 @@ class ClusterCounts:
         z_tab = np.linspace(z_min, z_max, self.z_tab_sig)
         # P(zob|ztr)
         Pzob_z = simps(
-            self.selectionfunction.P_zobs_z(z_tab, lambda_min, self.integ_ztrue_arr),
+            self.selectionfunction.P_zobs_z(
+                z_tab, lambda_min, self.integ_tables["ztrue"]
+            ),
             x=z_tab,
             axis=0,
         )
         # observed volume element dV/dz_ob
         dV_dzob_bin = (
-            self.dvdzdomega_z1z2 * Pzob_z * (self.area) * (np.pi**2.0 / 180.0**2.0)
+            self.integ_tables["dvdzdomega_z1z2"]
+            * Pzob_z
+            * (self.area)
+            * (np.pi**2.0 / 180.0**2.0)
         )
         # N(lob,zob)
         return dV_dzob_bin
@@ -175,7 +178,7 @@ class ClusterCounts:
             counts in a richness redshift bin
         """
         # computes counts in a richness redshift bin
-        return simps(n_lbdobs_z * dV_dzob_bin, x=self.integ_ztrue_arr, axis=0)
+        return simps(n_lbdobs_z * dV_dzob_bin, x=self.integ_tables["ztrue"], axis=0)
 
     def compute_binned_properties(self, z_obs_bins, lambda_obs_bins):
         """compute counts.
@@ -218,7 +221,9 @@ class ClusterCounts:
             )
             # N(lob,ztr)
             _n_lbdobs_z[ind_lambda] = simps(
-                Plob_M_z[ind_lambda] * self.dndm_z, x=self.integ_mass_arr, axis=1
+                Plob_M_z[ind_lambda] * self.integ_tables["dndm_z"],
+                x=self.integ_tables["mass"],
+                axis=1,
             )
 
             for ind_z in range(z_obs_bins_size):
@@ -264,8 +269,10 @@ class ClusterCounts:
 
             # N(lob,ztr) * bias(lob,ztr)
             _b_n_lbdobs_z = simps(
-                Plob_M_z[ind_lambda] * self.dndm_z * self.bias_z,
-                x=self.integ_mass_arr,
+                Plob_M_z[ind_lambda]
+                * self.integ_tables["dndm_z"]
+                * self.integ_tables["bias_z"],
+                x=self.integ_tables["mass"],
                 axis=1,
             )
 
@@ -274,7 +281,7 @@ class ClusterCounts:
                 # N(lob,zob) * bias(lob,zob)
                 hbias_zbin_lbin[ind_z, ind_lambda] = simps(
                     _b_n_lbdobs_z * dV_dzob[ind_z, ind_lambda],
-                    x=self.integ_ztrue_arr,
+                    x=self.integ_tables["ztrue"],
                     axis=0,
                 )
 
@@ -289,10 +296,10 @@ class ClusterCounts:
         sab = np.zeros((z_obs_bins_size, z_obs_bins_size))
         # spherical harmonic expansion coefficients (covariance)
         KL = self.covariance.Kl_coeff()
-        # self.rint = np.zeros((z_obs_bins_size,len(self.integ_k_arr),L+1))
+        # self.rint = np.zeros((z_obs_bins_size,len(self.integ_tables["k"]),L+1))
 
         # power spectrum at the center of observed redshift bins
-        pk = self.halo_statistics.matter_power_spectrum(z_mid, self.integ_k_arr)
+        pk = self.halo_statistics.matter_power_spectrum(z_mid, self.integ_tables["k"])
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
         photoz_corr0 = self.photoz_rsd_correction(z_mid, 0)[
@@ -311,9 +318,12 @@ class ClusterCounts:
                 1
                 / (2 * np.pi**2)
                 * simps(
-                    (self.integ_k_arr**2 * np.sqrt(pk[ind_z] * pk[: (ind_z + 1)]))
+                    (
+                        self.integ_tables["k"] ** 2
+                        * np.sqrt(pk[ind_z] * pk[: (ind_z + 1)])
+                    )
                     * self.covariance.cov_window(ind_z, z_tab, KL),
-                    x=self.integ_k_arr,
+                    x=self.integ_tables["k"],
                     axis=-1,
                 )
             )

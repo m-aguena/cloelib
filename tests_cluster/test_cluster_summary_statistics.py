@@ -104,20 +104,21 @@ def test_clustersummmarystatitistics():
 
     # Istanciate objects
 
-    HS = HaloStatistics(
-        perturbations,
-        z=integ_ztrue_arr,
-        k=integ_k_arr,
-        overdensity_type=overdensity_type,
-    )
-    HSCastro = CastroHMFBias(HS)
-    profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
     selectionFunction = SelectionFunction(**_sel_pars)
-    haloClustering = HaloClustering(
-        perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
+    HSCastro = CastroHMFBias(
+        halo_statistics=HaloStatistics(
+            perturbations,
+            z=integ_ztrue_arr,
+            k=integ_k_arr,
+            overdensity_type=overdensity_type,
+        )
     )
     covariance = HaloCovariance(
         perturbations, area=area, nbins_zob=len(zed_obs_nc_bins), k=integ_k_arr
+    )
+    profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
+    haloClustering = HaloClustering(
+        perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
     )
 
     ####################
@@ -138,13 +139,15 @@ def test_clustersummmarystatitistics():
         photoz_rsd_correction=haloClustering.photoz_rsd_correction,
     )
     cluster_wl_statistics = ClusterWL(
-        cluster_counts_statistics,
+        cluster_counts_statistics.integ_tables,
         profileNFW,
         halo_concentration=halo_concentration,
     )
     cluster_xi2_statistics = ClusterXi2(
-        cluster_counts_statistics,
+        cluster_counts_statistics.integ_tables,
+        HSCastro.halo_statistics,
         haloClustering,
+        area=area,
     )
 
     # Compute values
