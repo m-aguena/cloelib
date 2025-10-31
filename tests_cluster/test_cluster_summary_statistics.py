@@ -10,10 +10,10 @@ from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.observables.clusters.profile import ProfileNFW
 from cloelib.observables.clusters.selection_function import SelectionFunction
-from cloelib.summary_statistics.clusters.cluster_statistics import (
-    ClusterCountsStatistics,
-    ClusterWLStatistics,
-    ClusterXi2Statistics,
+from cloelib.summary_statistics.clusters import (
+    ClusterCounts,
+    ClusterWL,
+    ClusterXi2,
 )
 
 
@@ -84,6 +84,24 @@ def test_clustersummmarystatitistics():
         alpha_nz=0.4,
     )
 
+    integ_k_arr = np.geomspace(1e-4, 10, 500)
+    integ_mass_arr = np.logspace(12.0, 16.0, 51)
+    integ_lambda_arr = np.geomspace(5.0, 250.0, 51)
+    integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
+
+    halo_concentration = 0.1
+    overdensity_type = "vir"
+    area = 10313
+
+    # Integration bins
+
+    zed_obs_nc_bins = np.linspace(0.2, 1.8, 9)
+    lambda_obs_nc_bins = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
+    radius_profile_bins = np.linspace(5.0, 100.0, 11)
+    lambda_obs_xi2_bins = np.array([20, 30, 500])
+    radius_xi2_bins = np.geomspace(20.0, 130.0, 31)
+    zed_obs_xi2_bins = np.arange(0.2, 1.81, 0.4)
+
     # Istanciate objects
 
     HS = HaloStatistics(
@@ -106,22 +124,9 @@ def test_clustersummmarystatitistics():
     # Summary Statistics
     ####################
 
-    # Parameters
-
-    area = 10313
-    halo_concentration = 0.1
-    overdensity_type = "vir"
-    like_selection = "CC_CWL_Cxi2"
-    cov_selection = "covCC_covCxi2"
-
-    integ_k_arr = np.geomspace(1e-4, 10, 500)
-    integ_mass_arr = np.logspace(12.0, 16.0, 51)
-    integ_lambda_arr = np.geomspace(5.0, 250.0, 51)
-    integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
-
     # Istanciate objects
 
-    cluster_counts_statistics = ClusterCountsStatistics(
+    cluster_counts_statistics = ClusterCounts(
         HSCastro,
         selectionFunction,
         covariance,
@@ -132,24 +137,15 @@ def test_clustersummmarystatitistics():
         area=area,
         photoz_rsd_correction=haloClustering.photoz_rsd_correction,
     )
-    cluster_wl_statistics = ClusterWLStatistics(
+    cluster_wl_statistics = ClusterWL(
         cluster_counts_statistics,
         profileNFW,
         halo_concentration=halo_concentration,
     )
-    cluster_xi2_statistics = ClusterXi2Statistics(
+    cluster_xi2_statistics = ClusterXi2(
         cluster_counts_statistics,
         haloClustering,
     )
-
-    # Integration bins
-
-    zed_obs_nc_bins = np.linspace(0.2, 1.8, 9)
-    lambda_obs_nc_bins = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
-    radius_profile_bins = np.linspace(5.0, 100.0, 11)
-    lambda_obs_xi2_bins = np.array([20, 30, 500])
-    radius_xi2_bins = np.geomspace(20.0, 130.0, 31)
-    zed_obs_xi2_bins = np.arange(0.2, 1.81, 0.4)
 
     # Compute values
 
