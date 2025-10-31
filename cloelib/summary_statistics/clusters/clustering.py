@@ -367,42 +367,42 @@ class ClusterXi2:
                         / volume_radial[:, ind_radius]
                     )
 
-                    for ind_lambda_k in lambda_bin_numbers:
-                        for ind_lambda_h in lambda_bin_numbers:
+                for ind_lambda_k in lambda_bin_numbers:
+                    for ind_lambda_h in lambda_bin_numbers:
 
-                            # gaussian term
-                            _cov_g[
+                        # gaussian term
+                        _cov_g[
+                            :,
+                            ind_lambda_i,
+                            ind_lambda_j,
+                            ind_lambda_k,
+                            ind_lambda_h,
+                            :,
+                            :,
+                        ] = simps(
+                            self.cluster_counts_statistics.integ_k_arr**2.0
+                            / (2.0 * np.pi**2.0)
+                            * window_radial[:, np.newaxis, :, :]
+                            * window_radial[:, :, np.newaxis, :]
+                            * (beta_pk_ij + alpha_n_ij)[
                                 :,
                                 ind_lambda_i,
-                                ind_lambda_j,
                                 ind_lambda_k,
+                                np.newaxis,
+                                np.newaxis,
+                                :,
+                            ]
+                            * (beta_pk_ij + alpha_n_ij)[
+                                :,
+                                ind_lambda_j,
                                 ind_lambda_h,
+                                np.newaxis,
+                                np.newaxis,
                                 :,
-                                :,
-                            ] = simps(
-                                self.cluster_counts_statistics.integ_k_arr**2.0
-                                / (2.0 * np.pi**2.0)
-                                * window_radial[:, np.newaxis, :, :]
-                                * window_radial[:, :, np.newaxis, :]
-                                * (beta_pk_ij + alpha_n_ij)[
-                                    :,
-                                    ind_lambda_i,
-                                    ind_lambda_k,
-                                    np.newaxis,
-                                    np.newaxis,
-                                    :,
-                                ]
-                                * (beta_pk_ij + alpha_n_ij)[
-                                    :,
-                                    ind_lambda_j,
-                                    ind_lambda_h,
-                                    np.newaxis,
-                                    np.newaxis,
-                                    :,
-                                ],
-                                x=self.cluster_counts_statistics.integ_k_arr,
-                                axis=-1,
-                            )
+                            ],
+                            x=self.cluster_counts_statistics.integ_k_arr,
+                            axis=-1,
+                        )
 
         # Compute the covariance
         cov_xi2_zbin_lbin_rbin = (
