@@ -38,12 +38,11 @@ class ClusterWL:
         self, z_obs_bins, lambda_obs_bins, radius_bins, nc_zbin_lbin, Plob_M_z, dV_dzob
     ):
         """compute reduced shear.
-        returns reduced shear array
 
         Parameters
         ----------
         nc_zbin_lbin : numpy.ndarray
-            cluster number counts
+            Number counts in richness and redshift bins
         Plob_M_z: numpy.ndarray
             probablity of observed richness given mass and redshift
         dV_dzob: numpy.ndarray
