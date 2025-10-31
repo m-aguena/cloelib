@@ -17,7 +17,7 @@ from cloelib.summary_statistics.clusters import (
 )
 
 
-def test_clustersummmarystatitistics():
+def get_values():
 
     ###########
     # Cosmology
@@ -179,10 +179,23 @@ def test_clustersummmarystatitistics():
         x2_aux["volume_radial"],
         x2_aux["volume_zob"],
     )
+    return (
+        nc_zbin_lbin,
+        gt_zbin_lbin_rbin,
+        xi2_zbin_lbin_rbin,
+        cov_nc_zbin_lbin,
+        cov_xi2_zbin_lbin_rbin,
+    )
 
-    ###################
-    # Test computations
-    ###################
+
+def test_clustersummmarystatitistics():
+    (
+        nc_zbin_lbin,
+        gt_zbin_lbin_rbin,
+        xi2_zbin_lbin_rbin,
+        cov_nc_zbin_lbin,
+        cov_xi2_zbin_lbin_rbin,
+    ) = get_values()
 
     assert_allclose(nc_zbin_lbin, benchmark_values.nc_ref, rtol=1e-2)
 
@@ -197,3 +210,7 @@ def test_clustersummmarystatitistics():
         benchmark_values.xi2_cov,
         rtol=5e-2,
     )
+
+
+if __name__ == "__main__":
+    get_values()

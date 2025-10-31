@@ -85,17 +85,19 @@ class ClusterCounts:
             "bias_z": self.hmfbias.bias(integ_ztrue_arr, integ_mass_arr),
         }
 
-    def _compute_Plob_M_z_bin(self, lambda_min, lambda_max, integral_n_steps=31):
+    def _compute_Plob_M_z_in_bin(self, lambda_min, lambda_max, integral_n_steps=31):
         """compute Plob_M_z_bin.
         Compute the probability of the observed richness
         given true mass and redshift P(lob|M,ztr) for a richness bin.
 
         Parameters
         ----------
-        lambda_bin : int
-            integer corresponding to richness bin index
-        Pltrue_M_z : numpy.ndarray
-            probability of true richness given true mass and redshift  P(ltr|M,ztr)
+        lambda_min : float
+            Lower richness edge of the integration bin
+        lambda_max : float
+            Upper richness edge of the integration bin
+        integral_n_steps : int
+            Number of points to be used for the interpolation in the integral
 
         Returns
         -------
@@ -123,21 +125,23 @@ class ClusterCounts:
         )
         return Plob_M_z
 
-    def _compute_volume_bin(self, z_min, z_max, lambda_min):
+    def _compute_volume_in_bin(self, z_min, z_max, lambda_min):
         """compute volume bin.
         Computes volume in a given richness redshift bin for cluster counts.
 
         Parameters
         ----------
-        z_bin: int
-            integer corresponding to redshift bin index
-        lambda_bin: int
-            integer corresponding to richness bin index
+        z_min : float
+            Lower redshift edge of the integration bin
+        z_max : float
+            Upper redshift edge of the integration bin
+        lambda_min: float
+            Lower richness edge of the integration bin
 
         Returns
         -------
         dV_dzob_bin: numpy.ndarray
-            observed volume element dV/dz_ob
+            Observed volume element dV/dz_ob in the redshift bin
         """
         # computes volume in richness redshift bin for cluster counts
 
@@ -160,7 +164,7 @@ class ClusterCounts:
         # N(lob,zob)
         return dV_dzob_bin
 
-    def _compute_counts_bin(self, dV_dzob_bin, n_lbdobs_z):
+    def _compute_counts_in_bin(self, dV_dzob_bin, n_lbdobs_z):
         """compute counts bin.
         Compute cluster counts in a single richness and redshift bin
         Performs integral over z_true of the the volume*n_lbdobs_z
@@ -186,8 +190,10 @@ class ClusterCounts:
 
         Parameters
         ----------
-        Pltrue_M_z: numpy.ndarray
-            Probability of lambda true given M_true and z_true
+        z_obs_bins: numpy.ndarray
+            Redshift bins for the integration.
+        lambda_obs_bins: numpy.ndarray
+            Richness bins for the integration.
 
         Returns
         -------
@@ -197,8 +203,8 @@ class ClusterCounts:
             Dictionary with intermidate products that can be used for other computations.
             Contains:
 
-                * Plob_M_z (numpy.ndarray): Probability of observed richness in redshift and true mass bins
-                * dV_dzob (numpy.ndarray): Array of bin volumes in redshift and richness
+                * Plob_M_z (numpy.ndarray): Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
+                * dV_dzob (numpy.ndarray): Observed volume element (dV/dz_ob) in each redshift and richness bin
         """
 
         z_obs_bins_size = len(z_obs_bins) - 1
@@ -208,13 +214,19 @@ class ClusterCounts:
         _n_lbdobs_z = np.zeros(lambda_obs_bins_size, dtype=list)
 
         # outputs
-        Plob_M_z = np.zeros(lambda_obs_bins_size, dtype=list)
+        Plob_M_z = np.zeros(
+            (
+                lambda_obs_bins_size,
+                self.integ_tables["ztrue"].size,
+                self.integ_tables["mass"].size,
+            )
+        )
         dV_dzob = np.zeros((z_obs_bins_size, lambda_obs_bins_size), dtype=list)
         nc_zbin_lbin = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
 
         for ind_lambda in range(lambda_obs_bins_size):
 
-            Plob_M_z[ind_lambda] = self._compute_Plob_M_z_bin(
+            Plob_M_z[ind_lambda] = self._compute_Plob_M_z_in_bin(
                 lambda_obs_bins[ind_lambda],
                 lambda_obs_bins[ind_lambda + 1],
                 self.l_m_tab_sig[ind_lambda],
@@ -228,12 +240,12 @@ class ClusterCounts:
 
             for ind_z in range(z_obs_bins_size):
 
-                dV_dzob[ind_z, ind_lambda] = self._compute_volume_bin(
+                dV_dzob[ind_z, ind_lambda] = self._compute_volume_in_bin(
                     z_obs_bins[ind_z],
                     z_obs_bins[ind_z + 1],
                     lambda_obs_bins[ind_lambda],
                 )
-                nc_zbin_lbin[ind_z, ind_lambda] = self._compute_counts_bin(
+                nc_zbin_lbin[ind_z, ind_lambda] = self._compute_counts_in_bin(
                     dV_dzob[ind_z, ind_lambda], _n_lbdobs_z[ind_lambda]
                 )
 
@@ -251,9 +263,9 @@ class ClusterCounts:
         Parameters
         ----------
         Plob_M_z : numpy.ndarray
-            probability of observed richness given true mass and redshift
+            Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
         dV_dzob : numpy.ndarray
-            array of bin volumes in redshift and richness
+            Observed volume element (dV/dz_ob) in each redshift and richness bin
 
         Returns
         -------
@@ -287,13 +299,24 @@ class ClusterCounts:
 
         return hbias_zbin_lbin
 
-    def _compute_sab(self, z_obs_bins):
+    def _compute_spatial_cov(self, z_obs_bins):
+        """Computes only spatial part of the covariance.
+
+        Parameters
+        ----------
+        z_obs_bins: numpy.ndarray
+
+        Returns
+        -------
+        spatial_cov: numpy.ndarray
+            Spatial part of the covariance
+        """
 
         z_obs_bins_size = len(z_obs_bins) - 1
         z_mid = 0.5 * (z_obs_bins[1:] + z_obs_bins[:-1])
 
         # initialization
-        sab = np.zeros((z_obs_bins_size, z_obs_bins_size))
+        spatial_cov = np.zeros((z_obs_bins_size, z_obs_bins_size))
         # spherical harmonic expansion coefficients (covariance)
         KL = self.covariance.Kl_coeff()
         # self.rint = np.zeros((z_obs_bins_size,len(self.integ_tables["k"]),L+1))
@@ -314,7 +337,7 @@ class ClusterCounts:
                 z_obs_bins[ind_z], z_obs_bins[ind_z + 1], self.z_tab_sig
             )
 
-            sab[ind_z, : (ind_z + 1)] = (
+            spatial_cov[ind_z, : (ind_z + 1)] = (
                 1
                 / (2 * np.pi**2)
                 * simps(
@@ -327,27 +350,32 @@ class ClusterCounts:
                     axis=-1,
                 )
             )
-            sab[: (ind_z + 1), ind_z] = sab[ind_z, : (ind_z + 1)]
+            spatial_cov[: (ind_z + 1), ind_z] = spatial_cov[ind_z, : (ind_z + 1)]
 
-        return sab
+        return spatial_cov
 
     def compute_cov(self, z_obs_bins, nc_zbin_lbin, Plob_M_z, dV_dzob):
-        """compute counts cov.
-        computes theoretical covariance for cluster counts, including shot noise and sample covariance
+        """Computes theoretical covariance for cluster counts, including shot noise and sample covariance
 
         Parameters
         ----------
-        hbias_zbin_lbin : numpy.ndarray
-            halo bias, computed with compute_bias function
+        z_obs_bins: numpy.ndarray
+            Redshift bins for the integration.
+        nc_zbin_lbin: numpy.ndarray
+            Number counts in richness and redshift bins
+        Plob_M_z : numpy.ndarray
+            Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
+        dV_dzob : numpy.ndarray
+            Observed volume element (dV/dz_ob) in each redshift and richness bin
 
         Returns
         -------
-        numpy.ndarray
-            covariance array
+        cov_nc_zbin_lbin: numpy.ndarray
+            Covariance number counts in richness and redshift bins
         """
 
         hbias_zbin_lbin = self._compute_bias(Plob_M_z, dV_dzob)
-        sab = self._compute_sab(z_obs_bins)
+        spatial_cov = self._compute_spatial_cov(z_obs_bins)
 
         # shot noise
         _shot_noise = (
@@ -360,7 +388,7 @@ class ClusterCounts:
         cov_nc_zbin_lbin = _shot_noise + (
             hbias_zbin_lbin[np.newaxis, :, np.newaxis, :]
             * hbias_zbin_lbin[:, np.newaxis, :, np.newaxis]
-            * sab[:, :, np.newaxis, np.newaxis]
+            * spatial_cov[:, :, np.newaxis, np.newaxis]
         )
 
         return cov_nc_zbin_lbin
