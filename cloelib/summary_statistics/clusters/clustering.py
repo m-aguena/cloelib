@@ -335,14 +335,14 @@ class ClusterXi2:
         )
 
         # define cluster clustering bin numbers for loops
-        z_bin_numbers = range(z_obs_bins_size)
-        lambda_bin_numbers = range(lambda_obs_bins_size)
-        rad_bin_numbers = range(radius_bins_size)
+        z_bin_loop = range(z_obs_bins_size)
+        lambda_bin_loop = range(lambda_obs_bins_size)
+        rad_bin_loop = range(radius_bins_size)
 
         # note: this could be reduced to compute only half of the matrix
-        for ind_lambda_i in lambda_bin_numbers:
-            for ind_lambda_j in lambda_bin_numbers:
-                for ind_radius in rad_bin_numbers:
+        for ind_lambda_i in lambda_bin_loop:
+            for ind_lambda_j in lambda_bin_loop:
+                for ind_radius in rad_bin_loop:
 
                     _cov_ng[
                         :,
@@ -367,8 +367,8 @@ class ClusterXi2:
                         / volume_radial[:, ind_radius]
                     )
 
-                for ind_lambda_k in lambda_bin_numbers:
-                    for ind_lambda_h in lambda_bin_numbers:
+                for ind_lambda_k in lambda_bin_loop:
+                    for ind_lambda_h in lambda_bin_loop:
 
                         # gaussian term
                         _cov_g[
