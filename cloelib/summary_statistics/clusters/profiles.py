@@ -41,17 +41,23 @@ class ClusterWL:
 
         Parameters
         ----------
+        z_obs_bins: numpy.ndarray
+            Redshift bins for the integration.
+        lambda_obs_bins: numpy.ndarray
+            Richness bins for the integration.
+        radius_obs_bins: numpy.ndarray
+            Radial bins for the profile.
         nc_zbin_lbin : numpy.ndarray
             Number counts in richness and redshift bins
-        Plob_M_z: numpy.ndarray
-            probablity of observed richness given mass and redshift
-        dV_dzob: numpy.ndarray
-            volume element
+        Plob_M_z : numpy.ndarray
+            Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
+        dV_dzob : numpy.ndarray
+            Observed volume element (dV/dz_ob) in each redshift and richness bin
 
         Returns
         -------
-        numpy.ndarray
-            reduced shear array
+        gt_zbin_lbin_rbin: numpy.ndarray
+            Reduced shear in redshift, richness, and radial bins.
         """
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
         z_obs_bins_size = len(z_obs_bins) - 1

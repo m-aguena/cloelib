@@ -166,7 +166,7 @@ class ClusterCounts:
 
     def _compute_counts_in_bin(self, dV_dzob_bin, n_lbdobs_z):
         """compute counts bin.
-        Compute cluster counts in a single richness and redshift bin
+        Compute cluster counts in a single redshift and richness bin
         Performs integral over z_true of the the volume*n_lbdobs_z
 
         Parameters
@@ -198,7 +198,7 @@ class ClusterCounts:
         Returns
         -------
         nc_zbin_lbin: numpy.ndarray
-            Number counts in richness and redshift bins
+            Number counts in redshift and richness bins
         aux: dict
             Dictionary with intermidate products that can be used for other computations.
             Contains:
@@ -362,7 +362,7 @@ class ClusterCounts:
         z_obs_bins: numpy.ndarray
             Redshift bins for the integration.
         nc_zbin_lbin: numpy.ndarray
-            Number counts in richness and redshift bins
+            Number counts in redshift and richness bins
         Plob_M_z : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
         dV_dzob : numpy.ndarray
@@ -371,7 +371,7 @@ class ClusterCounts:
         Returns
         -------
         cov_nc_zbin_lbin: numpy.ndarray
-            Covariance number counts in richness and redshift bins
+            Covariance number counts in redshift and richness bins
         """
 
         hbias_zbin_lbin = self._compute_bias(Plob_M_z, dV_dzob)
