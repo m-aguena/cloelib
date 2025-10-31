@@ -5,7 +5,7 @@ import numpy as np
 from scipy.integrate import simpson as simps
 
 from cloelib.observables.clusters.clustering import HaloClustering
-from cloelib.summary_statistics.clusters import ClusterCounts
+from cloelib.summary_statistics.clusters.counts import ClusterCounts
 
 # import jax
 
