@@ -10,11 +10,19 @@ from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.observables.clusters.profile import ProfileNFW
 from cloelib.observables.clusters.selection_function import SelectionFunction
-from cloelib.summary_statistics.clusters.cluster_statistics import ClusterStatistics
+from cloelib.summary_statistics.clusters.cluster_statistics import (
+    ClusterCountsStatistics,
+    ClusterWLStatistics,
+    ClusterXi2Statistics,
+)
 
 
 def test_clustersummmarystatitistics():
-    # Cosmology parameters
+
+    ###########
+    # Cosmology
+    ###########
+
     print("# Cosmology parameters")
     _H0 = 67.0
     _h = _H0 / 100.0
@@ -43,23 +51,11 @@ def test_clustersummmarystatitistics():
         background_fid, np.linspace(0.0, 2.0, 100)
     )
 
-    area = 10313
-    halo_concentration = 0.1
-    overdensity_type = "vir"
-    like_selection = "CC_CWL_Cxi2"
-    cov_selection = "covCC_covCxi2"
+    #############
+    # Observables
+    #############
 
-    zed_obs_nc_edges = np.linspace(0.2, 1.8, 9)
-    lambda_obs_nc_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
-    radius_obs_profile_edges = np.linspace(5.0, 100.0, 11)
-    lambda_obs_xi2_edges = np.array([20, 30, 500])
-    radius_obs_xi2_edges = np.geomspace(20.0, 130.0, 31)
-    zed_obs_xi2_edges = np.arange(0.2, 1.81, 0.4)
-
-    integ_k_arr = np.geomspace(1e-4, 10, 500)
-    integ_mass_arr = np.logspace(12.0, 16.0, 51)
-    integ_lambda_arr = np.geomspace(5.0, 250.0, 51)
-    integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
+    # Parameters
 
     _sel_pars = dict(
         A_l=52.0,
@@ -88,6 +84,8 @@ def test_clustersummmarystatitistics():
         alpha_nz=0.4,
     )
 
+    # Istanciate objects
+
     HS = HaloStatistics(
         perturbations,
         z=integ_ztrue_arr,
@@ -95,62 +93,108 @@ def test_clustersummmarystatitistics():
         overdensity_type=overdensity_type,
     )
     HSCastro = CastroHMFBias(HS)
-
     profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
-
     selectionFunction = SelectionFunction(**_sel_pars)
-
     haloClustering = HaloClustering(
         perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
     )
-
     covariance = HaloCovariance(
-        perturbations, area=area, nbins_zob=len(zed_obs_nc_edges), k=integ_k_arr
+        perturbations, area=area, nbins_zob=len(zed_obs_nc_bins), k=integ_k_arr
     )
 
-    cluster_statistics = ClusterStatistics(
-        perturbations,
-        HS,
-        selectionFunction,
+    ####################
+    # Summary Statistics
+    ####################
+
+    # Parameters
+
+    area = 10313
+    halo_concentration = 0.1
+    overdensity_type = "vir"
+    like_selection = "CC_CWL_Cxi2"
+    cov_selection = "covCC_covCxi2"
+
+    integ_k_arr = np.geomspace(1e-4, 10, 500)
+    integ_mass_arr = np.logspace(12.0, 16.0, 51)
+    integ_lambda_arr = np.geomspace(5.0, 250.0, 51)
+    integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
+
+    # Istanciate objects
+
+    cluster_counts_statistics = ClusterCountsStatistics(
         HSCastro,
-        profileNFW,
-        haloClustering,
+        selectionFunction,
         covariance,
-        halo_concentration=halo_concentration,
         integ_k_arr=integ_k_arr,
         integ_mass_arr=integ_mass_arr,
         integ_lambda_arr=integ_lambda_arr,
         integ_ztrue_arr=integ_ztrue_arr,
         area=area,
+        photoz_rsd_correction=haloClustering.photoz_rsd_correction,
+    )
+    cluster_wl_statistics = ClusterWLStatistics(
+        cluster_counts_statistics,
+        profileNFW,
+        halo_concentration=halo_concentration,
+    )
+    cluster_xi2_statistics = ClusterXi2Statistics(
+        cluster_counts_statistics,
+        haloClustering,
     )
 
-    cluster_statistics.compute_all_quantities(
-        like_selection=like_selection,
-        cov_selection=cov_selection,
-        z_obs_nc_edges=zed_obs_nc_edges,
-        lambda_obs_nc_edges=lambda_obs_nc_edges,
-        radius_obs_profile_edges=radius_obs_profile_edges,
-        lambda_obs_xi2_edges=lambda_obs_xi2_edges,
-        radius_obs_xi2_edges=radius_obs_xi2_edges,
-        z_obs_xi2_edges=zed_obs_xi2_edges,
+    # Integration bins
+
+    zed_obs_nc_bins = np.linspace(0.2, 1.8, 9)
+    lambda_obs_nc_bins = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
+    radius_profile_bins = np.linspace(5.0, 100.0, 11)
+    lambda_obs_xi2_bins = np.array([20, 30, 500])
+    radius_xi2_bins = np.geomspace(20.0, 130.0, 31)
+    zed_obs_xi2_bins = np.arange(0.2, 1.81, 0.4)
+
+    # Compute values
+
+    nc_zbin_lbin, counts_aux = cluster_counts_statistics.compute_binned_properties(
+        z_obs_bins=zed_obs_nc_bins,
+        lambda_obs_bins=lambda_obs_nc_bins,
+    )
+    cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
+        zed_obs_nc_bins, nc_zbin_lbin, counts_aux["Plob_M_z"], counts_aux["dV_dzob"]
+    )
+    gt_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_properties(
+        z_obs_bins=zed_obs_nc_bins,
+        lambda_obs_bins=lambda_obs_nc_bins,
+        radius_bins=radius_profile_bins,
+        nc_zbin_lbin=nc_zbin_lbin,
+        Plob_M_z=counts_aux["Plob_M_z"],
+        dV_dzob=counts_aux["dV_dzob"],
+    )
+    xi2_zbin_lbin_rbin, x2_aux = cluster_xi2_statistics.compute_binned_properties(
+        lambda_obs_bins=lambda_obs_xi2_bins,
+        radius_bins=radius_xi2_bins,
+        z_obs_bins=zed_obs_xi2_bins,
+    )
+    cov_xi2_zbin_lbin_rbin = cluster_xi2_statistics.compute_cov(
+        x2_aux["Pk_lambdai_lambdaj"],
+        x2_aux["one_over_n_lambdai_lambdaj"],
+        x2_aux["window_radial"],
+        x2_aux["volume_radial"],
+        x2_aux["volume_zob"],
     )
 
-    assert_allclose(cluster_statistics.nc_zbin_lbin, benchmark_values.nc_ref, rtol=1e-2)
+    ###################
+    # Test computations
+    ###################
+
+    assert_allclose(nc_zbin_lbin, benchmark_values.nc_ref, rtol=1e-2)
+
+    assert_allclose(gt_zbin_lbin_rbin[0:2], benchmark_values.gt, rtol=1e-2)
+
+    assert_allclose(xi2_zbin_lbin_rbin[0:2], benchmark_values.xi2, rtol=1e-2)
+
+    assert_allclose(cov_nc_zbin_lbin[1:2], benchmark_values.nc_cov, rtol=5e-2)
 
     assert_allclose(
-        cluster_statistics.gt_zbin_lbin_rbin[0:2], benchmark_values.gt, rtol=1e-2
-    )
-
-    assert_allclose(
-        cluster_statistics.xi2_zbin_lbin_rbin[0:2], benchmark_values.xi2, rtol=1e-2
-    )
-
-    assert_allclose(
-        cluster_statistics.cov_nc_zbin_lbin[1:2], benchmark_values.nc_cov, rtol=5e-2
-    )
-
-    assert_allclose(
-        cluster_statistics.cov_xi2_zbin_lbin_rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
+        cov_xi2_zbin_lbin_rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
         benchmark_values.xi2_cov,
         rtol=5e-2,
     )
