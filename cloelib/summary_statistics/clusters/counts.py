@@ -30,7 +30,7 @@ class ClusterCounts:
         photoz_rsd_correction,
         integ_k_arr: np.ndarray,
         integ_mass_arr: np.ndarray,
-        integ_lambda_arr: np.ndarray,
+        integ_lambda_true_arr: np.ndarray,
         integ_ztrue_arr: np.ndarray,
         area: float = 10313,
     ):
@@ -66,11 +66,11 @@ class ClusterCounts:
         self.integ_tables = {
             "k": integ_k_arr,  # k array
             "mass": integ_mass_arr,  # mass array in Msun h^-1
-            "lambda": integ_lambda_arr,  # true richness array
+            "lambda_true": integ_lambda_true_arr,  # true richness array
             "ztrue": integ_ztrue_arr,  # true redshift array
             # P(ltrM,ztr), this quantity is also used by cluster clustering
             "Pltrue_M_z": self.selectionfunction.P_lnlbd(
-                integ_ztrue_arr, integ_mass_arr, integ_lambda_arr
+                integ_ztrue_arr, integ_mass_arr, integ_lambda_true_arr
             ),
             # volume element at the center of observed redshift bins
             "dvdzdomega_z1z2": derived_cosmology.dV_dzdO(
@@ -109,18 +109,18 @@ class ClusterCounts:
         # P(lob|ltr,ztr)
         Plob_l_z = simps(
             self.selectionfunction.P_lbdobs_lbd(
-                self.integ_tables["ztrue"], self.integ_tables["lambda"], l_tab
+                self.integ_tables["ztrue"], self.integ_tables["lambda_true"], l_tab
             ),
             x=l_tab,
             axis=-1,
         )
         #       if external_richness_selection_function == 'CG_ESF':
-        #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.integ_tables["ztrue"], self.integ_tables["lambda"]).T
+        #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.integ_tables["ztrue"], self.integ_tables["lambda_true"]).T
 
         # P(lob|M,ztr)
         Plob_M_z = simps(
             self.integ_tables["Pltrue_M_z"][:, :, :] * Plob_l_z[:, np.newaxis, :],
-            x=self.integ_tables["lambda"],
+            x=self.integ_tables["lambda_true"],
             axis=-1,
         )
         return Plob_M_z

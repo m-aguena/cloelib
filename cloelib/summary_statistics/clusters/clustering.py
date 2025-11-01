@@ -38,7 +38,7 @@ class ClusterXi2:
         self.area = area
 
         # hardcoded quantities
-        self.l_m_tab_sig_xi2 = [31, 51]
+        self.l_m_tab_sig = [31, 51]
         self.z_tab_sig = 31
 
     def _compute_pk_ir_resummation(self, z_obs_bins, lambda_obs_bins):
@@ -106,7 +106,7 @@ class ClusterXi2:
             Plob_l_z = simps(
                 self.clustering.selectionfunction.P_lbdobs_lbd(
                     self.integ_tables["ztrue"],
-                    self.integ_tables["lambda"],
+                    self.integ_tables["lambda_true"],
                     l_tab,
                 ),
                 x=l_tab,
@@ -116,7 +116,7 @@ class ClusterXi2:
             # P(lob|M,ztr)
             Plob_M_z = simps(
                 self.integ_tables["Pltrue_M_z"][:, :, :] * Plob_l_z[:, np.newaxis, :],
-                x=self.integ_tables["lambda"],
+                x=self.integ_tables["lambda_true"],
                 axis=-1,
             )
 

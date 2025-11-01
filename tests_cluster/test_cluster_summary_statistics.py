@@ -86,7 +86,7 @@ def get_values():
 
     integ_k_arr = np.geomspace(1e-4, 10, 500)
     integ_mass_arr = np.logspace(12.0, 16.0, 51)
-    integ_lambda_arr = np.geomspace(5.0, 250.0, 51)
+    integ_lambda_true_arr = np.geomspace(5.0, 250.0, 51)
     integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
 
     halo_concentration = 0.1
@@ -133,7 +133,7 @@ def get_values():
         covariance,
         integ_k_arr=integ_k_arr,
         integ_mass_arr=integ_mass_arr,
-        integ_lambda_arr=integ_lambda_arr,
+        integ_lambda_true_arr=integ_lambda_true_arr,
         integ_ztrue_arr=integ_ztrue_arr,
         area=area,
         photoz_rsd_correction=haloClustering.photoz_rsd_correction,
