@@ -34,7 +34,7 @@ class ClusterWL:
         # internal values
         self.halo_concentration = halo_concentration
 
-    def compute_binned_properties(
+    def compute_binned_quantities(
         self, z_obs_bins, lambda_obs_bins, radius_bins, nc_zbin_lbin, Plob_M_z, dV_dzob
     ):
         """compute reduced shear.

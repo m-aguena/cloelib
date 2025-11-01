@@ -152,14 +152,14 @@ def get_values():
 
     # Compute values
 
-    nc_zbin_lbin, counts_aux = cluster_counts_statistics.compute_binned_properties(
+    nc_zbin_lbin, counts_aux = cluster_counts_statistics.compute_binned_quantities(
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
     )
     cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
         zed_obs_nc_bins, nc_zbin_lbin, counts_aux["Plob_M_z"], counts_aux["dV_dzob"]
     )
-    gt_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_properties(
+    gt_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_quantities(
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
@@ -167,7 +167,7 @@ def get_values():
         Plob_M_z=counts_aux["Plob_M_z"],
         dV_dzob=counts_aux["dV_dzob"],
     )
-    xi2_zbin_lbin_rbin, x2_aux = cluster_xi2_statistics.compute_binned_properties(
+    xi2_zbin_lbin_rbin, x2_aux = cluster_xi2_statistics.compute_binned_quantities(
         lambda_obs_bins=lambda_obs_xi2_bins,
         radius_bins=radius_xi2_bins,
         z_obs_bins=zed_obs_xi2_bins,

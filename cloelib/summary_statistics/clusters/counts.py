@@ -184,9 +184,8 @@ class ClusterCounts:
         # computes counts in a richness redshift bin
         return simps(n_lbdobs_z * dV_dzob_bin, x=self.integ_tables["ztrue"], axis=0)
 
-    def compute_binned_properties(self, z_obs_bins, lambda_obs_bins):
-        """compute counts.
-        Computes counts
+    def compute_binned_quantities(self, z_obs_bins, lambda_obs_bins):
+        """Computes binned quantities (counts+aux).
 
         Parameters
         ----------

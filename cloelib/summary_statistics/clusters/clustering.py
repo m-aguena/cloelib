@@ -211,6 +211,20 @@ class ClusterXi2:
         return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
 
     def _compute_xi2(self, window_radial, Pk_lambdai_lambdaj):
+        """Computes xi2
+
+        Parameters
+        ----------
+        window_radial : numpy.ndarray
+            blah
+        Pk_lambdai_lambdaj : numpy.ndarray
+            Power spectrum ???
+
+        Returns
+        -------
+        xi2_zbin_lbin_rbin: numpy.ndarray
+            Two point correlation function in richness, redshift and radial bins
+        """
 
         lambda_obs_bins_size = Pk_lambdai_lambdaj.shape[1]
 
@@ -232,8 +246,8 @@ class ClusterXi2:
         triangle_indexes = np.triu_indices(lambda_obs_bins_size)
         return xi2_zbin_lbin_rbin_buf[:, triangle_indexes[0], triangle_indexes[1], :]
 
-    def compute_binned_properties(self, z_obs_bins, lambda_obs_bins, radius_bins):
-        """Computes xi2
+    def compute_binned_quantities(self, z_obs_bins, lambda_obs_bins, radius_bins):
+        """Computes binned quantities (xi2+aux)
 
         Parameters
         ----------
@@ -246,11 +260,11 @@ class ClusterXi2:
             Dictionary with intermidate products that can be used for other computations.
             Contains:
 
-                * Pk_lambdai_lambdaj (numpy.ndarray): blah
-                * one_over_n_lambdai_lambdaj (numpy.ndarray): blah
+                * Pk_lambdai_lambdaj (numpy.ndarray): Power spectrum ???
+                * one_over_n_lambdai_lambdaj (numpy.ndarray): volume_zob / nc_int_lbdobs_z in each redshift bin
                 * window_radial (numpy.ndarray): blah
                 * volume_radial (numpy.ndarray): blah
-                * volume_zob (numpy.ndarray): blah
+                * volume_zob (numpy.ndarray): Observed volume in each redshift bin
         """
 
         # this is never used
@@ -290,6 +304,14 @@ class ClusterXi2:
         Pk_lambdai_lambdaj,
         one_over_n_lambdai_lambdaj,
     ):
+        """Computes xi2
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        """
         # combine and reshape
         alpha_ij = (1 + alpha[:, :, np.newaxis, np.newaxis]) * (
             1 + alpha[:, np.newaxis, :, np.newaxis]
@@ -319,6 +341,10 @@ class ClusterXi2:
             Power spectrum ???
         one_over_n_lambdai_lambdaj : numpy.ndarray
             volume_zob / nc_int_lbdobs_z in each redshift bin
+        window_radial : numpy.ndarray
+            blah
+        volume_radial : numpy.ndarray
+            blah
         volume_zob : numpy.ndarray
             Observed volume in each redshift bin
 
