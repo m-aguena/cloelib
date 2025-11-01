@@ -304,13 +304,21 @@ class ClusterXi2:
         Pk_lambdai_lambdaj,
         one_over_n_lambdai_lambdaj,
     ):
-        """Computes xi2
+        """Computes mean alpha and mean beta*Pk  in richness bins
 
         Parameters
         ----------
+        alpha: numpy.ndarray
+            Alpha parameter
+        beta: numpy.ndarray
+            Beta parameter
 
         Returns
         -------
+        alpha_n_ij: numpy.ndarray
+            Mean alpha in richness bins
+        beta_pk_ij: numpy.ndarray
+            Mean beta*Pk in richness bins
         """
         # combine and reshape
         alpha_ij = (1 + alpha[:, :, np.newaxis, np.newaxis]) * (
@@ -350,6 +358,8 @@ class ClusterXi2:
 
         Returns
         -------
+        cov_xi2_zbin_lbin_rbin: numpy.ndarray
+            Covariance of the two point correlation function in richness, redshift and radial bins
         """
         z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
         _, radius_bins_size = volume_radial.shape
