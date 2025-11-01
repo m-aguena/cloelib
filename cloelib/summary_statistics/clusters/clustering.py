@@ -251,6 +251,12 @@ class ClusterXi2:
 
         Parameters
         ----------
+        z_obs_bins: numpy.ndarray
+            Redshift bins for the integration.
+        lambda_obs_bins: numpy.ndarray
+            Richness bins for the integration.
+        radius_obs_bins: numpy.ndarray
+            Radial bins for the profile.
 
         Returns
         -------
