@@ -311,6 +311,20 @@ class ClusterXi2:
         volume_radial,
         volume_zob,
     ):
+        """Computes xi2 covariance.
+
+        Parameters
+        ----------
+        Pk_lambdai_lambdaj : numpy.ndarray
+            Power spectrum ???
+        one_over_n_lambdai_lambdaj : numpy.ndarray
+            volume_zob / nc_int_lbdobs_z in each redshift bin
+        volume_zob : numpy.ndarray
+            Observed volume in each redshift bin
+
+        Returns
+        -------
+        """
         z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
         _, radius_bins_size = volume_radial.shape
 
