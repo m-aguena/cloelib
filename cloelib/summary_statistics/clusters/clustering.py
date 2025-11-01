@@ -210,13 +210,13 @@ class ClusterXi2:
 
         return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
 
-    def _compute_xi2(self, window_radial, Pk_lambdai_lambdaj):
+    def _compute_xi2(self, shell_window, Pk_lambdai_lambdaj):
         """Computes xi2
 
         Parameters
         ----------
-        window_radial : numpy.ndarray
-            blah
+        shell_window : numpy.ndarray
+            Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
         Pk_lambdai_lambdaj : numpy.ndarray
             Power spectrum ???
 
@@ -234,7 +234,7 @@ class ClusterXi2:
             (
                 self.integ_tables["k"] ** 2.0
                 / (2.0 * np.pi**2)
-                * window_radial[:, np.newaxis, np.newaxis, :, :]
+                * shell_window[:, np.newaxis, np.newaxis, :, :]
                 * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
             ),
             x=self.integ_tables["k"],
@@ -262,8 +262,8 @@ class ClusterXi2:
 
                 * Pk_lambdai_lambdaj (numpy.ndarray): Power spectrum ???
                 * one_over_n_lambdai_lambdaj (numpy.ndarray): volume_zob / nc_int_lbdobs_z in each redshift bin
-                * window_radial (numpy.ndarray): blah
-                * volume_radial (numpy.ndarray): blah
+                * shell_window (numpy.ndarray): Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
+                * shell_volume (numpy.ndarray): Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
                 * volume_zob (numpy.ndarray): Observed volume in each redshift bin
         """
 
@@ -277,18 +277,18 @@ class ClusterXi2:
 
         # spherical shell window function W(R,K) and volume of the shell (compute once outside the redshift loop)
         # these are used by covariance
-        window_radial, volume_radial = self.clustering.WF_ra(
+        shell_window, shell_volume = self.clustering.WF_ra(
             0.5 * (z_obs_bins[1:] + z_obs_bins[:-1]),
             radius_bins,
         )
 
-        xi2_zbin_lbin_rbin = self._compute_xi2(window_radial, Pk_lambdai_lambdaj)
+        xi2_zbin_lbin_rbin = self._compute_xi2(shell_window, Pk_lambdai_lambdaj)
 
         aux = {
             "Pk_lambdai_lambdaj": Pk_lambdai_lambdaj,
             "one_over_n_lambdai_lambdaj": one_over_n_lambdai_lambdaj,
-            "window_radial": window_radial,
-            "volume_radial": volume_radial,
+            "shell_window": shell_window,
+            "shell_volume": shell_volume,
             "volume_zob": volume_zob,
         }
         return xi2_zbin_lbin_rbin, aux
@@ -337,8 +337,8 @@ class ClusterXi2:
         self,
         Pk_lambdai_lambdaj,
         one_over_n_lambdai_lambdaj,
-        window_radial,
-        volume_radial,
+        shell_window,
+        shell_volume,
         volume_zob,
     ):
         """Computes xi2 covariance.
@@ -349,10 +349,10 @@ class ClusterXi2:
             Power spectrum ???
         one_over_n_lambdai_lambdaj : numpy.ndarray
             volume_zob / nc_int_lbdobs_z in each redshift bin
-        window_radial : numpy.ndarray
-            blah
-        volume_radial : numpy.ndarray
-            blah
+        shell_window : numpy.ndarray
+            Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
+        shell_volume : numpy.ndarray
+            Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
         volume_zob : numpy.ndarray
             Observed volume in each redshift bin
 
@@ -362,7 +362,7 @@ class ClusterXi2:
             Covariance of the two point correlation function in richness, redshift and radial bins
         """
         z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
-        _, radius_bins_size = volume_radial.shape
+        _, radius_bins_size = shell_volume.shape
 
         # compute nuisance parameters
 
@@ -425,7 +425,7 @@ class ClusterXi2:
                         simps(
                             self.integ_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
-                            * window_radial[:, ind_radius, :]
+                            * shell_window[:, ind_radius, :]
                             * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
                             x=self.integ_tables["k"],
                         )
@@ -433,7 +433,7 @@ class ClusterXi2:
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
                         * (1 + gamma[:, ind_lambda_j])
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_j, ind_lambda_j, 0]
-                        / volume_radial[:, ind_radius]
+                        / shell_volume[:, ind_radius]
                     )
 
                 for ind_lambda_k in lambda_bin_loop:
@@ -451,8 +451,8 @@ class ClusterXi2:
                         ] = simps(
                             self.integ_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
-                            * window_radial[:, np.newaxis, :, :]
-                            * window_radial[:, :, np.newaxis, :]
+                            * shell_window[:, np.newaxis, :, :]
+                            * shell_window[:, :, np.newaxis, :]
                             * (beta_pk_ij + alpha_n_ij)[
                                 :,
                                 ind_lambda_i,

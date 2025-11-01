@@ -167,17 +167,17 @@ def get_values():
         Plob_M_z=counts_aux["Plob_M_z"],
         dV_dzob=counts_aux["dV_dzob"],
     )
-    xi2_zbin_lbin_rbin, x2_aux = cluster_xi2_statistics.compute_binned_quantities(
+    xi2_zbin_lbin_rbin, xi2_aux = cluster_xi2_statistics.compute_binned_quantities(
         lambda_obs_bins=lambda_obs_xi2_bins,
         radius_bins=radius_xi2_bins,
         z_obs_bins=zed_obs_xi2_bins,
     )
     cov_xi2_zbin_lbin_rbin = cluster_xi2_statistics.compute_cov(
-        x2_aux["Pk_lambdai_lambdaj"],
-        x2_aux["one_over_n_lambdai_lambdaj"],
-        x2_aux["window_radial"],
-        x2_aux["volume_radial"],
-        x2_aux["volume_zob"],
+        xi2_aux["Pk_lambdai_lambdaj"],
+        xi2_aux["one_over_n_lambdai_lambdaj"],
+        xi2_aux["shell_window"],
+        xi2_aux["shell_volume"],
+        xi2_aux["volume_zob"],
     )
     return (
         nc_zbin_lbin,
