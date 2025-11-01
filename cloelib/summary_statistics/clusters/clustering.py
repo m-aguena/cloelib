@@ -115,8 +115,7 @@ class ClusterXi2:
 
             # P(lob|M,ztr)
             Plob_M_z = simps(
-                self.integ_tables["Pltrue_M_z"][:, :, :]
-                * Plob_l_z[:, np.newaxis, :],
+                self.integ_tables["Pltrue_M_z"][:, :, :] * Plob_l_z[:, np.newaxis, :],
                 x=self.integ_tables["lambda"],
                 axis=-1,
             )
@@ -130,9 +129,7 @@ class ClusterXi2:
 
             # n(lob,ztr) * b(lob,zob)
             hbias_lbdobs_z = simps(
-                Plob_M_z
-                * self.integ_tables["dndm_z"]
-                * self.integ_tables["bias_z"],
+                Plob_M_z * self.integ_tables["dndm_z"] * self.integ_tables["bias_z"],
                 x=self.integ_tables["mass"],
                 axis=1,
             )
@@ -298,8 +295,7 @@ class ClusterXi2:
             1 + alpha[:, np.newaxis, :, np.newaxis]
         )
         beta_ij = (
-            beta[:, :, np.newaxis, np.newaxis]
-            * beta[:, np.newaxis, :, np.newaxis]
+            beta[:, :, np.newaxis, np.newaxis] * beta[:, np.newaxis, :, np.newaxis]
         )
 
         beta_pk_ij = beta_ij * Pk_lambdai_lambdaj
@@ -318,7 +314,6 @@ class ClusterXi2:
         z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
         _, radius_bins_size = volume_radial.shape
 
-
         # compute nuisance parameters
 
         #    alpha(z,l), beta(z,l), gamma(z,l) are nuisance parameters to be
@@ -327,10 +322,10 @@ class ClusterXi2:
         #    values are alpha=0,beta=1,gamma=0 (see Euclid Collaboration:
         #    Fumagalli et al. 2022)
         alpha_n_ij, beta_pk_ij = self._compute_alpha_beta(
-            alpha = np.zeros((z_obs_bins_size, lambda_obs_bins_size)),
-            beta = np.ones((z_obs_bins_size, lambda_obs_bins_size)),
-            Pk_lambdai_lambdaj,
-            one_over_n_lambdai_lambdaj,
+            alpha=np.zeros((z_obs_bins_size, lambda_obs_bins_size)),
+            beta=np.ones((z_obs_bins_size, lambda_obs_bins_size)),
+            Pk_lambdai_lambdaj=Pk_lambdai_lambdaj,
+            one_over_n_lambdai_lambdaj=one_over_n_lambdai_lambdaj,
         )
         gamma = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
 
