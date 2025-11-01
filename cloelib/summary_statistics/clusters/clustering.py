@@ -42,12 +42,30 @@ class ClusterXi2:
         self.z_tab_sig = 31
 
     def _compute_pk_ir_resummation(self, z_obs_bins, lambda_obs_bins):
+        """Computes Pk IR resummation.
+
+        Parameters
+        ----------
+        z_obs_bins: numpy.ndarray
+            Redshift bins for the integration.
+        lambda_obs_bins: numpy.ndarray
+            Richness bins for the integration.
+
+        Returns
+        -------
+        Pk_lambdai_lambdaj : numpy.ndarray
+            Power spectrum ???
+        volume_zob : numpy.ndarray
+            Observed volume in each redshift bin
+        one_over_n_lambdai_lambdaj : numpy.ndarray
+            volume_zob / nc_int_lbdobs_z in each redshift bin
+        """
 
         z_obs_bins_size = len(z_obs_bins) - 1
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
-        _volume_zob = np.zeros(z_obs_bins_size)
-        _one_over_n_lambdai_lambdaj = np.zeros(
+        volume_zob = np.zeros(z_obs_bins_size)
+        one_over_n_lambdai_lambdaj = np.zeros(
             (
                 z_obs_bins_size,
                 lambda_obs_bins_size,
@@ -55,7 +73,7 @@ class ClusterXi2:
             )
         )
 
-        lambda_obs_xi2_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
+        lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
 
         sqrt_Pk_zbin_lbin = np.zeros(
             (
@@ -79,13 +97,13 @@ class ClusterXi2:
             l_tab = np.geomspace(
                 lambda_obs_bins[ind_lambda],
                 lambda_obs_bins[ind_lambda + 1],
-                self.l_m_tab_sig_xi2[ind_lambda],
+                self.l_m_tab_sig[ind_lambda],
             )
 
             ## recompute quantities that depend on lambda_obs
 
             # P(lob|ltr,ztr)
-            Plob_l_z_xi2 = simps(
+            Plob_l_z = simps(
                 self.clustering.selectionfunction.P_lbdobs_lbd(
                     self.integ_tables["ztrue"],
                     self.integ_tables["lambda"],
@@ -96,23 +114,23 @@ class ClusterXi2:
             )
 
             # P(lob|M,ztr)
-            Plob_M_z_xi2 = simps(
+            Plob_M_z = simps(
                 self.integ_tables["Pltrue_M_z"][:, :, :]
-                * Plob_l_z_xi2[:, np.newaxis, :],
+                * Plob_l_z[:, np.newaxis, :],
                 x=self.integ_tables["lambda"],
                 axis=-1,
             )
 
             # n(lob,ztr)
-            n_lbdobs_z_xi2 = simps(
-                Plob_M_z_xi2 * self.integ_tables["dndm_z"],
+            nc_lbdobs_z = simps(
+                Plob_M_z * self.integ_tables["dndm_z"],
                 x=self.integ_tables["mass"],
                 axis=1,
             )
 
             # n(lob,ztr) * b(lob,zob)
-            n_b_lbdobs_z_xi2 = simps(
-                Plob_M_z_xi2
+            hbias_lbdobs_z = simps(
+                Plob_M_z
                 * self.integ_tables["dndm_z"]
                 * self.integ_tables["bias_z"],
                 x=self.integ_tables["mass"],
@@ -120,13 +138,13 @@ class ClusterXi2:
             )
 
             # effective halo bias
-            b_eff = (n_b_lbdobs_z_xi2 / n_lbdobs_z_xi2)[:, np.newaxis]
+            b_eff = (hbias_lbdobs_z / nc_lbdobs_z)[:, np.newaxis]
 
             # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
             photoz_corr0, photoz_corr1, photoz_corr2 = (
                 self.clustering.photoz_rsd_correction(
                     self.integ_tables["ztrue"],
-                    lambda_obs_xi2_mid[ind_lambda],
+                    lambda_obs_mid[ind_lambda],
                 )
             )
             pk_halo = pk_IR * (
@@ -135,37 +153,37 @@ class ClusterXi2:
 
             for ind_z in range(z_obs_bins_size):
 
-                z_tab = np.linspace(
+                _z_tab = np.linspace(
                     z_obs_bins[ind_z], z_obs_bins[ind_z + 1], self.z_tab_sig
                 )
 
                 # P(zob|ztr)
-                Pzob_z = simps(
+                _Pzob_z = simps(
                     self.clustering.selectionfunction.P_zobs_z(
-                        z_tab,
+                        _z_tab,
                         lambda_obs_bins[ind_lambda],
                         self.integ_tables["ztrue"],
                     ),
-                    x=z_tab,
+                    x=_z_tab,
                     axis=0,
                 )
 
                 # observed volume element dV/dz_ob
-                dV_dzob = (
+                _dV_dzob = (
                     self.integ_tables["dvdzdomega_z1z2"]
-                    * Pzob_z
+                    * _Pzob_z
                     * (self.area)
                     * (np.pi**2.0 / 180.0**2.0)
                 )
 
                 # volume of the observed redshift slice
-                _volume_zob[ind_z] = simps(
-                    dV_dzob, x=self.integ_tables["ztrue"], axis=0
+                volume_zob[ind_z] = simps(
+                    _dV_dzob, x=self.integ_tables["ztrue"], axis=0
                 )
 
                 # normalization factor
-                N_int_lbdobs_z_xi2 = simps(
-                    dV_dzob * n_lbdobs_z_xi2,
+                _nc_int_lbdobs_z = simps(
+                    _dV_dzob * nc_lbdobs_z,
                     x=self.integ_tables["ztrue"],
                     axis=0,
                 )
@@ -173,27 +191,27 @@ class ClusterXi2:
                 # power spectrum and shot-noise terms
                 sqrt_Pk_zbin_lbin[ind_z, ind_lambda, :] = (
                     simps(
-                        (dV_dzob * n_lbdobs_z_xi2)[:, np.newaxis] * np.sqrt(pk_halo),
+                        (_dV_dzob * nc_lbdobs_z)[:, np.newaxis] * np.sqrt(pk_halo),
                         x=self.integ_tables["ztrue"],
                         axis=0,
                     )
-                    / N_int_lbdobs_z_xi2
+                    / _nc_int_lbdobs_z
                 )
 
-                _one_over_n_lambdai_lambdaj[ind_z, ind_lambda, ind_lambda] = (
-                    _volume_zob[ind_z] / N_int_lbdobs_z_xi2
+                one_over_n_lambdai_lambdaj[ind_z, ind_lambda, ind_lambda] = (
+                    volume_zob[ind_z] / _nc_int_lbdobs_z
                 )
 
         # cross Pk and shot-noise in two richness bins
-        _Pk_lambdai_lambdaj = (
+        Pk_lambdai_lambdaj = (
             sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
             * sqrt_Pk_zbin_lbin[:, np.newaxis, :, :]
         )  # dim = [nz,nl,nl,nk]
-        _one_over_n_lambdai_lambdaj = _one_over_n_lambdai_lambdaj[
+        one_over_n_lambdai_lambdaj = one_over_n_lambdai_lambdaj[
             :, :, :, np.newaxis
         ]  # dim = [nz,nl,nl,nk]
 
-        return _Pk_lambdai_lambdaj, _volume_zob, _one_over_n_lambdai_lambdaj
+        return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
 
     def _compute_xi2(self, window_radial, Pk_lambdai_lambdaj):
 
@@ -270,18 +288,18 @@ class ClusterXi2:
 
     def _compute_alpha_beta(
         self,
-        alpha_cov_xi2,
-        beta_cov_xi2,
+        alpha,
+        beta,
         Pk_lambdai_lambdaj,
         one_over_n_lambdai_lambdaj,
     ):
         # combine and reshape
-        alpha_ij = (1 + alpha_cov_xi2[:, :, np.newaxis, np.newaxis]) * (
-            1 + alpha_cov_xi2[:, np.newaxis, :, np.newaxis]
+        alpha_ij = (1 + alpha[:, :, np.newaxis, np.newaxis]) * (
+            1 + alpha[:, np.newaxis, :, np.newaxis]
         )
         beta_ij = (
-            beta_cov_xi2[:, :, np.newaxis, np.newaxis]
-            * beta_cov_xi2[:, np.newaxis, :, np.newaxis]
+            beta[:, :, np.newaxis, np.newaxis]
+            * beta[:, np.newaxis, :, np.newaxis]
         )
 
         beta_pk_ij = beta_ij * Pk_lambdai_lambdaj
@@ -299,25 +317,24 @@ class ClusterXi2:
     ):
         z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
         _, radius_bins_size = volume_radial.shape
+
+
+        # compute nuisance parameters
+
         #    alpha(z,l), beta(z,l), gamma(z,l) are nuisance parameters to be
         #    fitted on (few, ~100) simulations to correct for bias model
         #    inaccuracy, non-poissonian shot-noise and high-order terms ref
         #    values are alpha=0,beta=1,gamma=0 (see Euclid Collaboration:
         #    Fumagalli et al. 2022)
-        #    cov_g, cov_ng are TWO TERMS OF EQ. 73
-        _alpha_cov_xi2 = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
-        _beta_cov_xi2 = np.ones((z_obs_bins_size, lambda_obs_bins_size))
-        gamma_cov_xi2 = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
-
-        # compute nuisance parameters
         alpha_n_ij, beta_pk_ij = self._compute_alpha_beta(
-            _alpha_cov_xi2,
-            _beta_cov_xi2,
+            alpha = np.zeros((z_obs_bins_size, lambda_obs_bins_size)),
+            beta = np.ones((z_obs_bins_size, lambda_obs_bins_size)),
             Pk_lambdai_lambdaj,
             one_over_n_lambdai_lambdaj,
         )
+        gamma = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
 
-        # internal attributes
+        # cov_g, cov_ng are TWO TERMS OF EQ. 73
         _cov_g = np.zeros(
             (
                 z_obs_bins_size,
@@ -367,9 +384,9 @@ class ClusterXi2:
                             * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
                             x=self.integ_tables["k"],
                         )
-                        * (1 + gamma_cov_xi2[:, ind_lambda_i])
+                        * (1 + gamma[:, ind_lambda_i])
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
-                        * (1 + gamma_cov_xi2[:, ind_lambda_j])
+                        * (1 + gamma[:, ind_lambda_j])
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_j, ind_lambda_j, 0]
                         / volume_radial[:, ind_radius]
                     )
