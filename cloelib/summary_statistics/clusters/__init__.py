@@ -1,3 +1,3 @@
-from .clustering import ClusterXi2
+from .clustering import ClusterClustering
 from .counts import ClusterCounts
-from .profiles import ClusterWL
+from .profiles import ClusterWeakLensing

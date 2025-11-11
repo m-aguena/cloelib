@@ -11,9 +11,9 @@ from cloelib.observables.clusters.hmf_bias import CastroHMFBias
 from cloelib.observables.clusters.profile import ProfileNFW
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters import (
+    ClusterClustering,
     ClusterCounts,
-    ClusterWL,
-    ClusterXi2,
+    ClusterWeakLensing,
 )
 
 
@@ -98,9 +98,9 @@ def get_values():
     zed_obs_nc_bins = np.linspace(0.2, 1.8, 9)
     lambda_obs_nc_bins = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
     radius_profile_bins = np.linspace(5.0, 100.0, 11)
-    lambda_obs_xi2_bins = np.array([20, 30, 500])
-    radius_xi2_bins = np.geomspace(20.0, 130.0, 31)
-    zed_obs_xi2_bins = np.arange(0.2, 1.81, 0.4)
+    lambda_obs_clustering_bins = np.array([20, 30, 500])
+    radius_clustering_bins = np.geomspace(20.0, 130.0, 31)
+    zed_obs_clustering_bins = np.arange(0.2, 1.81, 0.4)
 
     # Istanciate objects
 
@@ -138,12 +138,12 @@ def get_values():
         area=area,
         photoz_rsd_correction=haloClustering.photoz_rsd_correction,
     )
-    cluster_wl_statistics = ClusterWL(
+    cluster_wl_statistics = ClusterWeakLensing(
         cluster_counts_statistics,
         profileNFW,
         halo_concentration=halo_concentration,
     )
-    cluster_xi2_statistics = ClusterXi2(
+    cluster_clustering_statistics = ClusterClustering(
         cluster_counts_statistics,
         haloClustering,
         area=area,
@@ -163,24 +163,26 @@ def get_values():
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
     )
-    xi2_zbin_lbin_rbin, xi2_aux = cluster_xi2_statistics.compute_binned_quantities(
-        lambda_obs_bins=lambda_obs_xi2_bins,
-        radius_bins=radius_xi2_bins,
-        z_obs_bins=zed_obs_xi2_bins,
+    clustering_zbin_lbin_rbin, clustering_aux = (
+        cluster_clustering_statistics.compute_binned_quantities(
+            lambda_obs_bins=lambda_obs_clustering_bins,
+            radius_bins=radius_clustering_bins,
+            z_obs_bins=zed_obs_clustering_bins,
+        )
     )
-    cov_xi2_zbin_lbin_rbin = cluster_xi2_statistics.compute_cov(
-        xi2_aux["Pk_lambdai_lambdaj"],
-        xi2_aux["one_over_n_lambdai_lambdaj"],
-        xi2_aux["shell_window"],
-        xi2_aux["shell_volume"],
-        xi2_aux["volume_zob"],
+    cov_clustering_zbin_lbin_rbin = cluster_clustering_statistics.compute_cov(
+        clustering_aux["Pk_lambdai_lambdaj"],
+        clustering_aux["one_over_n_lambdai_lambdaj"],
+        clustering_aux["shell_window"],
+        clustering_aux["shell_volume"],
+        clustering_aux["volume_zob"],
     )
     return (
         nc_zbin_lbin,
         gt_zbin_lbin_rbin,
-        xi2_zbin_lbin_rbin,
+        clustering_zbin_lbin_rbin,
         cov_nc_zbin_lbin,
-        cov_xi2_zbin_lbin_rbin,
+        cov_clustering_zbin_lbin_rbin,
     )
 
 
@@ -188,22 +190,24 @@ def test_clustersummmarystatitistics():
     (
         nc_zbin_lbin,
         gt_zbin_lbin_rbin,
-        xi2_zbin_lbin_rbin,
+        clustering_zbin_lbin_rbin,
         cov_nc_zbin_lbin,
-        cov_xi2_zbin_lbin_rbin,
+        cov_clustering_zbin_lbin_rbin,
     ) = get_values()
 
     assert_allclose(nc_zbin_lbin, benchmark_values.nc_ref, rtol=1e-2)
 
     assert_allclose(gt_zbin_lbin_rbin[0:2], benchmark_values.gt, rtol=1e-2)
 
-    assert_allclose(xi2_zbin_lbin_rbin[0:2], benchmark_values.xi2, rtol=1e-2)
+    assert_allclose(
+        clustering_zbin_lbin_rbin[0:2], benchmark_values.clustering, rtol=1e-2
+    )
 
     assert_allclose(cov_nc_zbin_lbin[1:2], benchmark_values.nc_cov, rtol=5e-2)
 
     assert_allclose(
-        cov_xi2_zbin_lbin_rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
-        benchmark_values.xi2_cov,
+        cov_clustering_zbin_lbin_rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
+        benchmark_values.clustering_cov,
         rtol=5e-2,
     )
 

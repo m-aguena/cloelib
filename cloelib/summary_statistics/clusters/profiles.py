@@ -18,7 +18,7 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 """
 
 
-class ClusterWL:
+class ClusterWeakLensing:
     def __init__(
         self,
         cluster_counts: ClusterCounts,

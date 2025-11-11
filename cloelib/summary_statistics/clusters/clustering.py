@@ -18,7 +18,7 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 """
 
 
-class ClusterXi2:
+class ClusterClustering:
     def __init__(
         self,
         cluster_counts: ClusterCounts,
@@ -172,7 +172,7 @@ class ClusterXi2:
 
         return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
 
-    def _compute_xi2(self, shell_window, Pk_lambdai_lambdaj):
+    def _compute_clustering(self, shell_window, Pk_lambdai_lambdaj):
         """Computes the 3D two-point correlation function.
 
         Parameters
@@ -184,7 +184,7 @@ class ClusterXi2:
 
         Returns
         -------
-        xi2_zbin_lbin_rbin: numpy.ndarray
+        clustering_zbin_lbin_rbin: numpy.ndarray
             Two point correlation function in richness, redshift and radial bins
         """
 
@@ -192,7 +192,7 @@ class ClusterXi2:
 
         # compute 2point correlation function
         # dim = [nz,nl,nl,nr]
-        xi2_zbin_lbin_rbin_buf = simps(
+        clustering_zbin_lbin_rbin_buf = simps(
             (
                 self.cluster_counts.kernel_tables["k"] ** 2.0
                 / (2.0 * np.pi**2)
@@ -206,10 +206,12 @@ class ClusterXi2:
         # xi(lambda_i, lambda_j) = xi(lambda_j, lambda_i),  so reshape and keep only one of them
 
         triangle_indexes = np.triu_indices(lambda_obs_bins_size)
-        return xi2_zbin_lbin_rbin_buf[:, triangle_indexes[0], triangle_indexes[1], :]
+        return clustering_zbin_lbin_rbin_buf[
+            :, triangle_indexes[0], triangle_indexes[1], :
+        ]
 
     def compute_binned_quantities(self, z_obs_bins, lambda_obs_bins, radius_bins):
-        """Computes binned quantities (xi2+aux)
+        """Computes binned quantities (clustering+aux)
 
         Parameters
         ----------
@@ -222,7 +224,7 @@ class ClusterXi2:
 
         Returns
         -------
-        xi2_zbin_lbin_rbin: numpy.ndarray
+        clustering_zbin_lbin_rbin: numpy.ndarray
             Two point correlation function in richness, redshift and radial bins
         aux: dict
             Dictionary with intermidate products that can be used for other computations.
@@ -250,7 +252,9 @@ class ClusterXi2:
             radius_bins,
         )
 
-        xi2_zbin_lbin_rbin = self._compute_xi2(shell_window, Pk_lambdai_lambdaj)
+        clustering_zbin_lbin_rbin = self._compute_clustering(
+            shell_window, Pk_lambdai_lambdaj
+        )
 
         aux = {
             "Pk_lambdai_lambdaj": Pk_lambdai_lambdaj,
@@ -259,7 +263,7 @@ class ClusterXi2:
             "shell_volume": shell_volume,
             "volume_zob": volume_zob,
         }
-        return xi2_zbin_lbin_rbin, aux
+        return clustering_zbin_lbin_rbin, aux
 
     # ----------------------
     # clustering covariance
@@ -309,7 +313,7 @@ class ClusterXi2:
         shell_volume,
         volume_zob,
     ):
-        """Computes xi2 covariance.
+        """Computes clustering covariance.
 
         Parameters
         ----------
@@ -332,7 +336,7 @@ class ClusterXi2:
 
         Returns
         -------
-        cov_xi2_zbin_lbin_rbin: numpy.ndarray
+        cov_clustering_zbin_lbin_rbin: numpy.ndarray
             Covariance of the two point correlation function in richness, redshift and radial bins
         """
         z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
@@ -448,10 +452,10 @@ class ClusterXi2:
                         )
 
         # Compute the covariance
-        cov_xi2_zbin_lbin_rbin = (
+        cov_clustering_zbin_lbin_rbin = (
             (_cov_g + _cov_ng)
             + (_cov_g + _cov_ng).transpose(
-                0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_xi2 bins
+                0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_clustering bins
             )
         ) / volume_zob[
             :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis
@@ -461,11 +465,11 @@ class ClusterXi2:
         # so reshape and keep only two of them
         triangle_indexes = np.triu_indices(lambda_obs_bins_size)
         # simplify first pair
-        cov_xi2_zbin_lbin_rbin = cov_xi2_zbin_lbin_rbin[
+        cov_clustering_zbin_lbin_rbin = cov_clustering_zbin_lbin_rbin[
             :, triangle_indexes[0], triangle_indexes[1], :, :, :, :
         ]
         # simplify second pair
-        cov_xi2_zbin_lbin_rbin = cov_xi2_zbin_lbin_rbin[
+        cov_clustering_zbin_lbin_rbin = cov_clustering_zbin_lbin_rbin[
             :, :, triangle_indexes[0], triangle_indexes[1], :, :
         ]
 
@@ -473,10 +477,10 @@ class ClusterXi2:
         # Current covariance is shape (nz, nl_red, nl_red, nrad, nrad),
         # make it (nz, nz, nl_red, nl_red, nrad, nrad), being diagonal in (nz, nz)
         # """
-        cov_xi2_zbin_lbin_rbin = (
+        cov_clustering_zbin_lbin_rbin = (
             np.diag(np.ones(z_obs_bins_size))[
                 :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis
             ]
-            * cov_xi2_zbin_lbin_rbin
+            * cov_clustering_zbin_lbin_rbin
         )
-        return cov_xi2_zbin_lbin_rbin
+        return cov_clustering_zbin_lbin_rbin
