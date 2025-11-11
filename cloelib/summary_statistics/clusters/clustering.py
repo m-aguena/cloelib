@@ -90,7 +90,7 @@ class ClusterXi2:
             (
                 z_obs_bins_size,
                 lambda_obs_bins_size,
-                len(self.cluster_counts.integ_tables["k"]),
+                len(self.cluster_counts.kernel_tables["k"]),
             )
         )
 
@@ -111,8 +111,8 @@ class ClusterXi2:
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
         ############
         pk_IR = self.cluster_counts.halo_statistics.matter_power_spectrum(
-            self.cluster_counts.integ_tables["ztrue"],
-            self.cluster_counts.integ_tables["k"],
+            self.cluster_counts.kernel_tables["ztrue"],
+            self.cluster_counts.kernel_tables["k"],
         )
 
         # Compute intermediate quantities
@@ -125,7 +125,7 @@ class ClusterXi2:
             # rsd corrections
             photoz_corr0, photoz_corr1, photoz_corr2 = (
                 self.clustering.photoz_rsd_correction(
-                    self.cluster_counts.integ_tables["ztrue"],
+                    self.cluster_counts.kernel_tables["ztrue"],
                     lambda_obs_mid[ind_lambda],
                 )
             )
@@ -139,7 +139,7 @@ class ClusterXi2:
                 # volume of the observed redshift slice
                 volume_zob[ind_z] = simps(
                     counts_aux["dV_dzob"][ind_z, ind_lambda],
-                    x=self.cluster_counts.integ_tables["ztrue"],
+                    x=self.cluster_counts.kernel_tables["ztrue"],
                     axis=0,
                 )
 
@@ -151,7 +151,7 @@ class ClusterXi2:
                             * counts_aux["nc_lbdobs_z"][ind_lambda]
                         )[:, np.newaxis]
                         * np.sqrt(pk_halo),
-                        x=self.cluster_counts.integ_tables["ztrue"],
+                        x=self.cluster_counts.kernel_tables["ztrue"],
                         axis=0,
                     )
                     / nc_zbin_lbin[ind_z, ind_lambda]
@@ -194,12 +194,12 @@ class ClusterXi2:
         # dim = [nz,nl,nl,nr]
         xi2_zbin_lbin_rbin_buf = simps(
             (
-                self.cluster_counts.integ_tables["k"] ** 2.0
+                self.cluster_counts.kernel_tables["k"] ** 2.0
                 / (2.0 * np.pi**2)
                 * shell_window[:, np.newaxis, np.newaxis, :, :]
                 * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
             ),
-            x=self.cluster_counts.integ_tables["k"],
+            x=self.cluster_counts.kernel_tables["k"],
             axis=-1,
         )
 
@@ -236,7 +236,7 @@ class ClusterXi2:
         """
 
         # this is never used
-        ###integ_zbin_lbin  = np.zeros(((z_obs_bins_size, lambda_obs_bins_size, len(self.cluster_counts.integ_tables["k"]))))
+        ###integ_zbin_lbin  = np.zeros(((z_obs_bins_size, lambda_obs_bins_size, len(self.cluster_counts.kernel_tables["k"]))))
 
         # matter power spectrum + IR resummation
         Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj = (
@@ -397,11 +397,11 @@ class ClusterXi2:
                         ind_radius,
                     ] = (
                         simps(
-                            self.cluster_counts.integ_tables["k"] ** 2.0
+                            self.cluster_counts.kernel_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
                             * shell_window[:, ind_radius, :]
                             * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
-                            x=self.cluster_counts.integ_tables["k"],
+                            x=self.cluster_counts.kernel_tables["k"],
                         )
                         * (1 + gamma[:, ind_lambda_i])
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
@@ -423,7 +423,7 @@ class ClusterXi2:
                             :,
                             :,
                         ] = simps(
-                            self.cluster_counts.integ_tables["k"] ** 2.0
+                            self.cluster_counts.kernel_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
                             * shell_window[:, np.newaxis, :, :]
                             * shell_window[:, :, np.newaxis, :]
@@ -443,7 +443,7 @@ class ClusterXi2:
                                 np.newaxis,
                                 :,
                             ],
-                            x=self.cluster_counts.integ_tables["k"],
+                            x=self.cluster_counts.kernel_tables["k"],
                             axis=-1,
                         )
 

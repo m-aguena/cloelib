@@ -29,7 +29,7 @@ class ClusterCounts:
 
     l_m_tab_sig : list
     z_tab_sig : float
-    integ_tables : dict
+    kernel_tables : dict
         Dictionary with tables that will be used for integrations. Contains:
 
             * k (np.ndarray): Values of k to be used in integrations
@@ -68,13 +68,13 @@ class ClusterCounts:
         photoz_rsd_correction: function
             Function that computers the RSD correction
         integ_k_arr: np.ndarray
-            Values of k to be used in integrations, stored in integ_tables
+            Values of k to be used in integrations, stored in kernel_tables
         integ_mass_arr: np.ndarray
-            Values of mass to be used in integrations, stored in integ_tables
+            Values of mass to be used in integrations, stored in kernel_tables
         integ_lambda_true_arr: np.ndarray
-            Values of true richness to be used in integrations, stored in integ_tables
+            Values of true richness to be used in integrations, stored in kernel_tables
         integ_ztrue_arr: np.ndarray
-            Values of true redshift to be used in integrations, stored in integ_tables
+            Values of true redshift to be used in integrations, stored in kernel_tables
         area: float
             Area of the survey in deg2.
 
@@ -101,7 +101,7 @@ class ClusterCounts:
         self.z_tab_sig = 31
 
         # integration tables
-        self.integ_tables = {
+        self.kernel_tables = {
             "k": integ_k_arr,  # k array
             "mass": integ_mass_arr,  # mass array in Msun h^-1
             "lambda_true": integ_lambda_true_arr,  # true richness array
@@ -146,18 +146,18 @@ class ClusterCounts:
         # P(lob|ltr,ztr)
         Plob_l_z = simps(
             self.selectionfunction.P_lbdobs_lbd(
-                self.integ_tables["ztrue"], self.integ_tables["lambda_true"], l_tab
+                self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"], l_tab
             ),
             x=l_tab,
             axis=-1,
         )
         #       if external_richness_selection_function == 'CG_ESF':
-        #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.integ_tables["ztrue"], self.integ_tables["lambda_true"]).T
+        #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
 
         # P(lambda_obs|mass, z)
         Plob_M_z = simps(
-            self.integ_tables["Pltrue_M_z"][:, :, :] * Plob_l_z[:, np.newaxis, :],
-            x=self.integ_tables["lambda_true"],
+            self.kernel_tables["Pltrue_M_z"][:, :, :] * Plob_l_z[:, np.newaxis, :],
+            x=self.kernel_tables["lambda_true"],
             axis=-1,
         )
         return Plob_M_z
@@ -187,14 +187,14 @@ class ClusterCounts:
         z_tab = np.linspace(z_min, z_max, integral_n_steps)
         Pzob_z = simps(
             self.selectionfunction.P_zobs_z(
-                z_tab, lambda_min, self.integ_tables["ztrue"]
+                z_tab, lambda_min, self.kernel_tables["ztrue"]
             ),
             x=z_tab,
             axis=0,
         )
         # observed volume element dV/dz_ob
         dV_dzob_bin = (
-            self.integ_tables["dvdzdomega_z1z2"]
+            self.kernel_tables["dvdzdomega_z1z2"]
             * Pzob_z
             * (self.area)
             * (np.pi**2.0 / 180.0**2.0)
@@ -220,7 +220,7 @@ class ClusterCounts:
             counts in a richness redshift bin
         """
         # computes counts in a richness redshift bin
-        return simps(nc_lbdobs_z * dV_dzob_bin, x=self.integ_tables["ztrue"], axis=0)
+        return simps(nc_lbdobs_z * dV_dzob_bin, x=self.kernel_tables["ztrue"], axis=0)
 
     def compute_binned_quantities(
         self, z_obs_bins, lambda_obs_bins, z_tab_sig=None, l_m_tab_sig=None
@@ -267,8 +267,8 @@ class ClusterCounts:
         Plob_M_z = np.zeros(
             (
                 lambda_obs_bins_size,
-                self.integ_tables["ztrue"].size,
-                self.integ_tables["mass"].size,
+                self.kernel_tables["ztrue"].size,
+                self.kernel_tables["mass"].size,
             )
         )
         dV_dzob = np.zeros((z_obs_bins_size, lambda_obs_bins_size), dtype=list)
@@ -284,8 +284,8 @@ class ClusterCounts:
             )
             # N(lob,ztr)
             nc_lbdobs_z[ind_lambda] = simps(
-                Plob_M_z[ind_lambda] * self.integ_tables["dndm_z"],
-                x=self.integ_tables["mass"],
+                Plob_M_z[ind_lambda] * self.kernel_tables["dndm_z"],
+                x=self.kernel_tables["mass"],
                 axis=1,
             )
 
@@ -341,9 +341,9 @@ class ClusterCounts:
             # N(lob,ztr) * bias(lob,ztr)
             hb_lbdobs_z[ind_lambda] = simps(
                 Plob_M_z[ind_lambda]
-                * self.integ_tables["dndm_z"]
-                * self.integ_tables["bias_z"],
-                x=self.integ_tables["mass"],
+                * self.kernel_tables["dndm_z"]
+                * self.kernel_tables["bias_z"],
+                x=self.kernel_tables["mass"],
                 axis=1,
             )
 
@@ -352,7 +352,7 @@ class ClusterCounts:
                 # N(lob,zob) * bias(lob,zob)
                 hbias_zbin_lbin[ind_z, ind_lambda] = simps(
                     hb_lbdobs_z[ind_lambda] * dV_dzob[ind_z, ind_lambda],
-                    x=self.integ_tables["ztrue"],
+                    x=self.kernel_tables["ztrue"],
                     axis=0,
                 )
 
@@ -386,10 +386,10 @@ class ClusterCounts:
         spatial_cov = np.zeros((z_obs_bins_size, z_obs_bins_size))
         # spherical harmonic expansion coefficients (covariance)
         KL = self.covariance.Kl_coeff()
-        # self.rint = np.zeros((z_obs_bins_size,len(self.integ_tables["k"]),L+1))
+        # self.rint = np.zeros((z_obs_bins_size,len(self.kernel_tables["k"]),L+1))
 
         # power spectrum at the center of observed redshift bins
-        pk = self.halo_statistics.matter_power_spectrum(z_mid, self.integ_tables["k"])
+        pk = self.halo_statistics.matter_power_spectrum(z_mid, self.kernel_tables["k"])
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
         photoz_corr0 = self.photoz_rsd_correction(z_mid, 0)[
@@ -409,11 +409,11 @@ class ClusterCounts:
                 / (2 * np.pi**2)
                 * simps(
                     (
-                        self.integ_tables["k"] ** 2
+                        self.kernel_tables["k"] ** 2
                         * np.sqrt(pk[ind_z] * pk[: (ind_z + 1)])
                     )
                     * self.covariance.cov_window(ind_z, z_tab, KL),
-                    x=self.integ_tables["k"],
+                    x=self.kernel_tables["k"],
                     axis=-1,
                 )
             )
