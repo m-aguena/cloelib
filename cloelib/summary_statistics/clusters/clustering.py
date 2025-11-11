@@ -14,7 +14,7 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 
 ## Notes:
 
-- Cluster counts, Cluster profile lensing and Clusters clustering class 
+- Clusters clustering class
 
 """
 
@@ -211,7 +211,7 @@ class ClusterXi2:
         return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
 
     def _compute_xi2(self, shell_window, Pk_lambdai_lambdaj):
-        """Computes xi2
+        """Computes the 3D two-point correlation function.
 
         Parameters
         ----------

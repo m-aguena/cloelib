@@ -16,7 +16,7 @@ from cloelib.observables.clusters.selection_function import SelectionFunction
 
 ## Notes:
 
-- Cluster counts, Cluster profile lensing and Clusters clustering class 
+- Cluster counts
 
 """
 

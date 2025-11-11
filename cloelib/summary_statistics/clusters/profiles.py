@@ -13,7 +13,7 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 
 ## Notes:
 
-- Cluster counts, Cluster profile lensing and Clusters clustering class 
+- Cluster profile lensing
 
 """
 
