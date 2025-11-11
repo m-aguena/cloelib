@@ -25,6 +25,18 @@ class ClusterWL:
         profile: Profile,
         halo_concentration: float,
     ):
+        """
+        Initializes the cluster profile lensing
+
+        Parameters
+        ----------
+        cluster_counts: ClusterCounts
+            Cluster counts summary statistics object
+        profile: Profile
+            Halo weak lensing radial profile object
+        halo_concentration: float
+            Halo concentration
+        """
         # cluster counts summary statistics, contains tables for integrals
         # and functions to compute binned integrals of counts
         self.cluster_counts = cluster_counts

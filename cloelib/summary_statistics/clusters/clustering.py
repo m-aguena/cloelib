@@ -25,6 +25,18 @@ class ClusterXi2:
         clustering: HaloClustering,
         area: float = 10313,
     ):
+        """
+        Initializes the cluster profile lensing
+
+        Parameters
+        ----------
+        cluster_counts: ClusterCounts
+            Cluster counts summary statistics object
+        clustering: HaloClustering
+            Halo clustering object
+        area: float
+            Area of the survey in deg2.
+        """
         # cluster counts summary statistics, contains tables for integrals
         # and functions to compute binned integrals of counts
         self.cluster_counts = cluster_counts
@@ -303,14 +315,20 @@ class ClusterXi2:
         ----------
         Pk_lambdai_lambdaj : numpy.ndarray
             Power spectrum ???
+            To be obtained in aux output of self.compute_binned_quantities.
         one_over_n_lambdai_lambdaj : numpy.ndarray
-            volume_zob / nc_int_lbdobs_z in each redshift bin
+            volume_zob / nc_int_lbdobs_z in each redshift bin.
+            To be obtained in aux output of self.compute_binned_quantities.
         shell_window : numpy.ndarray
-            Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
+            Cluster count covariance window (i,j,k) where i is the redshift bin,
+            j is the radial bin and k are the wavenumbers.
+            To be obtained in aux output of self.compute_binned_quantities.
         shell_volume : numpy.ndarray
-            Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
+            Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin.
+            To be obtained in aux output of self.compute_binned_quantities.
         volume_zob : numpy.ndarray
-            Observed volume in each redshift bin
+            Observed volume in each redshift bin.
+            To be obtained in aux output of self.compute_binned_quantities.
 
         Returns
         -------

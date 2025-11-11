@@ -22,6 +22,26 @@ from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
 class ClusterCounts:
+    """Object to compute cluster counts
+
+    Attributes
+    ----------
+
+    l_m_tab_sig : list
+    z_tab_sig : float
+    integ_tables : dict
+        Dictionary with tables that will be used for integrations. Contains:
+
+            * k (np.ndarray): Values of k to be used in integrations
+            * mass (np.ndarray): Values of mass to be used in integrations
+            * lambda_true (np.ndarray): Values of true richness to be used in integrations
+            * ztrue (np.ndarray): Values of true redshift to be used in integrations
+            * Pltrue_M_z(np.ndarray) : Values for P(lambda_true|mass, z)
+            * dvdzdomega_z1z2(np.ndarray) : Values for volume element at each redshift
+            * dndm_z(np.ndarray) : Values for the halo mass function dn/dmdz(mass, z)
+            * bias_z(np.ndarray) : Values for the halo bias halo_bias(mass, z)
+    """
+
     def __init__(
         self,
         hmfbias: HMFBias,
@@ -37,8 +57,26 @@ class ClusterCounts:
         """
         Initializes the cluster counts
 
-        Parameters:
-        - ....
+        Parameters
+        ----------
+        hmfbias: HMFBias
+            Halo mass function and bias object
+        selectionfunction: SelectionFunction
+            Selection function object
+        covariance: HaloCovariance
+            Halo covariance object
+        photoz_rsd_correction: function
+            Function that computers the RSD correction
+        integ_k_arr: np.ndarray
+            Values of k to be used in integrations, stored in integ_tables
+        integ_mass_arr: np.ndarray
+            Values of mass to be used in integrations, stored in integ_tables
+        integ_lambda_true_arr: np.ndarray
+            Values of true richness to be used in integrations, stored in integ_tables
+        integ_ztrue_arr: np.ndarray
+            Values of true redshift to be used in integrations, stored in integ_tables
+        area: float
+            Area of the survey in deg2.
 
         """
         # observable objects
@@ -68,11 +106,11 @@ class ClusterCounts:
             "mass": integ_mass_arr,  # mass array in Msun h^-1
             "lambda_true": integ_lambda_true_arr,  # true richness array
             "ztrue": integ_ztrue_arr,  # true redshift array
-            # P(ltrM,ztr), this quantity is also used by cluster clustering
+            # P(ltr|M,ztr), this quantity is also used by cluster clustering
             "Pltrue_M_z": self.selectionfunction.P_lnlbd(
                 integ_ztrue_arr, integ_mass_arr, integ_lambda_true_arr
             ),
-            # volume element at the center of observed redshift bins
+            # volume element at each point of z array
             "dvdzdomega_z1z2": derived_cosmology.dV_dzdO(
                 self.halo_statistics.perturbations.background,
                 integ_ztrue_arr,
@@ -88,7 +126,7 @@ class ClusterCounts:
     def _compute_Plob_M_z_in_bin(self, lambda_min, lambda_max, integral_n_steps=31):
         """compute Plob_M_z_bin.
         Compute the probability of the observed richness
-        given true mass and redshift P(lob|M,ztr) for a richness bin.
+        given true mass and redshift P(lambda_obs|mass, z) for a richness bin.
 
         Parameters
         ----------
@@ -101,10 +139,9 @@ class ClusterCounts:
 
         Returns
         -------
-        numpy.ndarray
-            P(lob|M,ztr)
+        Plob_M_z: numpy.ndarray
+            P(lambda_obs|mass, z)
         """
-        # returns # P(lob|M,ztr) for a richness bin
         l_tab = np.geomspace(lambda_min, lambda_max, integral_n_steps)
         # P(lob|ltr,ztr)
         Plob_l_z = simps(
@@ -117,7 +154,7 @@ class ClusterCounts:
         #       if external_richness_selection_function == 'CG_ESF':
         #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.integ_tables["ztrue"], self.integ_tables["lambda_true"]).T
 
-        # P(lob|M,ztr)
+        # P(lambda_obs|mass, z)
         Plob_M_z = simps(
             self.integ_tables["Pltrue_M_z"][:, :, :] * Plob_l_z[:, np.newaxis, :],
             x=self.integ_tables["lambda_true"],
@@ -214,6 +251,7 @@ class ClusterCounts:
 
                 * Plob_M_z (numpy.ndarray): Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
                 * dV_dzob (numpy.ndarray): Observed volume element (dV/dz_ob) in each redshift and richness bin
+                * nc_lbdobs_z (numpy.ndarry): integral of Plob_M_z*dndm_z on mass.
         """
 
         z_obs_bins_size = len(z_obs_bins) - 1
@@ -283,14 +321,13 @@ class ClusterCounts:
 
         Returns
         -------
-        numpy.ndarray
+        hbias_zbin_lbin: numpy.ndarray
             halo bias in bins of z and lambda
         aux: dict
             Dictionary with intermidate products that can be used for other computations.
             Contains:
 
-                * Plob_M_z (numpy.ndarray): Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
-                * dV_dzob (numpy.ndarray): Observed volume element (dV/dz_ob) in each redshift and richness bin
+                * hb_lbdobs_z (numpy.ndarry): integral of Plob_M_z*dndm_z*bias_z on mass.
         """
 
         z_obs_bins_size, lambda_obs_bins_size = dV_dzob.shape
@@ -394,9 +431,11 @@ class ClusterCounts:
         nc_zbin_lbin: numpy.ndarray
             Number counts in redshift and richness bins
         Plob_M_z : numpy.ndarray
-            Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
+            Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table.
+            To be obtained in aux output of self.compute_binned_quantities.
         dV_dzob : numpy.ndarray
-            Observed volume element (dV/dz_ob) in each redshift and richness bin
+            Observed volume element (dV/dz_ob) in each redshift and richness bin.
+            To be obtained in aux output of self.compute_binned_quantities.
         z_tab_sig : int, None
             Number of points to be used for z_obs integration.
             If None, self.z_tab_sig is used.
