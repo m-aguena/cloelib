@@ -5,7 +5,6 @@ import numpy as np
 from scipy.integrate import simpson as simps
 
 from cloelib.observables.clusters.clustering import HaloClustering
-from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.summary_statistics.clusters.counts import ClusterCounts
 
 # import jax
@@ -22,16 +21,15 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 class ClusterXi2:
     def __init__(
         self,
-        integ_tables: dict,
-        halo_statistics: HaloStatistics,
+        cluster_counts: ClusterCounts,
         clustering: HaloClustering,
         area: float = 10313,
     ):
-        # integration tables
-        self.integ_tables = integ_tables
+        # cluster counts summary statistics, contains tables for integrals
+        # and functions to compute binned integrals of counts
+        self.cluster_counts = cluster_counts
 
         # observable objects
-        self.halo_statistics = halo_statistics
         self.clustering = clustering
 
         # internal values
@@ -79,16 +77,16 @@ class ClusterXi2:
             (
                 z_obs_bins_size,
                 lambda_obs_bins_size,
-                len(self.integ_tables["k"]),
+                len(self.cluster_counts.integ_tables["k"]),
             )
         )
 
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
         ############
-        pk_IR = self.halo_statistics.matter_power_spectrum(
-            self.integ_tables["ztrue"],
-            self.integ_tables["k"],
+        pk_IR = self.cluster_counts.halo_statistics.matter_power_spectrum(
+            self.cluster_counts.integ_tables["ztrue"],
+            self.cluster_counts.integ_tables["k"],
         )
 
         # LOOP OVER CLUSTERING RICHNESS BINS
@@ -105,8 +103,8 @@ class ClusterXi2:
             # P(lob|ltr,ztr)
             Plob_l_z = simps(
                 self.clustering.selectionfunction.P_lbdobs_lbd(
-                    self.integ_tables["ztrue"],
-                    self.integ_tables["lambda_true"],
+                    self.cluster_counts.integ_tables["ztrue"],
+                    self.cluster_counts.integ_tables["lambda_true"],
                     l_tab,
                 ),
                 x=l_tab,
@@ -115,22 +113,25 @@ class ClusterXi2:
 
             # P(lob|M,ztr)
             Plob_M_z = simps(
-                self.integ_tables["Pltrue_M_z"][:, :, :] * Plob_l_z[:, np.newaxis, :],
-                x=self.integ_tables["lambda_true"],
+                self.cluster_counts.integ_tables["Pltrue_M_z"][:, :, :]
+                * Plob_l_z[:, np.newaxis, :],
+                x=self.cluster_counts.integ_tables["lambda_true"],
                 axis=-1,
             )
 
             # n(lob,ztr)
             nc_lbdobs_z = simps(
-                Plob_M_z * self.integ_tables["dndm_z"],
-                x=self.integ_tables["mass"],
+                Plob_M_z * self.cluster_counts.integ_tables["dndm_z"],
+                x=self.cluster_counts.integ_tables["mass"],
                 axis=1,
             )
 
             # n(lob,ztr) * b(lob,zob)
             hbias_lbdobs_z = simps(
-                Plob_M_z * self.integ_tables["dndm_z"] * self.integ_tables["bias_z"],
-                x=self.integ_tables["mass"],
+                Plob_M_z
+                * self.cluster_counts.integ_tables["dndm_z"]
+                * self.cluster_counts.integ_tables["bias_z"],
+                x=self.cluster_counts.integ_tables["mass"],
                 axis=1,
             )
 
@@ -140,7 +141,7 @@ class ClusterXi2:
             # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
             photoz_corr0, photoz_corr1, photoz_corr2 = (
                 self.clustering.photoz_rsd_correction(
-                    self.integ_tables["ztrue"],
+                    self.cluster_counts.integ_tables["ztrue"],
                     lambda_obs_mid[ind_lambda],
                 )
             )
@@ -159,7 +160,7 @@ class ClusterXi2:
                     self.clustering.selectionfunction.P_zobs_z(
                         _z_tab,
                         lambda_obs_bins[ind_lambda],
-                        self.integ_tables["ztrue"],
+                        self.cluster_counts.integ_tables["ztrue"],
                     ),
                     x=_z_tab,
                     axis=0,
@@ -167,7 +168,7 @@ class ClusterXi2:
 
                 # observed volume element dV/dz_ob
                 _dV_dzob = (
-                    self.integ_tables["dvdzdomega_z1z2"]
+                    self.cluster_counts.integ_tables["dvdzdomega_z1z2"]
                     * _Pzob_z
                     * (self.area)
                     * (np.pi**2.0 / 180.0**2.0)
@@ -175,13 +176,13 @@ class ClusterXi2:
 
                 # volume of the observed redshift slice
                 volume_zob[ind_z] = simps(
-                    _dV_dzob, x=self.integ_tables["ztrue"], axis=0
+                    _dV_dzob, x=self.cluster_counts.integ_tables["ztrue"], axis=0
                 )
 
                 # normalization factor
                 _nc_int_lbdobs_z = simps(
                     _dV_dzob * nc_lbdobs_z,
-                    x=self.integ_tables["ztrue"],
+                    x=self.cluster_counts.integ_tables["ztrue"],
                     axis=0,
                 )
 
@@ -189,7 +190,7 @@ class ClusterXi2:
                 sqrt_Pk_zbin_lbin[ind_z, ind_lambda, :] = (
                     simps(
                         (_dV_dzob * nc_lbdobs_z)[:, np.newaxis] * np.sqrt(pk_halo),
-                        x=self.integ_tables["ztrue"],
+                        x=self.cluster_counts.integ_tables["ztrue"],
                         axis=0,
                     )
                     / _nc_int_lbdobs_z
@@ -232,12 +233,12 @@ class ClusterXi2:
         # dim = [nz,nl,nl,nr]
         xi2_zbin_lbin_rbin_buf = simps(
             (
-                self.integ_tables["k"] ** 2.0
+                self.cluster_counts.integ_tables["k"] ** 2.0
                 / (2.0 * np.pi**2)
                 * shell_window[:, np.newaxis, np.newaxis, :, :]
                 * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
             ),
-            x=self.integ_tables["k"],
+            x=self.cluster_counts.integ_tables["k"],
             axis=-1,
         )
 
@@ -274,7 +275,7 @@ class ClusterXi2:
         """
 
         # this is never used
-        ###integ_zbin_lbin  = np.zeros(((z_obs_bins_size, lambda_obs_bins_size, len(self.integ_tables["k"]))))
+        ###integ_zbin_lbin  = np.zeros(((z_obs_bins_size, lambda_obs_bins_size, len(self.cluster_counts.integ_tables["k"]))))
 
         # matter power spectrum + IR resummation
         Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj = (
@@ -429,11 +430,11 @@ class ClusterXi2:
                         ind_radius,
                     ] = (
                         simps(
-                            self.integ_tables["k"] ** 2.0
+                            self.cluster_counts.integ_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
                             * shell_window[:, ind_radius, :]
                             * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
-                            x=self.integ_tables["k"],
+                            x=self.cluster_counts.integ_tables["k"],
                         )
                         * (1 + gamma[:, ind_lambda_i])
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
@@ -455,7 +456,7 @@ class ClusterXi2:
                             :,
                             :,
                         ] = simps(
-                            self.integ_tables["k"] ** 2.0
+                            self.cluster_counts.integ_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
                             * shell_window[:, np.newaxis, :, :]
                             * shell_window[:, :, np.newaxis, :]
@@ -475,7 +476,7 @@ class ClusterXi2:
                                 np.newaxis,
                                 :,
                             ],
-                            x=self.integ_tables["k"],
+                            x=self.cluster_counts.integ_tables["k"],
                             axis=-1,
                         )
 

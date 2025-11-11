@@ -74,7 +74,7 @@ class ClusterCounts:
             ),
             # volume element at the center of observed redshift bins
             "dvdzdomega_z1z2": derived_cosmology.dV_dzdO(
-                self.hmfbias.halo_statistics.perturbations.background,
+                self.halo_statistics.perturbations.background,
                 integ_ztrue_arr,
                 hubble_units=True,
             ),

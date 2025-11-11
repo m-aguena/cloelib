@@ -144,8 +144,7 @@ def get_values():
         halo_concentration=halo_concentration,
     )
     cluster_xi2_statistics = ClusterXi2(
-        cluster_counts_statistics.integ_tables,
-        HSCastro.halo_statistics,
+        cluster_counts_statistics,
         haloClustering,
         area=area,
     )
