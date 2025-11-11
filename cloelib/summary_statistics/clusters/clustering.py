@@ -62,7 +62,10 @@ class ClusterXi2:
         z_obs_bins_size = len(z_obs_bins) - 1
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
+        # output
         volume_zob = np.zeros(z_obs_bins_size)
+
+        # intermediate quantites
         one_over_n_lambdai_lambdaj = np.zeros(
             (
                 z_obs_bins_size,
@@ -70,9 +73,7 @@ class ClusterXi2:
                 lambda_obs_bins_size,
             )
         )
-
         lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
-
         sqrt_Pk_zbin_lbin = np.zeros(
             (
                 z_obs_bins_size,
@@ -80,6 +81,19 @@ class ClusterXi2:
                 len(self.cluster_counts.integ_tables["k"]),
             )
         )
+
+        # get cluster counts quantities
+        nc_zbin_lbin, counts_aux = self.cluster_counts.compute_binned_quantities(
+            z_obs_bins=z_obs_bins,
+            lambda_obs_bins=lambda_obs_bins,
+            z_tab_sig=self.z_tab_sig,
+            l_m_tab_sig=self.l_m_tab_sig,
+        )
+        _, bias_aux = self.cluster_counts.compute_binned_bias(
+            counts_aux["Plob_M_z"], counts_aux["dV_dzob"]
+        )
+        # effective halo bias
+        b_eff = bias_aux["hb_lbdobs_z"] / counts_aux["nc_lbdobs_z"]
 
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
@@ -89,99 +103,30 @@ class ClusterXi2:
             self.cluster_counts.integ_tables["k"],
         )
 
-        # LOOP OVER CLUSTERING RICHNESS BINS
+        # Compute intermediate quantities
         for ind_lambda in range(lambda_obs_bins_size):
 
-            l_tab = np.geomspace(
-                lambda_obs_bins[ind_lambda],
-                lambda_obs_bins[ind_lambda + 1],
-                self.l_m_tab_sig[ind_lambda],
-            )
-
-            ## recompute quantities that depend on lambda_obs
-
-            # P(lob|ltr,ztr)
-            Plob_l_z = simps(
-                self.clustering.selectionfunction.P_lbdobs_lbd(
-                    self.cluster_counts.integ_tables["ztrue"],
-                    self.cluster_counts.integ_tables["lambda_true"],
-                    l_tab,
-                ),
-                x=l_tab,
-                axis=-1,
-            )
-
-            # P(lob|M,ztr)
-            Plob_M_z = simps(
-                self.cluster_counts.integ_tables["Pltrue_M_z"][:, :, :]
-                * Plob_l_z[:, np.newaxis, :],
-                x=self.cluster_counts.integ_tables["lambda_true"],
-                axis=-1,
-            )
-
-            # n(lob,ztr)
-            nc_lbdobs_z = simps(
-                Plob_M_z * self.cluster_counts.integ_tables["dndm_z"],
-                x=self.cluster_counts.integ_tables["mass"],
-                axis=1,
-            )
-
-            # n(lob,ztr) * b(lob,zob)
-            hbias_lbdobs_z = simps(
-                Plob_M_z
-                * self.cluster_counts.integ_tables["dndm_z"]
-                * self.cluster_counts.integ_tables["bias_z"],
-                x=self.cluster_counts.integ_tables["mass"],
-                axis=1,
-            )
+            # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
 
             # effective halo bias
-            b_eff = (hbias_lbdobs_z / nc_lbdobs_z)[:, np.newaxis]
-
-            # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
+            _b_eff = b_eff[ind_lambda][:, np.newaxis]
+            # rsd corrections
             photoz_corr0, photoz_corr1, photoz_corr2 = (
                 self.clustering.photoz_rsd_correction(
                     self.cluster_counts.integ_tables["ztrue"],
                     lambda_obs_mid[ind_lambda],
                 )
             )
+            # corrected power specrum
             pk_halo = pk_IR * (
-                b_eff**2 * photoz_corr0 + b_eff * photoz_corr1 + photoz_corr2
+                _b_eff**2 * photoz_corr0 + _b_eff * photoz_corr1 + photoz_corr2
             )
 
             for ind_z in range(z_obs_bins_size):
 
-                _z_tab = np.linspace(
-                    z_obs_bins[ind_z], z_obs_bins[ind_z + 1], self.z_tab_sig
-                )
-
-                # P(zob|ztr)
-                _Pzob_z = simps(
-                    self.clustering.selectionfunction.P_zobs_z(
-                        _z_tab,
-                        lambda_obs_bins[ind_lambda],
-                        self.cluster_counts.integ_tables["ztrue"],
-                    ),
-                    x=_z_tab,
-                    axis=0,
-                )
-
-                # observed volume element dV/dz_ob
-                _dV_dzob = (
-                    self.cluster_counts.integ_tables["dvdzdomega_z1z2"]
-                    * _Pzob_z
-                    * (self.area)
-                    * (np.pi**2.0 / 180.0**2.0)
-                )
-
                 # volume of the observed redshift slice
                 volume_zob[ind_z] = simps(
-                    _dV_dzob, x=self.cluster_counts.integ_tables["ztrue"], axis=0
-                )
-
-                # normalization factor
-                _nc_int_lbdobs_z = simps(
-                    _dV_dzob * nc_lbdobs_z,
+                    counts_aux["dV_dzob"][ind_z, ind_lambda],
                     x=self.cluster_counts.integ_tables["ztrue"],
                     axis=0,
                 )
@@ -189,15 +134,19 @@ class ClusterXi2:
                 # power spectrum and shot-noise terms
                 sqrt_Pk_zbin_lbin[ind_z, ind_lambda, :] = (
                     simps(
-                        (_dV_dzob * nc_lbdobs_z)[:, np.newaxis] * np.sqrt(pk_halo),
+                        (
+                            counts_aux["dV_dzob"][ind_z, ind_lambda]
+                            * counts_aux["nc_lbdobs_z"][ind_lambda]
+                        )[:, np.newaxis]
+                        * np.sqrt(pk_halo),
                         x=self.cluster_counts.integ_tables["ztrue"],
                         axis=0,
                     )
-                    / _nc_int_lbdobs_z
+                    / nc_zbin_lbin[ind_z, ind_lambda]
                 )
 
                 one_over_n_lambdai_lambdaj[ind_z, ind_lambda, ind_lambda] = (
-                    volume_zob[ind_z] / _nc_int_lbdobs_z
+                    volume_zob[ind_z] / nc_zbin_lbin[ind_z, ind_lambda]
                 )
 
         # cross Pk and shot-noise in two richness bins
