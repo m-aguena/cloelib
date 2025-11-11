@@ -185,7 +185,9 @@ class ClusterCounts:
         # computes counts in a richness redshift bin
         return simps(nc_lbdobs_z * dV_dzob_bin, x=self.integ_tables["ztrue"], axis=0)
 
-    def compute_binned_quantities(self, z_obs_bins, lambda_obs_bins, z_tab_sig=None, l_m_tab_sig=None):
+    def compute_binned_quantities(
+        self, z_obs_bins, lambda_obs_bins, z_tab_sig=None, l_m_tab_sig=None
+    ):
         """Computes binned quantities (counts+aux).
 
         Parameters
@@ -261,14 +263,14 @@ class ClusterCounts:
                     dV_dzob[ind_z, ind_lambda], nc_lbdobs_z[ind_lambda]
                 )
 
-        aux = {"Plob_M_z": Plob_M_z, "dV_dzob": dV_dzob}
+        aux = {"Plob_M_z": Plob_M_z, "dV_dzob": dV_dzob, "nc_lbdobs_z": nc_lbdobs_z}
         return nc_zbin_lbin, aux
 
     # -------------------
     # cluster counts cov
     # -------------------
 
-    def _compute_bias(self, Plob_M_z, dV_dzob):
+    def compute_binned_bias(self, Plob_M_z, dV_dzob):
         """compute bias.
         Compute halo bias used in counts covariance in bins of redshift and richness
 
@@ -283,16 +285,24 @@ class ClusterCounts:
         -------
         numpy.ndarray
             halo bias in bins of z and lambda
+        aux: dict
+            Dictionary with intermidate products that can be used for other computations.
+            Contains:
+
+                * Plob_M_z (numpy.ndarray): Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
+                * dV_dzob (numpy.ndarray): Observed volume element (dV/dz_ob) in each redshift and richness bin
         """
 
         z_obs_bins_size, lambda_obs_bins_size = dV_dzob.shape
 
+        # outputs
+        hb_lbdobs_z = np.zeros(lambda_obs_bins_size, dtype=list)
         hbias_zbin_lbin = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
 
         for ind_lambda in range(lambda_obs_bins_size):
 
             # N(lob,ztr) * bias(lob,ztr)
-            _b_n_lbdobs_z = simps(
+            hb_lbdobs_z[ind_lambda] = simps(
                 Plob_M_z[ind_lambda]
                 * self.integ_tables["dndm_z"]
                 * self.integ_tables["bias_z"],
@@ -309,7 +319,8 @@ class ClusterCounts:
                     axis=0,
                 )
 
-        return hbias_zbin_lbin
+        aux = {"hb_lbdobs_z": hb_lbdobs_z}
+        return hbias_zbin_lbin, aux
 
     def _compute_spatial_cov(self, z_obs_bins, z_tab_sig):
         """Computes only spatial part of the covariance.
