@@ -139,7 +139,7 @@ def get_values():
         photoz_rsd_correction=haloClustering.photoz_rsd_correction,
     )
     cluster_wl_statistics = ClusterWL(
-        cluster_counts_statistics.integ_tables,
+        cluster_counts_statistics,
         profileNFW,
         halo_concentration=halo_concentration,
     )
@@ -163,9 +163,6 @@ def get_values():
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
-        nc_zbin_lbin=nc_zbin_lbin,
-        Plob_M_z=counts_aux["Plob_M_z"],
-        dV_dzob=counts_aux["dV_dzob"],
     )
     xi2_zbin_lbin_rbin, xi2_aux = cluster_xi2_statistics.compute_binned_quantities(
         lambda_obs_bins=lambda_obs_xi2_bins,

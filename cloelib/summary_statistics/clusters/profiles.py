@@ -21,12 +21,13 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 class ClusterWL:
     def __init__(
         self,
-        integ_tables: dict,
+        cluster_counts: ClusterCounts,
         profile: Profile,
         halo_concentration: float,
     ):
-        # integration tables
-        self.integ_tables = integ_tables
+        # cluster counts summary statistics, contains tables for integrals
+        # and functions to compute binned integrals of counts
+        self.cluster_counts = cluster_counts
 
         # observable objects
         self.profile = profile
@@ -34,9 +35,7 @@ class ClusterWL:
         # internal values
         self.halo_concentration = halo_concentration
 
-    def compute_binned_quantities(
-        self, z_obs_bins, lambda_obs_bins, radius_bins, nc_zbin_lbin, Plob_M_z, dV_dzob
-    ):
+    def compute_binned_quantities(self, z_obs_bins, lambda_obs_bins, radius_bins):
         """compute reduced shear.
 
         Parameters
@@ -47,12 +46,6 @@ class ClusterWL:
             Richness bins for the integration.
         radius_obs_bins: numpy.ndarray
             Radial bins for the profile.
-        nc_zbin_lbin : numpy.ndarray
-            Number counts in richness and redshift bins
-        Plob_M_z : numpy.ndarray
-            Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
-        dV_dzob : numpy.ndarray
-            Observed volume element (dV/dz_ob) in each redshift and richness bin
 
         Returns
         -------
@@ -67,19 +60,26 @@ class ClusterWL:
             (z_obs_bins_size, lambda_obs_bins_size, radius_bins_size)
         )
 
+        # get cluster counts quantities
+        nc_zbin_lbin, counts_aux = self.cluster_counts.compute_binned_quantities(
+            z_obs_bins=z_obs_bins,
+            lambda_obs_bins=lambda_obs_bins,
+        )
+
+        # compute profile quantities
         for ind_radius in range(radius_bins_size):
             excess_surface_mass_density = self.profile.excess_surface_mass_density(
                 np.atleast_1d(radius_bins[ind_radius]),
-                self.integ_tables["ztrue"],
-                self.integ_tables["mass"],
+                self.cluster_counts.integ_tables["ztrue"],
+                self.cluster_counts.integ_tables["mass"],
                 self.halo_concentration,
             )
             for ind_lambda in range(lambda_obs_bins_size):
                 excesssurfacemassdensity = simps(
-                    Plob_M_z[ind_lambda]
-                    * self.integ_tables["dndm_z"]
+                    counts_aux["Plob_M_z"][ind_lambda]
+                    * self.cluster_counts.integ_tables["dndm_z"]
                     * np.squeeze(excess_surface_mass_density, axis=2),
-                    x=self.integ_tables["mass"],
+                    x=self.cluster_counts.integ_tables["mass"],
                     axis=1,
                 )
 
@@ -89,11 +89,11 @@ class ClusterWL:
                         / nc_zbin_lbin[ind_z, ind_lambda]
                         * simps(
                             self.profile.m_sig_crit_m1(
-                                self.integ_tables["ztrue"], ind_z
+                                self.cluster_counts.integ_tables["ztrue"], ind_z
                             )
-                            * dV_dzob[ind_z, ind_lambda]
+                            * counts_aux["dV_dzob"][ind_z, ind_lambda]
                             * excesssurfacemassdensity,
-                            x=self.integ_tables["ztrue"],
+                            x=self.cluster_counts.integ_tables["ztrue"],
                         )
                     )
         return gt_zbin_lbin_rbin
