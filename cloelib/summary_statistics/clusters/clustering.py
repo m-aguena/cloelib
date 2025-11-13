@@ -113,8 +113,10 @@ class ClusterClustering:
             p_lbin_z[np.newaxis, :] * dv_dzob
         )
 
-        # compute effective halo bias
-        b_eff = b_lbin_z / p_lbin_z
+        # Compute volume zob
+        volume_zob = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            dv_dzob
+        )
 
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
@@ -124,29 +126,27 @@ class ClusterClustering:
             self.cluster_statitstics_modeling.kernel_tables["k"],
         )
 
-        # Compute volume zob
-        volume_zob = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
-            dv_dzob
-        )
-
-        # Compute intermediate quantities
-        for ind_lambda in range(lambda_obs_bins_size):
-
-            # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
-
-            # effective halo bias
-            _b_eff = b_eff[ind_lambda][:, np.newaxis]
-            # rsd corrections
-            photoz_corr0, photoz_corr1, photoz_corr2 = (
+        # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
+        # rsd corrections
+        photoz_corr0, photoz_corr1, photoz_corr2 = np.array(
+            [
                 self.clustering.photoz_rsd_correction(
                     self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                     lambda_obs_mid[ind_lambda],
                 )
-            )
-            # corrected power specrum
-            pk_halo = pk_IR * (
-                _b_eff**2 * photoz_corr0 + _b_eff * photoz_corr1 + photoz_corr2
-            )
+                for ind_lambda in range(lambda_obs_bins_size)
+            ]
+        ).transpose(1, 0, 2, 3)
+        # compute effective halo bias, with shape (nl, nz, nk)
+        b_eff = (b_lbin_z / p_lbin_z)[:, :, np.newaxis]
+
+        # corrected power specrum
+        pk_halo = pk_IR * (
+            b_eff**2 * photoz_corr0 + b_eff * photoz_corr1 + photoz_corr2
+        )
+
+        # Compute intermediate quantities
+        for ind_lambda in range(lambda_obs_bins_size):
 
             for ind_z in range(z_obs_bins_size):
 
@@ -156,7 +156,7 @@ class ClusterClustering:
                         (dv_dzob[ind_z, ind_lambda] * p_lbin_z[ind_lambda])[
                             :, np.newaxis
                         ]
-                        * np.sqrt(pk_halo),
+                        * np.sqrt(pk_halo[ind_lambda]),
                         x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                         axis=0,
                     )
