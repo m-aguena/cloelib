@@ -177,20 +177,36 @@ class ClusterStatisticsModeling:
             * (self.area)
             * (np.pi**2.0 / 180.0**2.0)
         )
-        # N(lob,zob)
         return dV_dzob_bin
 
-    def _compute_counts_in_bin(self, dV_dzob_bin, nc_lbdobs_z):
-        """compute counts bin.
+    def _integrate_in_mass_with_hmf(self, kernel):
+        """Integrates compute counts bin.
         Compute cluster counts in a single redshift and richness bin
         Performs integral over z_true of the the volume*nc_lbdobs_z
 
         Parameters
         ----------
-        dV_dzob_bin : numpy.ndarray
-            volume element of bin
-        nc_lbdobs_z : numpy.ndarray
-            density of clusters with observed richness and true redshift
+        kernel : numpy.ndarray
+            Kernel to be integrated, must be shape (ztrue, mass).
+
+        Returns
+        -------
+        numpy.ndarray
+            counts in a richness redshift bin
+        """
+        return simps(
+            kernel * self.kernel_tables["dndm_z"],
+            x=self.kernel_tables["mass"],
+            axis=1,
+        )
+
+    def _integrate_in_ztrue(self, kernel):
+        """Integrate kernel in volume.
+
+        Parameters
+        ----------
+        kernel : numpy.ndarray
+            Kernel to be integrated, must be in shape (ztrue).
 
         Returns
         -------
@@ -199,7 +215,7 @@ class ClusterStatisticsModeling:
         """
         # computes counts in a richness redshift bin
         return simps(
-            nc_lbdobs_z * dV_dzob_bin,
+            kernel,
             x=self.kernel_tables["ztrue"],
             axis=0,
         )
@@ -207,6 +223,102 @@ class ClusterStatisticsModeling:
     # -------------------------------------
     # external cluster statistics functions
     # -------------------------------------
+
+    def compute_binned_volume(self, z_obs_bins, lambda_obs_bins, z_tab_sig):
+        """Computes binned quantities (counts+aux).
+
+        Parameters
+        ----------
+        z_obs_bins : numpy.ndarray
+            Redshift bins for the integration.
+        lambda_obs_bins : numpy.ndarray
+            Richness bins for the integration.
+        z_tab_sig : int, None
+            Number of points to be used for z_obs integration.
+
+        Returns
+        -------
+        dv_dzob : numpy.ndarray
+            Observed volume element (dV/dz_ob) in each redshift and richness bin
+        """
+
+        z_obs_bins_size = len(z_obs_bins) - 1
+        lambda_obs_bins_size = len(lambda_obs_bins) - 1
+
+        # outputs
+        dv_dzob = np.zeros((z_obs_bins_size, lambda_obs_bins_size), dtype=list)
+        for ind_lambda in range(lambda_obs_bins_size):
+            for ind_z in range(z_obs_bins_size):
+                dv_dzob[ind_z, ind_lambda] = self._compute_volume_in_bin(
+                    z_obs_bins[ind_z],
+                    z_obs_bins[ind_z + 1],
+                    lambda_obs_bins[ind_lambda],
+                    integral_n_steps=z_tab_sig,
+                )
+        return dv_dzob
+
+    def compute_binned_lambda_obs_probability(self, lambda_obs_bins, l_m_tab_sig):
+        """Computes the probability of observed richness bin P(lobs_bin|M, z)
+        with masses and redshifts being the values in self.kernel_tables.
+
+        Parameters
+        ----------
+        lambda_obs_bins : numpy.ndarray
+            Richness bins for the integration.
+        l_m_tab_sig : List, None
+            Number of points to be used for the lambda_obs integration
+            in each lambda_obs bin. Must be same size of lambda_obs_bins.
+
+        Returns
+        -------
+        p_lbin_M_z : numpy.ndarray
+            Probability of observed richness bin P(lobs_bin|M, z)
+            with masses and redshifts being the values in self.kernel_tables.
+            Dimentions: (lobs_bin, mass, z)
+        """
+        lambda_obs_bins_size = len(lambda_obs_bins) - 1
+
+        p_lbin_M_z = np.zeros(
+            (
+                lambda_obs_bins_size,
+                self.kernel_tables["ztrue"].size,
+                self.kernel_tables["mass"].size,
+            )
+        )
+        for ind_lambda in range(lambda_obs_bins_size):
+            p_lbin_M_z[ind_lambda] = self._compute_Plob_M_z_in_bin(
+                lambda_obs_bins[ind_lambda],
+                lambda_obs_bins[ind_lambda + 1],
+                integral_n_steps=l_m_tab_sig[ind_lambda],
+            )
+        return p_lbin_M_z
+
+    def mass_hmf_integrate_binned_quantity(self, binned_quantity):
+        """Integrates in mass with HMF each the quantity in each bin.
+
+        Parameters
+        ----------
+        binned_quantity : numpy.ndarray
+            Binned quantity to be integrated in mass, must be dimension
+            (nbins, mass, z) with (mass, z) from self.kernel_tables.
+
+        Returns
+        -------
+        integrated_binned_quantity : numpy.ndarray
+            Quantity integrated mas integrated with the halo
+            mass function in each bin. Dimension (nbin, z),
+            with (z) from self.kernel_tables.
+        """
+
+        bins_size = len(binned_quantity)
+
+        # outputs
+        integrated_binned_quantity = np.zeros(bins_size, dtype=list)
+        for ind_bin in range(bins_size):
+            integrated_binned_quantity[ind_bin] = self._integrate_in_mass_with_hmf(
+                binned_quantity[ind_bin]
+            )
+        return integrated_binned_quantity
 
     def compute_binned_counts(
         self,
@@ -251,47 +363,23 @@ class ClusterStatisticsModeling:
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
         # outputs
-        Plob_M_z = np.zeros(
-            (
-                lambda_obs_bins_size,
-                self.kernel_tables["ztrue"].size,
-                self.kernel_tables["mass"].size,
-            )
+        dv_dzob = self.compute_binned_volume(z_obs_bins, lambda_obs_bins, z_tab_sig)
+        p_lbin_M_z = self.compute_binned_lambda_obs_probability(
+            lambda_obs_bins, l_m_tab_sig
         )
-        dV_dzob = np.zeros((z_obs_bins_size, lambda_obs_bins_size), dtype=list)
-        nc_lbdobs_z = np.zeros(lambda_obs_bins_size, dtype=list)
+        p_lbin_z = self.mass_hmf_integrate_binned_quantity(p_lbin_M_z)
+
         nc_zbin_lbin = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
-
         for ind_lambda in range(lambda_obs_bins_size):
-
-            Plob_M_z[ind_lambda] = self._compute_Plob_M_z_in_bin(
-                lambda_obs_bins[ind_lambda],
-                lambda_obs_bins[ind_lambda + 1],
-                integral_n_steps=l_m_tab_sig[ind_lambda],
-            )
-            # N(lob,ztr)
-            nc_lbdobs_z[ind_lambda] = simps(
-                Plob_M_z[ind_lambda] * self.kernel_tables["dndm_z"],
-                x=self.kernel_tables["mass"],
-                axis=1,
-            )
-
             for ind_z in range(z_obs_bins_size):
-
-                dV_dzob[ind_z, ind_lambda] = self._compute_volume_in_bin(
-                    z_obs_bins[ind_z],
-                    z_obs_bins[ind_z + 1],
-                    lambda_obs_bins[ind_lambda],
-                    integral_n_steps=z_tab_sig,
-                )
-                nc_zbin_lbin[ind_z, ind_lambda] = self._compute_counts_in_bin(
-                    dV_dzob[ind_z, ind_lambda], nc_lbdobs_z[ind_lambda]
+                nc_zbin_lbin[ind_z, ind_lambda] = self._integrate_in_ztrue(
+                    p_lbin_z[ind_lambda] * dv_dzob[ind_z, ind_lambda],
                 )
 
         intermediate_products_zbin_lbin = {
-            "Plob_M_z": Plob_M_z,
-            "dV_dzob": dV_dzob,
-            "nc_lbdobs_z": nc_lbdobs_z,
+            "Plob_M_z": p_lbin_M_z,
+            "dV_dzob": dv_dzob,
+            "nc_lbdobs_z": p_lbin_z,
         }
         if return_intermediate_products:
             return nc_zbin_lbin, intermediate_products_zbin_lbin
@@ -322,27 +410,15 @@ class ClusterStatisticsModeling:
         z_obs_bins_size, lambda_obs_bins_size = dV_dzob.shape
 
         # outputs
-        hb_lbdobs_z = np.zeros(lambda_obs_bins_size, dtype=list)
         hbias_zbin_lbin = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
+        hb_lbdobs_z = self.mass_hmf_integrate_binned_quantity(
+            Plob_M_z * self.kernel_tables["bias_z"]
+        )
 
         for ind_lambda in range(lambda_obs_bins_size):
-
-            # N(lob,ztr) * bias(lob,ztr)
-            hb_lbdobs_z[ind_lambda] = simps(
-                Plob_M_z[ind_lambda]
-                * self.kernel_tables["dndm_z"]
-                * self.kernel_tables["bias_z"],
-                x=self.kernel_tables["mass"],
-                axis=1,
-            )
-
             for ind_z in range(z_obs_bins_size):
-
-                # N(lob,zob) * bias(lob,zob)
-                hbias_zbin_lbin[ind_z, ind_lambda] = simps(
+                hbias_zbin_lbin[ind_z, ind_lambda] = self._integrate_in_ztrue(
                     hb_lbdobs_z[ind_lambda] * dV_dzob[ind_z, ind_lambda],
-                    x=self.kernel_tables["ztrue"],
-                    axis=0,
                 )
 
         intermediate_products_zbin_lbin = {"hb_lbdobs_z": hb_lbdobs_z}
