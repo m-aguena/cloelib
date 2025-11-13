@@ -99,10 +99,10 @@ class ClusterCounts:
                 * nc_lbdobs_z (numpy.ndarry) : integral of Plob_M_z*dndm_z on mass.
         """
         return self.cluster_statitstics_modeling.compute_binned_counts(
-            z_obs_bins,
-            lambda_obs_bins,
-            self.z_tab_sig,
-            self.l_m_tab_sig,
+            z_obs_bins=z_obs_bins,
+            lambda_obs_bins=lambda_obs_bins,
+            z_tab_sig=self.z_tab_sig,
+            l_m_tab_sig=self.l_m_tab_sig,
             return_intermediate_products=return_intermediate_products,
         )
 
