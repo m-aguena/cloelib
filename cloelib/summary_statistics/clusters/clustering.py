@@ -71,7 +71,6 @@ class ClusterClustering:
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
         # output
-        volume_zob = np.zeros(z_obs_bins_size)
 
         # intermediate quantites
         one_over_n_lambdai_lambdaj = np.zeros(
@@ -126,14 +125,9 @@ class ClusterClustering:
         )
 
         # Compute volume zob
-        for ind_lambda in range(lambda_obs_bins_size):
-            for ind_z in range(z_obs_bins_size):
-                # volume of the observed redshift slice
-                volume_zob[ind_z] = simps(
-                    dv_dzob[ind_z, ind_lambda],
-                    x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-                    axis=0,
-                )
+        volume_zob = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            dv_dzob
+        )
 
         # Compute intermediate quantities
         for ind_lambda in range(lambda_obs_bins_size):
@@ -170,7 +164,7 @@ class ClusterClustering:
                 )
 
                 one_over_n_lambdai_lambdaj[ind_z, ind_lambda, ind_lambda] = (
-                    volume_zob[ind_z] / nc_zbin_lbin[ind_z, ind_lambda]
+                    volume_zob[ind_z, ind_lambda] / nc_zbin_lbin[ind_z, ind_lambda]
                 )
 
         # cross Pk and shot-noise in two richness bins
@@ -474,9 +468,7 @@ class ClusterClustering:
             + (_cov_g + _cov_ng).transpose(
                 0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_clustering bins
             )
-        ) / volume_zob[
-            :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis
-        ]
+        ) / volume_zob[:, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis]
 
         # cov_xi(lambda_i, lambda_j, lambda_k, lambda_l) = cov_xi(lambda_j, lambda_i, lambda_l, lambda_k)
         # so reshape and keep only two of them
@@ -495,7 +487,7 @@ class ClusterClustering:
         # make it (nz, nz, nl_red, nl_red, nrad, nrad), being diagonal in (nz, nz)
         # """
         cov_clustering_zbin_lbin_rbin = (
-            np.diag(np.ones(z_obs_bins_size))[
+            np.identity(z_obs_bins_size)[
                 :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis
             ]
             * cov_clustering_zbin_lbin_rbin
