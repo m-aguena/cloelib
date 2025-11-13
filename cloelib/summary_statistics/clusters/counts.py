@@ -98,13 +98,32 @@ class ClusterCounts:
                 * dV_dzob (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
                 * nc_lbdobs_z (numpy.ndarry) : integral of Plob_M_z*dndm_z on mass.
         """
-        return self.cluster_statitstics_modeling.compute_binned_counts(
-            z_obs_bins=z_obs_bins,
-            lambda_obs_bins=lambda_obs_bins,
-            z_tab_sig=self.z_tab_sig,
-            l_m_tab_sig=self.l_m_tab_sig,
-            return_intermediate_products=return_intermediate_products,
+        dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
+            z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
+        p_lbin_M_z = (
+            self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
+                lambda_obs_bins, self.l_m_tab_sig
+            )
+        )
+        p_lbin_z = (
+            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                p_lbin_M_z
+            )
+        )  # integral of Plob_M_z*dndm_z on mass.
+
+        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            p_lbin_z[np.newaxis, :] * dv_dzob
+        )
+
+        if not return_intermediate_products:
+            return nc_zbin_lbin
+
+        return nc_zbin_lbin, {
+            "Plob_M_z": p_lbin_M_z,
+            "dV_dzob": dv_dzob,
+            "nc_lbdobs_z": p_lbin_z,
+        }
 
     # -------------------
     # cluster counts cov
@@ -192,10 +211,13 @@ class ClusterCounts:
         """
 
         # halo bias
-        hbias_zbin_lbin = self.cluster_statitstics_modeling.compute_binned_bias(
-            Plob_M_z,
-            dV_dzob,
-            return_intermediate_products=False,
+        _hb_lbdobs_z = (
+            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                Plob_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
+            )
+        )  # integral of Plob_M_z*dndm_z*bias_z on mass.
+        hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            _hb_lbdobs_z[np.newaxis, :] * dV_dzob
         )
 
         # spatial component of covariance
