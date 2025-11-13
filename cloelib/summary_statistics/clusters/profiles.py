@@ -88,24 +88,23 @@ class ClusterWeakLensing:
                 return_intermediate_products=True,
             )
         )
-
-        # compute profile quantities
-        for ind_radius in range(radius_bins_size):
-            excess_surface_mass_density = self.profile.excess_surface_mass_density(
-                np.atleast_1d(radius_bins[ind_radius]),
+        excess_surface_mass_density = self.profile.excess_surface_mass_density(
+                radius_bins,
                 self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                 self.cluster_statitstics_modeling.kernel_tables["mass"],
                 self.halo_concentration,
             )
+
+        # compute profile quantities
+        for ind_radius in range(radius_bins_size):
             for ind_lambda in range(lambda_obs_bins_size):
-                excesssurfacemassdensity = simps(
+                gt_lbdobs_z = simps(
                     counts_intermediate_products_zbin_lbin["Plob_M_z"][ind_lambda]
                     * self.cluster_statitstics_modeling.kernel_tables["dndm_z"]
-                    * np.squeeze(excess_surface_mass_density, axis=2),
+                    * excess_surface_mass_density[:,:,ind_radius],
                     x=self.cluster_statitstics_modeling.kernel_tables["mass"],
                     axis=1,
                 )
-
                 for ind_z in range(z_obs_bins_size):
                     gt_zbin_lbin_rbin[ind_z, ind_lambda, ind_radius] = (
                         (1.0)
@@ -120,7 +119,7 @@ class ClusterWeakLensing:
                             * counts_intermediate_products_zbin_lbin["dV_dzob"][
                                 ind_z, ind_lambda
                             ]
-                            * excesssurfacemassdensity,
+                            * gt_lbdobs_z,
                             x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                         )
                     )
