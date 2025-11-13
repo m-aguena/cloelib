@@ -90,28 +90,32 @@ class ClusterClustering:
             )
         )
 
-        # get cluster counts quantities
-        nc_zbin_lbin, counts_intermediate_products_zbin_lbin = (
-            self.cluster_statitstics_modeling.compute_binned_counts(
-                z_obs_bins=z_obs_bins,
-                lambda_obs_bins=lambda_obs_bins,
-                z_tab_sig=self.z_tab_sig,
-                l_m_tab_sig=self.l_m_tab_sig,
-                return_intermediate_products=True,
+        # get cluster statistics modeling quantities
+        dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
+            z_obs_bins, lambda_obs_bins, self.z_tab_sig
+        )
+        p_lbin_M_z = (
+            self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
+                lambda_obs_bins, self.l_m_tab_sig
             )
         )
-        _, bias_intermediate_products_zbin_lbin = (
-            self.cluster_statitstics_modeling.compute_binned_bias(
-                counts_intermediate_products_zbin_lbin["Plob_M_z"],
-                counts_intermediate_products_zbin_lbin["dV_dzob"],
-                return_intermediate_products=True,
+        p_lbin_z = (
+            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                p_lbin_M_z
             )
+        )  # integral of Plob_M_z*dndm_z on mass.
+        b_lbdobs_z = (
+            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                p_lbin_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
+            )
+        )  # integral of Plob_M_z*dndm_z*bias_z on mass.
+        # cluster counts
+        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            p_lbin_z[np.newaxis, :] * dv_dzob
         )
-        # effective halo bias
-        b_eff = (
-            bias_intermediate_products_zbin_lbin["hb_lbdobs_z"]
-            / counts_intermediate_products_zbin_lbin["nc_lbdobs_z"]
-        )
+
+        # compute effective halo bias
+        b_eff = b_lbin_z / p_lbin_z
 
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
@@ -144,9 +148,7 @@ class ClusterClustering:
 
                 # volume of the observed redshift slice
                 volume_zob[ind_z] = simps(
-                    counts_intermediate_products_zbin_lbin["dV_dzob"][
-                        ind_z, ind_lambda
-                    ],
+                    dv_dzob[ind_z, ind_lambda],
                     x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                     axis=0,
                 )
@@ -154,14 +156,9 @@ class ClusterClustering:
                 # power spectrum and shot-noise terms
                 sqrt_Pk_zbin_lbin[ind_z, ind_lambda, :] = (
                     simps(
-                        (
-                            counts_intermediate_products_zbin_lbin["dV_dzob"][
-                                ind_z, ind_lambda
-                            ]
-                            * counts_intermediate_products_zbin_lbin["nc_lbdobs_z"][
-                                ind_lambda
-                            ]
-                        )[:, np.newaxis]
+                        (dv_dzob[ind_z, ind_lambda] * p_lbin_z[ind_lambda])[
+                            :, np.newaxis
+                        ]
                         * np.sqrt(pk_halo),
                         x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                         axis=0,

@@ -211,13 +211,13 @@ class ClusterCounts:
         """
 
         # halo bias
-        _hb_lbdobs_z = (
+        _b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 Plob_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
             )
         )  # integral of Plob_M_z*dndm_z*bias_z on mass.
         hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
-            _hb_lbdobs_z[np.newaxis, :] * dV_dzob
+            _b_lbin_z[np.newaxis, :] * dV_dzob
         )
 
         # spatial component of covariance
