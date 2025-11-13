@@ -74,53 +74,70 @@ class ClusterWeakLensing:
         z_obs_bins_size = len(z_obs_bins) - 1
         radius_bins_size = len(radius_bins) - 1
 
+        # output
         gt_zbin_lbin_rbin = np.zeros(
             (z_obs_bins_size, lambda_obs_bins_size, radius_bins_size)
         )
 
-        # get cluster counts quantities
-        nc_zbin_lbin, counts_intermediate_products_zbin_lbin = (
-            self.cluster_statitstics_modeling.compute_binned_counts(
-                z_obs_bins=z_obs_bins,
-                lambda_obs_bins=lambda_obs_bins,
-                z_tab_sig=self.z_tab_sig,
-                l_m_tab_sig=self.l_m_tab_sig,
-                return_intermediate_products=True,
+        # get cluster statistics modeling quantities
+        dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
+            z_obs_bins, lambda_obs_bins, self.z_tab_sig
+        )
+        p_lbin_M_z = (
+            self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
+                lambda_obs_bins, self.l_m_tab_sig
             )
         )
+        _p_lbin_z = (
+            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                p_lbin_M_z
+            )
+        )  # integral of Plob_M_z*dndm_z on mass.
+
+        # cluster counts
+        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            _p_lbin_z[np.newaxis, :] * dv_dzob
+        )
+
+        # pre-compute excess surface mass density
         excess_surface_mass_density = self.profile.excess_surface_mass_density(
-                radius_bins,
+            radius_bins,
+            self.cluster_statitstics_modeling.kernel_tables["ztrue"],
+            self.cluster_statitstics_modeling.kernel_tables["mass"],
+            self.halo_concentration,
+        )
+        # pre-compute effective inverse critical surface mass density.
+        # def m_sig_crit_m1(self, z, zbin):
+        m_sig_crit_m1 = np.zeros(
+            (
+                z_obs_bins_size,
+                self.cluster_statitstics_modeling.kernel_tables["ztrue"].size,
+            )
+        )
+        for ind_z in range(z_obs_bins_size):
+            m_sig_crit_m1[ind_z] = self.profile.m_sig_crit_m1(
                 self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-                self.cluster_statitstics_modeling.kernel_tables["mass"],
-                self.halo_concentration,
+                ind_z,
             )
 
         # compute profile quantities
         for ind_radius in range(radius_bins_size):
             for ind_lambda in range(lambda_obs_bins_size):
                 gt_lbdobs_z = simps(
-                    counts_intermediate_products_zbin_lbin["Plob_M_z"][ind_lambda]
+                    p_lbin_M_z[ind_lambda]
                     * self.cluster_statitstics_modeling.kernel_tables["dndm_z"]
-                    * excess_surface_mass_density[:,:,ind_radius],
+                    * excess_surface_mass_density[:, :, ind_radius],
                     x=self.cluster_statitstics_modeling.kernel_tables["mass"],
                     axis=1,
                 )
                 for ind_z in range(z_obs_bins_size):
                     gt_zbin_lbin_rbin[ind_z, ind_lambda, ind_radius] = (
-                        (1.0)
-                        / nc_zbin_lbin[ind_z, ind_lambda]
-                        * simps(
-                            self.profile.m_sig_crit_m1(
-                                self.cluster_statitstics_modeling.kernel_tables[
-                                    "ztrue"
-                                ],
-                                ind_z,
-                            )
-                            * counts_intermediate_products_zbin_lbin["dV_dzob"][
-                                ind_z, ind_lambda
-                            ]
+                        simps(
+                            m_sig_crit_m1[ind_z]
+                            * dv_dzob[ind_z, ind_lambda]
                             * gt_lbdobs_z,
                             x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                         )
+                        / nc_zbin_lbin[ind_z, ind_lambda]
                     )
         return gt_zbin_lbin_rbin
