@@ -104,7 +104,7 @@ class ClusterClustering:
                 p_lbin_M_z
             )
         )  # integral of Plob_M_z*dndm_z on mass.
-        b_lbdobs_z = (
+        b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 p_lbin_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
             )
@@ -124,6 +124,16 @@ class ClusterClustering:
             self.cluster_statitstics_modeling.kernel_tables["ztrue"],
             self.cluster_statitstics_modeling.kernel_tables["k"],
         )
+
+        # Compute volume zob
+        for ind_lambda in range(lambda_obs_bins_size):
+            for ind_z in range(z_obs_bins_size):
+                # volume of the observed redshift slice
+                volume_zob[ind_z] = simps(
+                    dv_dzob[ind_z, ind_lambda],
+                    x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
+                    axis=0,
+                )
 
         # Compute intermediate quantities
         for ind_lambda in range(lambda_obs_bins_size):
@@ -145,13 +155,6 @@ class ClusterClustering:
             )
 
             for ind_z in range(z_obs_bins_size):
-
-                # volume of the observed redshift slice
-                volume_zob[ind_z] = simps(
-                    dv_dzob[ind_z, ind_lambda],
-                    x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-                    axis=0,
-                )
 
                 # power spectrum and shot-noise terms
                 sqrt_Pk_zbin_lbin[ind_z, ind_lambda, :] = (
