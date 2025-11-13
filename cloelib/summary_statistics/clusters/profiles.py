@@ -119,16 +119,10 @@ class ClusterWeakLensing:
                 ind_z,
             )
 
-        # this function is needed for the product to have the correct shape
-        unlist = lambda x: np.array([[x3 for x3 in x2] for x2 in x], dtype=float)
-        dv_dzob = unlist(dv_dzob)
-
         # compute profile quantities
         for ind_radius in range(radius_bins_size):
-            gt_lbdobs_z = unlist(
-                self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                    p_lbin_M_z * excess_surface_mass_density[:, :, ind_radius]
-                )
+            gt_lbdobs_z = self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                p_lbin_M_z * excess_surface_mass_density[:, :, ind_radius]
             )
             gt_zbin_lbin_rbin[:, :, ind_radius] = (
                 self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(

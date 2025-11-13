@@ -244,7 +244,9 @@ class ClusterStatisticsModeling:
         bins_size = len(binned_quantity)
 
         # outputs
-        integrated_binned_quantity = np.zeros(bins_size, dtype=list)
+        integrated_binned_quantity = np.zeros(
+            (bins_size, self.kernel_tables["ztrue"].size)
+        )
         for ind in range(bins_size):
             integrated_binned_quantity[ind] = self._integrate_in_mass_with_hmf(
                 binned_quantity[ind]
@@ -303,7 +305,9 @@ class ClusterStatisticsModeling:
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
         # outputs
-        dv_dzob = np.zeros((z_obs_bins_size, lambda_obs_bins_size), dtype=list)
+        dv_dzob = np.zeros(
+            (z_obs_bins_size, lambda_obs_bins_size, self.kernel_tables["ztrue"].size)
+        )
         for ind_lambda in range(lambda_obs_bins_size):
             for ind_z in range(z_obs_bins_size):
                 dv_dzob[ind_z, ind_lambda] = self._compute_volume_in_bin(
