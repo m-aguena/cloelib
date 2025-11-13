@@ -221,6 +221,63 @@ class ClusterStatisticsModeling:
         )
 
     # -------------------------------------
+    # external integration functions
+    # -------------------------------------
+
+    def integrate_binned_quantity_in_mass_w_hmf(self, binned_quantity):
+        """Integrates in mass with HMF each binned quantity.
+
+        Parameters
+        ----------
+        binned_quantity : numpy.ndarray
+            Binned quantity to be integrated in mass, must be dimension
+            (nbins, mass, z) with (mass, z) from self.kernel_tables.
+
+        Returns
+        -------
+        integrated_binned_quantity : numpy.ndarray
+            Quantity integrated in mass with the halo
+            mass function for each bin. Dimension (nbin, z),
+            with (z) from self.kernel_tables.
+        """
+
+        bins_size = len(binned_quantity)
+
+        # outputs
+        integrated_binned_quantity = np.zeros(bins_size, dtype=list)
+        for ind in range(bins_size):
+            integrated_binned_quantity[ind] = self._integrate_in_mass_with_hmf(
+                binned_quantity[ind]
+            )
+        return integrated_binned_quantity
+
+    def integrate_2d_binned_quantity_in_true_redshift(self, binned_quantity):
+        """Integrates in redshift HMF each 2D binned quantity.
+
+        Parameters
+        ----------
+        binned_quantity : numpy.ndarray
+            2D ninned quantity to be integrated in redhisft, must be dimension
+            (nbins1, nbins2, z) with (z) from self.kernel_tables.
+
+        Returns
+        -------
+        integrated_binned_quantity : numpy.ndarray
+            Quantity integrated in true redshift for each bin.
+            Dimension (nbin1, nbin2).
+        """
+        bins1_size, bins2_size = binned_quantity.shape
+
+        # outputs
+        integrated_binned_quantity = np.zeros((bins1_size, bins2_size))
+        for ind1 in range(bins1_size):
+            for ind2 in range(bins2_size):
+                integrated_binned_quantity[ind1, ind2] = self._integrate_in_ztrue(
+                    binned_quantity[ind1, ind2]
+                )
+        return integrated_binned_quantity
+
+    # -------------------------------------
     # external cluster statistics functions
     # -------------------------------------
 
@@ -293,33 +350,6 @@ class ClusterStatisticsModeling:
             )
         return p_lbin_M_z
 
-    def mass_hmf_integrate_binned_quantity(self, binned_quantity):
-        """Integrates in mass with HMF each the quantity in each bin.
-
-        Parameters
-        ----------
-        binned_quantity : numpy.ndarray
-            Binned quantity to be integrated in mass, must be dimension
-            (nbins, mass, z) with (mass, z) from self.kernel_tables.
-
-        Returns
-        -------
-        integrated_binned_quantity : numpy.ndarray
-            Quantity integrated mas integrated with the halo
-            mass function in each bin. Dimension (nbin, z),
-            with (z) from self.kernel_tables.
-        """
-
-        bins_size = len(binned_quantity)
-
-        # outputs
-        integrated_binned_quantity = np.zeros(bins_size, dtype=list)
-        for ind_bin in range(bins_size):
-            integrated_binned_quantity[ind_bin] = self._integrate_in_mass_with_hmf(
-                binned_quantity[ind_bin]
-            )
-        return integrated_binned_quantity
-
     def compute_binned_counts(
         self,
         z_obs_bins,
@@ -358,32 +388,24 @@ class ClusterStatisticsModeling:
                 * dV_dzob (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
                 * nc_lbdobs_z (numpy.ndarry) : integral of Plob_M_z*dndm_z on mass.
         """
-
-        z_obs_bins_size = len(z_obs_bins) - 1
-        lambda_obs_bins_size = len(lambda_obs_bins) - 1
-
         # outputs
         dv_dzob = self.compute_binned_volume(z_obs_bins, lambda_obs_bins, z_tab_sig)
         p_lbin_M_z = self.compute_binned_lambda_obs_probability(
             lambda_obs_bins, l_m_tab_sig
         )
-        p_lbin_z = self.mass_hmf_integrate_binned_quantity(p_lbin_M_z)
+        p_lbin_z = self.integrate_binned_quantity_in_mass_w_hmf(p_lbin_M_z)
 
-        nc_zbin_lbin = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
-        for ind_lambda in range(lambda_obs_bins_size):
-            for ind_z in range(z_obs_bins_size):
-                nc_zbin_lbin[ind_z, ind_lambda] = self._integrate_in_ztrue(
-                    p_lbin_z[ind_lambda] * dv_dzob[ind_z, ind_lambda],
-                )
-
+        nc_zbin_lbin = self.integrate_2d_binned_quantity_in_true_redshift(
+            p_lbin_z[np.newaxis, :] * dv_dzob
+        )
+        if not return_intermediate_products:
+            return nc_zbin_lbin
         intermediate_products_zbin_lbin = {
             "Plob_M_z": p_lbin_M_z,
             "dV_dzob": dv_dzob,
             "nc_lbdobs_z": p_lbin_z,
         }
-        if return_intermediate_products:
-            return nc_zbin_lbin, intermediate_products_zbin_lbin
-        return nc_zbin_lbin
+        return nc_zbin_lbin, intermediate_products_zbin_lbin
 
     def compute_binned_bias(self, Plob_M_z, dV_dzob, return_intermediate_products=True):
         """compute bias.
@@ -406,22 +428,14 @@ class ClusterStatisticsModeling:
 
                 * hb_lbdobs_z (numpy.ndarry) : integral of Plob_M_z*dndm_z*bias_z on mass.
         """
-
-        z_obs_bins_size, lambda_obs_bins_size = dV_dzob.shape
-
         # outputs
-        hbias_zbin_lbin = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
-        hb_lbdobs_z = self.mass_hmf_integrate_binned_quantity(
+        hb_lbdobs_z = self.integrate_binned_quantity_in_mass_w_hmf(
             Plob_M_z * self.kernel_tables["bias_z"]
         )
-
-        for ind_lambda in range(lambda_obs_bins_size):
-            for ind_z in range(z_obs_bins_size):
-                hbias_zbin_lbin[ind_z, ind_lambda] = self._integrate_in_ztrue(
-                    hb_lbdobs_z[ind_lambda] * dV_dzob[ind_z, ind_lambda],
-                )
-
+        hbias_zbin_lbin = self.integrate_2d_binned_quantity_in_true_redshift(
+            hb_lbdobs_z[np.newaxis, :] * dV_dzob
+        )
+        if not return_intermediate_products:
+            return hbias_zbin_lbin
         intermediate_products_zbin_lbin = {"hb_lbdobs_z": hb_lbdobs_z}
-        if return_intermediate_products:
-            return hbias_zbin_lbin, intermediate_products_zbin_lbin
-        return hbias_zbin_lbin
+        return hbias_zbin_lbin, intermediate_products_zbin_lbin
