@@ -73,9 +73,11 @@ class ClusterWeakLensing:
         )
 
         # get cluster counts quantities
-        nc_zbin_lbin, counts_aux = self.cluster_counts.compute_binned_counts(
-            z_obs_bins=z_obs_bins,
-            lambda_obs_bins=lambda_obs_bins,
+        nc_zbin_lbin, counts_intermediate_products_zbin_lbin = (
+            self.cluster_counts.compute_binned_counts(
+                z_obs_bins=z_obs_bins,
+                lambda_obs_bins=lambda_obs_bins,
+            )
         )
 
         # compute profile quantities
@@ -88,7 +90,7 @@ class ClusterWeakLensing:
             )
             for ind_lambda in range(lambda_obs_bins_size):
                 excesssurfacemassdensity = simps(
-                    counts_aux["Plob_M_z"][ind_lambda]
+                    counts_intermediate_products_zbin_lbin["Plob_M_z"][ind_lambda]
                     * self.cluster_counts.cluster_stat_kernel_tables["dndm_z"]
                     * np.squeeze(excess_surface_mass_density, axis=2),
                     x=self.cluster_counts.cluster_stat_kernel_tables["mass"],
@@ -104,7 +106,9 @@ class ClusterWeakLensing:
                                 self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
                                 ind_z,
                             )
-                            * counts_aux["dV_dzob"][ind_z, ind_lambda]
+                            * counts_intermediate_products_zbin_lbin["dV_dzob"][
+                                ind_z, ind_lambda
+                            ]
                             * excesssurfacemassdensity,
                             x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
                         )

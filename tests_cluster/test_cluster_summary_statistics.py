@@ -151,19 +151,24 @@ def get_values():
 
     # Compute values
 
-    nc_zbin_lbin, counts_aux = cluster_counts_statistics.compute_binned_counts(
-        z_obs_bins=zed_obs_nc_bins,
-        lambda_obs_bins=lambda_obs_nc_bins,
+    nc_zbin_lbin, counts_intermediate_products_zbin_lbin = (
+        cluster_counts_statistics.compute_binned_counts(
+            z_obs_bins=zed_obs_nc_bins,
+            lambda_obs_bins=lambda_obs_nc_bins,
+        )
     )
     cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
-        zed_obs_nc_bins, nc_zbin_lbin, counts_aux["Plob_M_z"], counts_aux["dV_dzob"]
+        zed_obs_nc_bins,
+        nc_zbin_lbin,
+        counts_intermediate_products_zbin_lbin["Plob_M_z"],
+        counts_intermediate_products_zbin_lbin["dV_dzob"],
     )
     gt_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_profile(
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
     )
-    clustering_zbin_lbin_rbin, clustering_aux = (
+    clustering_zbin_lbin_rbin, clustering_intermediate_products_zbin_lbin = (
         cluster_clustering_statistics.compute_binned_clustering(
             lambda_obs_bins=lambda_obs_clustering_bins,
             radius_bins=radius_clustering_bins,
@@ -171,11 +176,11 @@ def get_values():
         )
     )
     cov_clustering_zbin_lbin_rbin = cluster_clustering_statistics.compute_cov(
-        clustering_aux["Pk_lambdai_lambdaj"],
-        clustering_aux["one_over_n_lambdai_lambdaj"],
-        clustering_aux["shell_window"],
-        clustering_aux["shell_volume"],
-        clustering_aux["volume_zob"],
+        clustering_intermediate_products_zbin_lbin["Pk_lambdai_lambdaj"],
+        clustering_intermediate_products_zbin_lbin["one_over_n_lambdai_lambdaj"],
+        clustering_intermediate_products_zbin_lbin["shell_window"],
+        clustering_intermediate_products_zbin_lbin["shell_volume"],
+        clustering_intermediate_products_zbin_lbin["volume_zob"],
     )
     return (
         nc_zbin_lbin,

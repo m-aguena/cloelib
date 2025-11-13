@@ -230,7 +230,12 @@ class ClusterCounts:
         )
 
     def compute_binned_counts(
-        self, z_obs_bins, lambda_obs_bins, z_tab_sig=None, l_m_tab_sig=None
+        self,
+        z_obs_bins,
+        lambda_obs_bins,
+        return_intermediate_products=True,
+        z_tab_sig=None,
+        l_m_tab_sig=None,
     ):
         """Computes binned quantities (counts+aux).
 
@@ -247,13 +252,17 @@ class ClusterCounts:
             Number of points to be used for the lambda_obs integration
             in each lambda_obs bin. Must be same size of lambda_obs_bins.
             If None, self.l_m_tab_sig is used.
+        return_intermediate_products : bool
+            If true, also returns `intermediate_products_zbin_lbin`, a dictionary
+            with the intermediate products computed.
 
         Returns
         -------
         nc_zbin_lbin : numpy.ndarray
             Number counts in redshift and richness bins
-        aux : dict
+        intermediate_products_zbin_lbin (optional) : dict
             Dictionary with intermidate products that can be used for other computations.
+            Returned only when `return_intermediate_products` is true.
             Contains :
 
                 * Plob_M_z (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
@@ -308,14 +317,18 @@ class ClusterCounts:
                     dV_dzob[ind_z, ind_lambda], nc_lbdobs_z[ind_lambda]
                 )
 
-        aux = {"Plob_M_z": Plob_M_z, "dV_dzob": dV_dzob, "nc_lbdobs_z": nc_lbdobs_z}
-        return nc_zbin_lbin, aux
+        intermediate_products_zbin_lbin = {
+            "Plob_M_z": Plob_M_z,
+            "dV_dzob": dV_dzob,
+            "nc_lbdobs_z": nc_lbdobs_z,
+        }
+        return nc_zbin_lbin, intermediate_products_zbin_lbin
 
     # -------------------
     # cluster counts cov
     # -------------------
 
-    def compute_binned_bias(self, Plob_M_z, dV_dzob):
+    def compute_binned_bias(self, Plob_M_z, dV_dzob, return_intermediate_products=True):
         """compute bias.
         Compute halo bias used in counts covariance in bins of redshift and richness
 
@@ -330,7 +343,7 @@ class ClusterCounts:
         -------
         hbias_zbin_lbin : numpy.ndarray
             halo bias in bins of z and lambda
-        aux : dict
+        intermediate_products_zbin_lbin : dict
             Dictionary with intermidate products that can be used for other computations.
             Contains :
 
@@ -363,8 +376,8 @@ class ClusterCounts:
                     axis=0,
                 )
 
-        aux = {"hb_lbdobs_z": hb_lbdobs_z}
-        return hbias_zbin_lbin, aux
+        intermediate_products_zbin_lbin = {"hb_lbdobs_z": hb_lbdobs_z}
+        return hbias_zbin_lbin, intermediate_products_zbin_lbin
 
     def _compute_spatial_cov(self, z_obs_bins, z_tab_sig):
         """Computes only spatial part of the covariance.
@@ -440,11 +453,12 @@ class ClusterCounts:
         nc_zbin_lbin : numpy.ndarray
             Number counts in redshift and richness bins
         Plob_M_z : numpy.ndarray
-            Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table.
-            To be obtained in aux output of self.compute_binned_counts.
+            Probability of observed richness bin P(lobs_bin|M, z),
+            with masses and redshifts being the values in cluster_stat_kernel_tables.
+            Is in the intermediate_products_zbin_lbin output of compute_binned_counts.
         dV_dzob : numpy.ndarray
             Observed volume element (dV/dz_ob) in each redshift and richness bin.
-            To be obtained in aux output of self.compute_binned_counts.
+            Is in the intermediate_products_zbin_lbin output of compute_binned_counts.
         z_tab_sig : int, None
             Number of points to be used for z_obs integration.
             If None, self.z_tab_sig is used.

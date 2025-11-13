@@ -95,17 +95,25 @@ class ClusterClustering:
         )
 
         # get cluster counts quantities
-        nc_zbin_lbin, counts_aux = self.cluster_counts.compute_binned_counts(
-            z_obs_bins=z_obs_bins,
-            lambda_obs_bins=lambda_obs_bins,
-            z_tab_sig=self.z_tab_sig,
-            l_m_tab_sig=self.l_m_tab_sig,
+        nc_zbin_lbin, counts_intermediate_products_zbin_lbin = (
+            self.cluster_counts.compute_binned_counts(
+                z_obs_bins=z_obs_bins,
+                lambda_obs_bins=lambda_obs_bins,
+                z_tab_sig=self.z_tab_sig,
+                l_m_tab_sig=self.l_m_tab_sig,
+            )
         )
-        _, bias_aux = self.cluster_counts.compute_binned_bias(
-            counts_aux["Plob_M_z"], counts_aux["dV_dzob"]
+        _, bias_intermediate_products_zbin_lbin = (
+            self.cluster_counts.compute_binned_bias(
+                counts_intermediate_products_zbin_lbin["Plob_M_z"],
+                counts_intermediate_products_zbin_lbin["dV_dzob"],
+            )
         )
         # effective halo bias
-        b_eff = bias_aux["hb_lbdobs_z"] / counts_aux["nc_lbdobs_z"]
+        b_eff = (
+            bias_intermediate_products_zbin_lbin["hb_lbdobs_z"]
+            / counts_intermediate_products_zbin_lbin["nc_lbdobs_z"]
+        )
 
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
@@ -138,7 +146,9 @@ class ClusterClustering:
 
                 # volume of the observed redshift slice
                 volume_zob[ind_z] = simps(
-                    counts_aux["dV_dzob"][ind_z, ind_lambda],
+                    counts_intermediate_products_zbin_lbin["dV_dzob"][
+                        ind_z, ind_lambda
+                    ],
                     x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
                     axis=0,
                 )
@@ -147,8 +157,12 @@ class ClusterClustering:
                 sqrt_Pk_zbin_lbin[ind_z, ind_lambda, :] = (
                     simps(
                         (
-                            counts_aux["dV_dzob"][ind_z, ind_lambda]
-                            * counts_aux["nc_lbdobs_z"][ind_lambda]
+                            counts_intermediate_products_zbin_lbin["dV_dzob"][
+                                ind_z, ind_lambda
+                            ]
+                            * counts_intermediate_products_zbin_lbin["nc_lbdobs_z"][
+                                ind_lambda
+                            ]
                         )[:, np.newaxis]
                         * np.sqrt(pk_halo),
                         x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
@@ -210,7 +224,13 @@ class ClusterClustering:
             :, triangle_indexes[0], triangle_indexes[1], :
         ]
 
-    def compute_binned_clustering(self, z_obs_bins, lambda_obs_bins, radius_bins):
+    def compute_binned_clustering(
+        self,
+        z_obs_bins,
+        lambda_obs_bins,
+        radius_bins,
+        return_intermediate_products=True,
+    ):
         """Computes binned quantities (clustering+aux)
 
         Parameters
@@ -226,8 +246,9 @@ class ClusterClustering:
         -------
         clustering_zbin_lbin_rbin : numpy.ndarray
             Two point correlation function in richness, redshift and radial bins
-        aux : dict
+        intermediate_products_zbin_lbin (optional) : dict
             Dictionary with intermidate products that can be used for other computations.
+            Returned only when `return_intermediate_products` is true.
             Contains :
 
                 * Pk_lambdai_lambdaj (numpy.ndarray) : Power spectrum ???
@@ -252,14 +273,14 @@ class ClusterClustering:
             shell_window, Pk_lambdai_lambdaj
         )
 
-        aux = {
+        intermediate_products_zbin_lbin = {
             "Pk_lambdai_lambdaj": Pk_lambdai_lambdaj,
             "one_over_n_lambdai_lambdaj": one_over_n_lambdai_lambdaj,
             "shell_window": shell_window,
             "shell_volume": shell_volume,
             "volume_zob": volume_zob,
         }
-        return clustering_zbin_lbin_rbin, aux
+        return clustering_zbin_lbin_rbin, intermediate_products_zbin_lbin
 
     # ----------------------
     # clustering covariance
@@ -315,20 +336,20 @@ class ClusterClustering:
         ----------
         Pk_lambdai_lambdaj : numpy.ndarray
             Power spectrum ???
-            To be obtained in aux output of self.compute_binned_clustering.
+            Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         one_over_n_lambdai_lambdaj : numpy.ndarray
             volume_zob / nc_int_lbdobs_z in each redshift bin.
-            To be obtained in aux output of self.compute_binned_clustering.
+            Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         shell_window : numpy.ndarray
             Cluster count covariance window (i,j,k) where i is the redshift bin,
             j is the radial bin and k are the wavenumbers.
-            To be obtained in aux output of self.compute_binned_clustering.
+            Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         shell_volume : numpy.ndarray
             Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin.
-            To be obtained in aux output of self.compute_binned_clustering.
+            Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         volume_zob : numpy.ndarray
             Observed volume in each redshift bin.
-            To be obtained in aux output of self.compute_binned_clustering.
+            Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
 
         Returns
         -------
