@@ -13,6 +13,7 @@ from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters import (
     ClusterClustering,
     ClusterCounts,
+    ClusterStatisticsModeling,
     ClusterWeakLensing,
 )
 
@@ -126,27 +127,28 @@ def get_values():
     ####################
 
     # Istanciate objects
-
-    cluster_counts_statistics = ClusterCounts(
+    cluster_statitstics_modeling = ClusterStatisticsModeling(
         HSCastro,
         selectionFunction,
-        covariance,
         integ_k_arr=integ_k_arr,
         integ_mass_arr=integ_mass_arr,
         integ_lambda_true_arr=integ_lambda_true_arr,
         integ_ztrue_arr=integ_ztrue_arr,
         area=area,
+    )
+    cluster_counts_statistics = ClusterCounts(
+        cluster_statitstics_modeling,
+        covariance,
         photoz_rsd_correction=haloClustering.photoz_rsd_correction,
     )
     cluster_wl_statistics = ClusterWeakLensing(
-        cluster_counts_statistics,
+        cluster_statitstics_modeling,
         profileNFW,
         halo_concentration=halo_concentration,
     )
     cluster_clustering_statistics = ClusterClustering(
-        cluster_counts_statistics,
+        cluster_statitstics_modeling,
         haloClustering,
-        area=area,
     )
 
     # Compute values

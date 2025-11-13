@@ -1,11 +1,12 @@
-# cloelib imports
 # General imports
-# import interpax
 import numpy as np
 from scipy.integrate import simpson as simps
 
+# cloelib imports
 from cloelib.observables.clusters.clustering import HaloClustering
-from cloelib.summary_statistics.clusters.counts import ClusterCounts
+from cloelib.summary_statistics.clusters.statistics_modeling import (
+    ClusterStatisticsModeling,
+)
 
 # import jax
 
@@ -21,33 +22,28 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 class ClusterClustering:
     def __init__(
         self,
-        cluster_counts: ClusterCounts,
+        cluster_statitstics_modeling: ClusterStatisticsModeling,
         clustering: HaloClustering,
-        area: float = 10313,
     ):
         """
         Initializes the cluster profile lensing
 
         Parameters
         ----------
-        cluster_counts : ClusterCounts
-            Cluster counts summary statistics object
+        cluster_statitstics_modeling : ClusterStatisticsModeling
+            Cluster summary statistics modeling object, it contains functions
+            for cluster statistics and tabled values for integration.
         clustering : HaloClustering
             Halo clustering object
-        area : float
-            Area of the survey in deg2.
         """
         # cluster counts summary statistics, contains tables for integrals
         # and functions to compute binned integrals of counts
-        self.cluster_counts = cluster_counts
+        self.cluster_statitstics_modeling = cluster_statitstics_modeling
 
         # observable objects
         self.clustering = clustering
 
-        # internal values
-        self.area = area
-
-        # hardcoded quantities
+        # hardcoded quantities for integration
         self.l_m_tab_sig = [31, 51]
         self.z_tab_sig = 31
 
@@ -90,23 +86,25 @@ class ClusterClustering:
             (
                 z_obs_bins_size,
                 lambda_obs_bins_size,
-                len(self.cluster_counts.cluster_stat_kernel_tables["k"]),
+                len(self.cluster_statitstics_modeling.kernel_tables["k"]),
             )
         )
 
         # get cluster counts quantities
         nc_zbin_lbin, counts_intermediate_products_zbin_lbin = (
-            self.cluster_counts.compute_binned_counts(
+            self.cluster_statitstics_modeling.compute_binned_counts(
                 z_obs_bins=z_obs_bins,
                 lambda_obs_bins=lambda_obs_bins,
                 z_tab_sig=self.z_tab_sig,
                 l_m_tab_sig=self.l_m_tab_sig,
+                return_intermediate_products=True,
             )
         )
         _, bias_intermediate_products_zbin_lbin = (
-            self.cluster_counts.compute_binned_bias(
+            self.cluster_statitstics_modeling.compute_binned_bias(
                 counts_intermediate_products_zbin_lbin["Plob_M_z"],
                 counts_intermediate_products_zbin_lbin["dV_dzob"],
+                return_intermediate_products=True,
             )
         )
         # effective halo bias
@@ -118,9 +116,9 @@ class ClusterClustering:
         ############
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
         ############
-        pk_IR = self.cluster_counts.halo_statistics.matter_power_spectrum(
-            self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
-            self.cluster_counts.cluster_stat_kernel_tables["k"],
+        pk_IR = self.cluster_statitstics_modeling.halo_statistics.matter_power_spectrum(
+            self.cluster_statitstics_modeling.kernel_tables["ztrue"],
+            self.cluster_statitstics_modeling.kernel_tables["k"],
         )
 
         # Compute intermediate quantities
@@ -133,7 +131,7 @@ class ClusterClustering:
             # rsd corrections
             photoz_corr0, photoz_corr1, photoz_corr2 = (
                 self.clustering.photoz_rsd_correction(
-                    self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
+                    self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                     lambda_obs_mid[ind_lambda],
                 )
             )
@@ -149,7 +147,7 @@ class ClusterClustering:
                     counts_intermediate_products_zbin_lbin["dV_dzob"][
                         ind_z, ind_lambda
                     ],
-                    x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
+                    x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                     axis=0,
                 )
 
@@ -165,7 +163,7 @@ class ClusterClustering:
                             ]
                         )[:, np.newaxis]
                         * np.sqrt(pk_halo),
-                        x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
+                        x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                         axis=0,
                     )
                     / nc_zbin_lbin[ind_z, ind_lambda]
@@ -208,12 +206,12 @@ class ClusterClustering:
         # dim = [nz,nl,nl,nr]
         clustering_zbin_lbin_rbin_buf = simps(
             (
-                self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
+                self.cluster_statitstics_modeling.kernel_tables["k"] ** 2.0
                 / (2.0 * np.pi**2)
                 * shell_window[:, np.newaxis, np.newaxis, :, :]
                 * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
             ),
-            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
+            x=self.cluster_statitstics_modeling.kernel_tables["k"],
             axis=-1,
         )
 
@@ -280,7 +278,9 @@ class ClusterClustering:
             "shell_volume": shell_volume,
             "volume_zob": volume_zob,
         }
-        return clustering_zbin_lbin_rbin, intermediate_products_zbin_lbin
+        if return_intermediate_products:
+            return clustering_zbin_lbin_rbin, intermediate_products_zbin_lbin
+        return clustering_zbin_lbin_rbin
 
     # ----------------------
     # clustering covariance
@@ -418,11 +418,11 @@ class ClusterClustering:
                         ind_radius,
                     ] = (
                         simps(
-                            self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
+                            self.cluster_statitstics_modeling.kernel_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
                             * shell_window[:, ind_radius, :]
                             * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
-                            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
+                            x=self.cluster_statitstics_modeling.kernel_tables["k"],
                         )
                         * (1 + gamma[:, ind_lambda_i])
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
@@ -444,7 +444,7 @@ class ClusterClustering:
                             :,
                             :,
                         ] = simps(
-                            self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
+                            self.cluster_statitstics_modeling.kernel_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
                             * shell_window[:, np.newaxis, :, :]
                             * shell_window[:, :, np.newaxis, :]
@@ -464,7 +464,7 @@ class ClusterClustering:
                                 np.newaxis,
                                 :,
                             ],
-                            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
+                            x=self.cluster_statitstics_modeling.kernel_tables["k"],
                             axis=-1,
                         )
 
