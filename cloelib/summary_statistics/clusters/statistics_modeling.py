@@ -266,7 +266,7 @@ class ClusterStatisticsModeling:
             Quantity integrated in true redshift for each bin.
             Dimension (nbin1, nbin2).
         """
-        bins1_size, bins2_size = binned_quantity.shape
+        bins1_size, bins2_size = binned_quantity.shape[:2]
 
         # outputs
         integrated_binned_quantity = np.zeros((bins1_size, bins2_size))

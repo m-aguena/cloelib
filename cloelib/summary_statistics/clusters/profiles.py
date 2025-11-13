@@ -107,7 +107,6 @@ class ClusterWeakLensing:
             self.halo_concentration,
         )
         # pre-compute effective inverse critical surface mass density.
-        # def m_sig_crit_m1(self, z, zbin):
         m_sig_crit_m1 = np.zeros(
             (
                 z_obs_bins_size,
@@ -120,24 +119,24 @@ class ClusterWeakLensing:
                 ind_z,
             )
 
+        # this function is needed for the product to have the correct shape
+        unlist = lambda x: np.array([[x3 for x3 in x2] for x2 in x], dtype=float)
+        dv_dzob = unlist(dv_dzob)
+
         # compute profile quantities
         for ind_radius in range(radius_bins_size):
-            for ind_lambda in range(lambda_obs_bins_size):
-                gt_lbdobs_z = simps(
-                    p_lbin_M_z[ind_lambda]
-                    * self.cluster_statitstics_modeling.kernel_tables["dndm_z"]
-                    * excess_surface_mass_density[:, :, ind_radius],
-                    x=self.cluster_statitstics_modeling.kernel_tables["mass"],
-                    axis=1,
+            gt_lbdobs_z = unlist(
+                self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                    p_lbin_M_z * excess_surface_mass_density[:, :, ind_radius]
                 )
-                for ind_z in range(z_obs_bins_size):
-                    gt_zbin_lbin_rbin[ind_z, ind_lambda, ind_radius] = (
-                        simps(
-                            m_sig_crit_m1[ind_z]
-                            * dv_dzob[ind_z, ind_lambda]
-                            * gt_lbdobs_z,
-                            x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-                        )
-                        / nc_zbin_lbin[ind_z, ind_lambda]
-                    )
+            )
+            gt_zbin_lbin_rbin[:, :, ind_radius] = (
+                self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+                    m_sig_crit_m1[:, np.newaxis, :]
+                    * gt_lbdobs_z[np.newaxis, :, :]
+                    * dv_dzob
+                )
+                / nc_zbin_lbin
+            )
+
         return gt_zbin_lbin_rbin
