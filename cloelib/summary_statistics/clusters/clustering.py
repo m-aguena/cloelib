@@ -90,7 +90,7 @@ class ClusterClustering:
             (
                 z_obs_bins_size,
                 lambda_obs_bins_size,
-                len(self.cluster_counts.kernel_tables["k"]),
+                len(self.cluster_counts.cluster_stat_kernel_tables["k"]),
             )
         )
 
@@ -111,8 +111,8 @@ class ClusterClustering:
         #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
         ############
         pk_IR = self.cluster_counts.halo_statistics.matter_power_spectrum(
-            self.cluster_counts.kernel_tables["ztrue"],
-            self.cluster_counts.kernel_tables["k"],
+            self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
+            self.cluster_counts.cluster_stat_kernel_tables["k"],
         )
 
         # Compute intermediate quantities
@@ -125,7 +125,7 @@ class ClusterClustering:
             # rsd corrections
             photoz_corr0, photoz_corr1, photoz_corr2 = (
                 self.clustering.photoz_rsd_correction(
-                    self.cluster_counts.kernel_tables["ztrue"],
+                    self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
                     lambda_obs_mid[ind_lambda],
                 )
             )
@@ -139,7 +139,7 @@ class ClusterClustering:
                 # volume of the observed redshift slice
                 volume_zob[ind_z] = simps(
                     counts_aux["dV_dzob"][ind_z, ind_lambda],
-                    x=self.cluster_counts.kernel_tables["ztrue"],
+                    x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
                     axis=0,
                 )
 
@@ -151,7 +151,7 @@ class ClusterClustering:
                             * counts_aux["nc_lbdobs_z"][ind_lambda]
                         )[:, np.newaxis]
                         * np.sqrt(pk_halo),
-                        x=self.cluster_counts.kernel_tables["ztrue"],
+                        x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
                         axis=0,
                     )
                     / nc_zbin_lbin[ind_z, ind_lambda]
@@ -194,12 +194,12 @@ class ClusterClustering:
         # dim = [nz,nl,nl,nr]
         clustering_zbin_lbin_rbin_buf = simps(
             (
-                self.cluster_counts.kernel_tables["k"] ** 2.0
+                self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
                 / (2.0 * np.pi**2)
                 * shell_window[:, np.newaxis, np.newaxis, :, :]
                 * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
             ),
-            x=self.cluster_counts.kernel_tables["k"],
+            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
             axis=-1,
         )
 
@@ -236,10 +236,6 @@ class ClusterClustering:
                 * shell_volume (numpy.ndarray) : Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
                 * volume_zob (numpy.ndarray) : Observed volume in each redshift bin
         """
-
-        # this is never used
-        ###integ_zbin_lbin  = np.zeros(((z_obs_bins_size, lambda_obs_bins_size, len(self.cluster_counts.kernel_tables["k"]))))
-
         # matter power spectrum + IR resummation
         Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj = (
             self._compute_pk_ir_resummation(z_obs_bins, lambda_obs_bins)
@@ -401,11 +397,11 @@ class ClusterClustering:
                         ind_radius,
                     ] = (
                         simps(
-                            self.cluster_counts.kernel_tables["k"] ** 2.0
+                            self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
                             * shell_window[:, ind_radius, :]
                             * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
-                            x=self.cluster_counts.kernel_tables["k"],
+                            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
                         )
                         * (1 + gamma[:, ind_lambda_i])
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
@@ -427,7 +423,7 @@ class ClusterClustering:
                             :,
                             :,
                         ] = simps(
-                            self.cluster_counts.kernel_tables["k"] ** 2.0
+                            self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
                             / (2.0 * np.pi**2.0)
                             * shell_window[:, np.newaxis, :, :]
                             * shell_window[:, :, np.newaxis, :]
@@ -447,7 +443,7 @@ class ClusterClustering:
                                 np.newaxis,
                                 :,
                             ],
-                            x=self.cluster_counts.kernel_tables["k"],
+                            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
                             axis=-1,
                         )
 

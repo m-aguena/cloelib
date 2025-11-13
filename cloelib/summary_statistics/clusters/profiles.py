@@ -82,16 +82,16 @@ class ClusterWeakLensing:
         for ind_radius in range(radius_bins_size):
             excess_surface_mass_density = self.profile.excess_surface_mass_density(
                 np.atleast_1d(radius_bins[ind_radius]),
-                self.cluster_counts.kernel_tables["ztrue"],
-                self.cluster_counts.kernel_tables["mass"],
+                self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
+                self.cluster_counts.cluster_stat_kernel_tables["mass"],
                 self.halo_concentration,
             )
             for ind_lambda in range(lambda_obs_bins_size):
                 excesssurfacemassdensity = simps(
                     counts_aux["Plob_M_z"][ind_lambda]
-                    * self.cluster_counts.kernel_tables["dndm_z"]
+                    * self.cluster_counts.cluster_stat_kernel_tables["dndm_z"]
                     * np.squeeze(excess_surface_mass_density, axis=2),
-                    x=self.cluster_counts.kernel_tables["mass"],
+                    x=self.cluster_counts.cluster_stat_kernel_tables["mass"],
                     axis=1,
                 )
 
@@ -101,11 +101,12 @@ class ClusterWeakLensing:
                         / nc_zbin_lbin[ind_z, ind_lambda]
                         * simps(
                             self.profile.m_sig_crit_m1(
-                                self.cluster_counts.kernel_tables["ztrue"], ind_z
+                                self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
+                                ind_z,
                             )
                             * counts_aux["dV_dzob"][ind_z, ind_lambda]
                             * excesssurfacemassdensity,
-                            x=self.cluster_counts.kernel_tables["ztrue"],
+                            x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
                         )
                     )
         return gt_zbin_lbin_rbin
