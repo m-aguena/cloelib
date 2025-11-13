@@ -95,7 +95,7 @@ class ClusterClustering:
         )
 
         # get cluster counts quantities
-        nc_zbin_lbin, counts_aux = self.cluster_counts.compute_binned_quantities(
+        nc_zbin_lbin, counts_aux = self.cluster_counts.compute_binned_counts(
             z_obs_bins=z_obs_bins,
             lambda_obs_bins=lambda_obs_bins,
             z_tab_sig=self.z_tab_sig,
@@ -210,7 +210,7 @@ class ClusterClustering:
             :, triangle_indexes[0], triangle_indexes[1], :
         ]
 
-    def compute_binned_quantities(self, z_obs_bins, lambda_obs_bins, radius_bins):
+    def compute_binned_clustering(self, z_obs_bins, lambda_obs_bins, radius_bins):
         """Computes binned quantities (clustering+aux)
 
         Parameters
@@ -315,20 +315,20 @@ class ClusterClustering:
         ----------
         Pk_lambdai_lambdaj : numpy.ndarray
             Power spectrum ???
-            To be obtained in aux output of self.compute_binned_quantities.
+            To be obtained in aux output of self.compute_binned_clustering.
         one_over_n_lambdai_lambdaj : numpy.ndarray
             volume_zob / nc_int_lbdobs_z in each redshift bin.
-            To be obtained in aux output of self.compute_binned_quantities.
+            To be obtained in aux output of self.compute_binned_clustering.
         shell_window : numpy.ndarray
             Cluster count covariance window (i,j,k) where i is the redshift bin,
             j is the radial bin and k are the wavenumbers.
-            To be obtained in aux output of self.compute_binned_quantities.
+            To be obtained in aux output of self.compute_binned_clustering.
         shell_volume : numpy.ndarray
             Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin.
-            To be obtained in aux output of self.compute_binned_quantities.
+            To be obtained in aux output of self.compute_binned_clustering.
         volume_zob : numpy.ndarray
             Observed volume in each redshift bin.
-            To be obtained in aux output of self.compute_binned_quantities.
+            To be obtained in aux output of self.compute_binned_clustering.
 
         Returns
         -------

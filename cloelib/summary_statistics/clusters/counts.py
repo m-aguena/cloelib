@@ -229,7 +229,7 @@ class ClusterCounts:
             axis=0,
         )
 
-    def compute_binned_quantities(
+    def compute_binned_counts(
         self, z_obs_bins, lambda_obs_bins, z_tab_sig=None, l_m_tab_sig=None
     ):
         """Computes binned quantities (counts+aux).
@@ -441,10 +441,10 @@ class ClusterCounts:
             Number counts in redshift and richness bins
         Plob_M_z : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table.
-            To be obtained in aux output of self.compute_binned_quantities.
+            To be obtained in aux output of self.compute_binned_counts.
         dV_dzob : numpy.ndarray
             Observed volume element (dV/dz_ob) in each redshift and richness bin.
-            To be obtained in aux output of self.compute_binned_quantities.
+            To be obtained in aux output of self.compute_binned_counts.
         z_tab_sig : int, None
             Number of points to be used for z_obs integration.
             If None, self.z_tab_sig is used.

@@ -47,7 +47,7 @@ class ClusterWeakLensing:
         # internal values
         self.halo_concentration = halo_concentration
 
-    def compute_binned_quantities(self, z_obs_bins, lambda_obs_bins, radius_bins):
+    def compute_binned_profile(self, z_obs_bins, lambda_obs_bins, radius_bins):
         """compute reduced shear.
 
         Parameters
@@ -73,7 +73,7 @@ class ClusterWeakLensing:
         )
 
         # get cluster counts quantities
-        nc_zbin_lbin, counts_aux = self.cluster_counts.compute_binned_quantities(
+        nc_zbin_lbin, counts_aux = self.cluster_counts.compute_binned_counts(
             z_obs_bins=z_obs_bins,
             lambda_obs_bins=lambda_obs_bins,
         )
