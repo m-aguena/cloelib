@@ -11,7 +11,7 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 
 """
 
-## Notes:
+## Notes :
 
 - Cluster profile lensing
 
@@ -30,11 +30,11 @@ class ClusterWeakLensing:
 
         Parameters
         ----------
-        cluster_counts: ClusterCounts
+        cluster_counts : ClusterCounts
             Cluster counts summary statistics object
-        profile: Profile
+        profile : Profile
             Halo weak lensing radial profile object
-        halo_concentration: float
+        halo_concentration : float
             Halo concentration
         """
         # cluster counts summary statistics, contains tables for integrals
@@ -52,16 +52,16 @@ class ClusterWeakLensing:
 
         Parameters
         ----------
-        z_obs_bins: numpy.ndarray
+        z_obs_bins : numpy.ndarray
             Redshift bins for the integration.
-        lambda_obs_bins: numpy.ndarray
+        lambda_obs_bins : numpy.ndarray
             Richness bins for the integration.
-        radius_obs_bins: numpy.ndarray
+        radius_obs_bins : numpy.ndarray
             Radial bins for the profile.
 
         Returns
         -------
-        gt_zbin_lbin_rbin: numpy.ndarray
+        gt_zbin_lbin_rbin : numpy.ndarray
             Reduced shear in redshift, richness, and radial bins.
         """
         lambda_obs_bins_size = len(lambda_obs_bins) - 1

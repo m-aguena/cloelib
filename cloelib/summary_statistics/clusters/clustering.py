@@ -11,7 +11,7 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 
 """
 
-## Notes:
+## Notes :
 
 - Clusters clustering class
 
@@ -30,11 +30,11 @@ class ClusterClustering:
 
         Parameters
         ----------
-        cluster_counts: ClusterCounts
+        cluster_counts : ClusterCounts
             Cluster counts summary statistics object
-        clustering: HaloClustering
+        clustering : HaloClustering
             Halo clustering object
-        area: float
+        area : float
             Area of the survey in deg2.
         """
         # cluster counts summary statistics, contains tables for integrals
@@ -56,9 +56,9 @@ class ClusterClustering:
 
         Parameters
         ----------
-        z_obs_bins: numpy.ndarray
+        z_obs_bins : numpy.ndarray
             Redshift bins for the integration.
-        lambda_obs_bins: numpy.ndarray
+        lambda_obs_bins : numpy.ndarray
             Richness bins for the integration.
 
         Returns
@@ -184,7 +184,7 @@ class ClusterClustering:
 
         Returns
         -------
-        clustering_zbin_lbin_rbin: numpy.ndarray
+        clustering_zbin_lbin_rbin : numpy.ndarray
             Two point correlation function in richness, redshift and radial bins
         """
 
@@ -215,26 +215,26 @@ class ClusterClustering:
 
         Parameters
         ----------
-        z_obs_bins: numpy.ndarray
+        z_obs_bins : numpy.ndarray
             Redshift bins for the integration.
-        lambda_obs_bins: numpy.ndarray
+        lambda_obs_bins : numpy.ndarray
             Richness bins for the integration.
-        radius_obs_bins: numpy.ndarray
+        radius_obs_bins : numpy.ndarray
             Radial bins for the profile.
 
         Returns
         -------
-        clustering_zbin_lbin_rbin: numpy.ndarray
+        clustering_zbin_lbin_rbin : numpy.ndarray
             Two point correlation function in richness, redshift and radial bins
-        aux: dict
+        aux : dict
             Dictionary with intermidate products that can be used for other computations.
-            Contains:
+            Contains :
 
-                * Pk_lambdai_lambdaj (numpy.ndarray): Power spectrum ???
-                * one_over_n_lambdai_lambdaj (numpy.ndarray): volume_zob / nc_int_lbdobs_z in each redshift bin
-                * shell_window (numpy.ndarray): Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
-                * shell_volume (numpy.ndarray): Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
-                * volume_zob (numpy.ndarray): Observed volume in each redshift bin
+                * Pk_lambdai_lambdaj (numpy.ndarray) : Power spectrum ???
+                * one_over_n_lambdai_lambdaj (numpy.ndarray) : volume_zob / nc_int_lbdobs_z in each redshift bin
+                * shell_window (numpy.ndarray) : Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
+                * shell_volume (numpy.ndarray) : Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
+                * volume_zob (numpy.ndarray) : Observed volume in each redshift bin
         """
 
         # this is never used
@@ -280,16 +280,16 @@ class ClusterClustering:
 
         Parameters
         ----------
-        alpha: numpy.ndarray
+        alpha : numpy.ndarray
             Alpha parameter
-        beta: numpy.ndarray
+        beta : numpy.ndarray
             Beta parameter
 
         Returns
         -------
-        alpha_n_ij: numpy.ndarray
+        alpha_n_ij : numpy.ndarray
             Mean alpha in richness bins
-        beta_pk_ij: numpy.ndarray
+        beta_pk_ij : numpy.ndarray
             Mean beta*Pk in richness bins
         """
         # combine and reshape
@@ -336,7 +336,7 @@ class ClusterClustering:
 
         Returns
         -------
-        cov_clustering_zbin_lbin_rbin: numpy.ndarray
+        cov_clustering_zbin_lbin_rbin : numpy.ndarray
             Covariance of the two point correlation function in richness, redshift and radial bins
         """
         z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
@@ -347,7 +347,7 @@ class ClusterClustering:
         #    alpha(z,l), beta(z,l), gamma(z,l) are nuisance parameters to be
         #    fitted on (few, ~100) simulations to correct for bias model
         #    inaccuracy, non-poissonian shot-noise and high-order terms ref
-        #    values are alpha=0,beta=1,gamma=0 (see Euclid Collaboration:
+        #    values are alpha=0,beta=1,gamma=0 (see Euclid Collaboration :
         #    Fumagalli et al. 2022)
         alpha_n_ij, beta_pk_ij = self._compute_alpha_beta(
             alpha=np.zeros((z_obs_bins_size, lambda_obs_bins_size)),
@@ -386,7 +386,7 @@ class ClusterClustering:
         lambda_bin_loop = range(lambda_obs_bins_size)
         rad_bin_loop = range(radius_bins_size)
 
-        # note: this could be reduced to compute only half of the matrix
+        # note : this could be reduced to compute only half of the matrix
         for ind_lambda_i in lambda_bin_loop:
             for ind_lambda_j in lambda_bin_loop:
                 for ind_radius in rad_bin_loop:

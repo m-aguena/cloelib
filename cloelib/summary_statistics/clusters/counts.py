@@ -14,7 +14,7 @@ from cloelib.observables.clusters.selection_function import SelectionFunction
 
 """
 
-## Notes:
+## Notes :
 
 - Cluster counts
 
@@ -30,12 +30,12 @@ class ClusterCounts:
     l_m_tab_sig : list
     z_tab_sig : float
     kernel_tables : dict
-        Dictionary with tables that will be used for integrations. Contains:
+        Dictionary with tables that will be used for integrations. Contains :
 
-            * k (np.ndarray): Values of k to be used in integrations
-            * mass (np.ndarray): Values of mass to be used in integrations
-            * lambda_true (np.ndarray): Values of true richness to be used in integrations
-            * ztrue (np.ndarray): Values of true redshift to be used in integrations
+            * k (np.ndarray) : Values of k to be used in integrations
+            * mass (np.ndarray) : Values of mass to be used in integrations
+            * lambda_true (np.ndarray) : Values of true richness to be used in integrations
+            * ztrue (np.ndarray) : Values of true redshift to be used in integrations
             * Pltrue_M_z(np.ndarray) : Values for P(lambda_true|mass, z)
             * dvdzdomega_z1z2(np.ndarray) : Values for volume element at each redshift
             * dndm_z(np.ndarray) : Values for the halo mass function dn/dmdz(mass, z)
@@ -59,23 +59,23 @@ class ClusterCounts:
 
         Parameters
         ----------
-        hmfbias: HMFBias
+        hmfbias : HMFBias
             Halo mass function and bias object
-        selectionfunction: SelectionFunction
+        selectionfunction : SelectionFunction
             Selection function object
-        covariance: HaloCovariance
+        covariance : HaloCovariance
             Halo covariance object
-        photoz_rsd_correction: function
+        photoz_rsd_correction : function
             Function that computers the RSD correction
-        integ_k_arr: np.ndarray
+        integ_k_arr : np.ndarray
             Values of k to be used in integrations, stored in kernel_tables
-        integ_mass_arr: np.ndarray
+        integ_mass_arr : np.ndarray
             Values of mass to be used in integrations, stored in kernel_tables
-        integ_lambda_true_arr: np.ndarray
+        integ_lambda_true_arr : np.ndarray
             Values of true richness to be used in integrations, stored in kernel_tables
-        integ_ztrue_arr: np.ndarray
+        integ_ztrue_arr : np.ndarray
             Values of true redshift to be used in integrations, stored in kernel_tables
-        area: float
+        area : float
             Area of the survey in deg2.
 
         """
@@ -86,7 +86,7 @@ class ClusterCounts:
         self.covariance = covariance
 
         # ---------------------------------------------------------------
-        # Note: This is a patch as this function is currently implemented
+        # Note : This is a patch as this function is currently implemented
         # in HaloClustering, should it be moved to SelectionFunction?
         # ---------------------------------------------------------------
         self.photoz_rsd_correction = photoz_rsd_correction
@@ -139,7 +139,7 @@ class ClusterCounts:
 
         Returns
         -------
-        Plob_M_z: numpy.ndarray
+        Plob_M_z : numpy.ndarray
             P(lambda_obs|mass, z)
         """
         l_tab = np.geomspace(lambda_min, lambda_max, integral_n_steps)
@@ -151,7 +151,7 @@ class ClusterCounts:
             x=l_tab,
             axis=-1,
         )
-        #       if external_richness_selection_function == 'CG_ESF':
+        #       if external_richness_selection_function == 'CG_ESF' :
         #       Plob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
 
         # P(lambda_obs|mass, z)
@@ -172,14 +172,14 @@ class ClusterCounts:
             Lower redshift edge of the integration bin
         z_max : float
             Upper redshift edge of the integration bin
-        lambda_min: float
+        lambda_min : float
             Lower richness edge of the integration bin
         integral_n_steps : int
             Number of points to be used for z_obs integration.
 
         Returns
         -------
-        dV_dzob_bin: numpy.ndarray
+        dV_dzob_bin : numpy.ndarray
             Observed volume element dV/dz_ob in the redshift bin
         """
 
@@ -209,9 +209,9 @@ class ClusterCounts:
 
         Parameters
         ----------
-        dV_dzob_bin: numpy.ndarray
+        dV_dzob_bin : numpy.ndarray
             volume element of bin
-        nc_lbdobs_z: numpy.ndarray
+        nc_lbdobs_z : numpy.ndarray
             density of clusters with observed richness and true redshift
 
         Returns
@@ -229,9 +229,9 @@ class ClusterCounts:
 
         Parameters
         ----------
-        z_obs_bins: numpy.ndarray
+        z_obs_bins : numpy.ndarray
             Redshift bins for the integration.
-        lambda_obs_bins: numpy.ndarray
+        lambda_obs_bins : numpy.ndarray
             Richness bins for the integration.
         z_tab_sig : int, None
             Number of points to be used for z_obs integration.
@@ -243,15 +243,15 @@ class ClusterCounts:
 
         Returns
         -------
-        nc_zbin_lbin: numpy.ndarray
+        nc_zbin_lbin : numpy.ndarray
             Number counts in redshift and richness bins
-        aux: dict
+        aux : dict
             Dictionary with intermidate products that can be used for other computations.
-            Contains:
+            Contains :
 
-                * Plob_M_z (numpy.ndarray): Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
-                * dV_dzob (numpy.ndarray): Observed volume element (dV/dz_ob) in each redshift and richness bin
-                * nc_lbdobs_z (numpy.ndarry): integral of Plob_M_z*dndm_z on mass.
+                * Plob_M_z (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
+                * dV_dzob (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
+                * nc_lbdobs_z (numpy.ndarry) : integral of Plob_M_z*dndm_z on mass.
         """
 
         z_obs_bins_size = len(z_obs_bins) - 1
@@ -321,13 +321,13 @@ class ClusterCounts:
 
         Returns
         -------
-        hbias_zbin_lbin: numpy.ndarray
+        hbias_zbin_lbin : numpy.ndarray
             halo bias in bins of z and lambda
-        aux: dict
+        aux : dict
             Dictionary with intermidate products that can be used for other computations.
-            Contains:
+            Contains :
 
-                * hb_lbdobs_z (numpy.ndarry): integral of Plob_M_z*dndm_z*bias_z on mass.
+                * hb_lbdobs_z (numpy.ndarry) : integral of Plob_M_z*dndm_z*bias_z on mass.
         """
 
         z_obs_bins_size, lambda_obs_bins_size = dV_dzob.shape
@@ -364,14 +364,14 @@ class ClusterCounts:
 
         Parameters
         ----------
-        z_obs_bins: numpy.ndarray
+        z_obs_bins : numpy.ndarray
             Redshift bins for the integration.
         z_tab_sig : int
             Number of points to be used for z_obs integration.
 
         Returns
         -------
-        spatial_cov: numpy.ndarray
+        spatial_cov : numpy.ndarray
             Spatial part of the covariance
         """
 
@@ -426,9 +426,9 @@ class ClusterCounts:
 
         Parameters
         ----------
-        z_obs_bins: numpy.ndarray
+        z_obs_bins : numpy.ndarray
             Redshift bins for the integration.
-        nc_zbin_lbin: numpy.ndarray
+        nc_zbin_lbin : numpy.ndarray
             Number counts in redshift and richness bins
         Plob_M_z : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table.
@@ -442,7 +442,7 @@ class ClusterCounts:
 
         Returns
         -------
-        cov_nc_zbin_lbin: numpy.ndarray
+        cov_nc_zbin_lbin : numpy.ndarray
             Covariance number counts in redshift and richness bins
         """
 
