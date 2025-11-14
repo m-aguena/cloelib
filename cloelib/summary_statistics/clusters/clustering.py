@@ -217,42 +217,6 @@ class ClusterClustering:
     # clustering covariance
     # ----------------------
 
-    def _compute_alpha_beta(
-        self,
-        alpha,
-        beta,
-        pk_zbin_lbin_lbin_k,
-        vol_over_nc_zbin_lbin_lbin,
-    ):
-        """Computes mean alpha and mean beta*Pk  in richness bins
-
-        Parameters
-        ----------
-        alpha : numpy.ndarray
-            Alpha parameter
-        beta : numpy.ndarray
-            Beta parameter
-
-        Returns
-        -------
-        alpha_n_ij : numpy.ndarray
-            Mean alpha in richness bins
-        beta_pk_ij : numpy.ndarray
-            Mean beta*Pk in richness bins
-        """
-        # combine and reshape
-        alpha_ij = (1 + alpha[:, :, np.newaxis, np.newaxis]) * (
-            1 + alpha[:, np.newaxis, :, np.newaxis]
-        )
-        beta_ij = (
-            beta[:, :, np.newaxis, np.newaxis] * beta[:, np.newaxis, :, np.newaxis]
-        )
-
-        beta_pk_ij = beta_ij * pk_zbin_lbin_lbin_k
-        alpha_n_ij = alpha_ij * vol_over_nc_zbin_lbin_lbin
-
-        return alpha_n_ij, beta_pk_ij
-
     def compute_cov(
         self,
         pk_zbin_lbin_lbin_k,
@@ -289,31 +253,59 @@ class ClusterClustering:
         z_obs_bins_size, lambda_obs_bins_size = nc_zbin_lbin.shape
         _, radius_bins_size = shell_volume.shape
 
-        # Compute observed volume in each redshift bin : (z_obs, lambda_obs)
+        ########################################
+        # Cluster statistics modeling quantities
+        ########################################
+
+        # Compute observed volume in each redshift bin : (z_obs, l_obs)
         vol_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
             dvdz_zbin_lbin_z
         )
-        # Compute output shot-noise terms : (z_obs, l_obs, l_obs, 1)
+        # Compute output shot-noise terms : (z_obs, l_obs, l_obs)
         vol_over_nc_zbin_lbin_lbin = (
             vol_zbin_lbin[:, :, np.newaxis]
             / nc_zbin_lbin[:, :, np.newaxis]
             * np.identity(lambda_obs_bins_size)[np.newaxis, :, :]
-        )[:, :, :, np.newaxis]
+        )
 
-        # compute nuisance parameters
+        #############################
+        # Compute nuisance parameters
+        #############################
 
         #    alpha(z,l), beta(z,l), gamma(z,l) are nuisance parameters to be
         #    fitted on (few, ~100) simulations to correct for bias model
         #    inaccuracy, non-poissonian shot-noise and high-order terms ref
-        #    values are alpha=0,beta=1,gamma=0 (see Euclid Collaboration :
+        #    values are alpha=0, beta=1, gamma=0 (see Euclid Collaboration :
         #    Fumagalli et al. 2022)
-        alpha_n_ij, beta_pk_ij = self._compute_alpha_beta(
-            alpha=np.zeros((z_obs_bins_size, lambda_obs_bins_size)),
-            beta=np.ones((z_obs_bins_size, lambda_obs_bins_size)),
-            pk_zbin_lbin_lbin_k=pk_zbin_lbin_lbin_k,
-            vol_over_nc_zbin_lbin_lbin=vol_over_nc_zbin_lbin_lbin,
-        )
+        alpha = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
+        beta = np.ones((z_obs_bins_size, lambda_obs_bins_size))
         gamma = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
+
+        # Combine alpha, beta with pk, vol and reshape to be used
+        # in cov_g, cov_ng integral
+        _ap1sq_vol_over_nc_zbin_lbin_lbin = (
+            (1 + alpha)[:, :, np.newaxis]
+            * (1 + alpha)[:, np.newaxis, :]
+            * vol_over_nc_zbin_lbin_lbin
+        )
+        beta_pk_zbin_lbin_lbin_k = (
+            beta[:, :, np.newaxis, np.newaxis]
+            * beta[:, np.newaxis, :, np.newaxis]
+            * pk_zbin_lbin_lbin_k
+        )
+        avol_bpk_zbin_lbin_lbin_k = (
+            _ap1sq_vol_over_nc_zbin_lbin_lbin[:, :, :, np.newaxis]
+            + beta_pk_zbin_lbin_lbin_k
+        )
+
+        ####################
+        # Compute covariance
+        ####################
+
+        # define cluster clustering bin numbers for loops
+        z_bin_loop = range(z_obs_bins_size)
+        lambda_bin_loop = range(lambda_obs_bins_size)
+        rad_bin_loop = range(radius_bins_size)
 
         # cov_g, cov_ng are TWO TERMS OF EQ. 73
         _cov_g = np.zeros(
@@ -339,11 +331,6 @@ class ClusterClustering:
             )
         )
 
-        # define cluster clustering bin numbers for loops
-        z_bin_loop = range(z_obs_bins_size)
-        lambda_bin_loop = range(lambda_obs_bins_size)
-        rad_bin_loop = range(radius_bins_size)
-
         # note : this could be reduced to compute only half of the matrix
         for ind_lambda_i in lambda_bin_loop:
             for ind_lambda_j in lambda_bin_loop:
@@ -359,12 +346,14 @@ class ClusterClustering:
                     ] = (
                         self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
                             shell_window[:, ind_radius, :]
-                            * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
+                            * beta_pk_zbin_lbin_lbin_k[
+                                :, ind_lambda_i, ind_lambda_j, :
+                            ],
                         )
                         * (1 + gamma[:, ind_lambda_i])
-                        * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_i, ind_lambda_i, 0]
+                        * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_i, ind_lambda_i]
                         * (1 + gamma[:, ind_lambda_j])
-                        * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_j, ind_lambda_j, 0]
+                        * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_j, ind_lambda_j]
                         / shell_volume[:, ind_radius]
                     )
 
@@ -386,7 +375,7 @@ class ClusterClustering:
                         ] = self.cluster_statitstics_modeling._integrate_quantity_in_k(
                             shell_window[:, np.newaxis, :, :]
                             * shell_window[:, :, np.newaxis, :]
-                            * (beta_pk_ij + alpha_n_ij)[
+                            * avol_bpk_zbin_lbin_lbin_k[
                                 :,
                                 ind_lambda_i,
                                 ind_lambda_k,
@@ -394,7 +383,7 @@ class ClusterClustering:
                                 np.newaxis,
                                 :,
                             ]
-                            * (beta_pk_ij + alpha_n_ij)[
+                            * avol_bpk_zbin_lbin_lbin_k[
                                 :,
                                 ind_lambda_j,
                                 ind_lambda_h,
@@ -415,7 +404,7 @@ class ClusterClustering:
             :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis
         ]
 
-        # cov_xi(lambda_i, lambda_j, lambda_k, lambda_l) = cov_xi(lambda_j, lambda_i, lambda_l, lambda_k)
+        # cov_xi(l_obs_i, l_obs_j, l_obs_k, l_obs_l) = cov_xi(l_obs_j, l_obs_i, l_obs_l, l_obs_k)
         # so reshape and keep only two of them
         triangle_indexes = np.triu_indices(lambda_obs_bins_size)
         # simplify first pair
@@ -428,9 +417,9 @@ class ClusterClustering:
         ]
 
         ### EQ. 89 + RESHAPE according to 2ptCF ###
-        # Current covariance is shape (nz, nl_red, nl_red, nrad, nrad),
-        # make it (nz, nz, nl_red, nl_red, nrad, nrad), being diagonal in (nz, nz)
-        # """
+        # Current covariance is shape (z_obs, l_obs, l_obs, radius, radius),
+        # make it (z_obs, z_obs, l_obs, l_obs, radius, radius),
+        # being diagonal in (z_obs, z_obs)
         cov_clustering_zbin_lbin_rbin = (
             np.identity(z_obs_bins_size)[
                 :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis
