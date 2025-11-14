@@ -212,11 +212,7 @@ class ClusterStatisticsModeling:
             counts in a richness redshift bin
         """
         # computes counts in a richness redshift bin
-        return simps(
-            quantity,
-            x=self.kernel_tables["ztrue"],
-            axis=0,
-        )
+        return simps(quantity, x=self.kernel_tables["ztrue"], axis=0)
 
     def _integrate_quantity_in_k(self, quantity):
         """Integrates the quantity in k.
@@ -233,10 +229,7 @@ class ClusterStatisticsModeling:
             Quantity integrated in k, dimension same as input
             minus the last one.
         """
-        return simps(
-            quantity,
-            x=self.kernel_tables["k"],
-        )
+        return simps(quantity, x=self.kernel_tables["k"])
 
     # -------------------------------------
     # external integration functions

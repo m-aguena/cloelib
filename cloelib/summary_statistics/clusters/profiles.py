@@ -54,7 +54,7 @@ class ClusterWeakLensing:
         self.z_tab_sig = 31
 
     def compute_binned_profile(self, z_obs_bins, lambda_obs_bins, radius_bins):
-        """compute reduced shear.
+        """Compute excess surface density.
 
         Parameters
         ----------
@@ -67,8 +67,8 @@ class ClusterWeakLensing:
 
         Returns
         -------
-        gt_zbin_lbin_rbin : numpy.ndarray
-            Reduced shear in redshift, richness, and radial bins.
+        deltasigma_zbin_lbin_rbin : numpy.ndarray
+            Excess surface density in redshift, richness, and radial bins.
         """
 
         ############################################
@@ -127,19 +127,19 @@ class ClusterWeakLensing:
             )
 
         # compute profile
-        gt_zbin_lbin_rbin = np.zeros(
+        deltasigma_zbin_lbin_rbin = np.zeros(
             (z_obs_bins_size, lambda_obs_bins_size, radius_bins_size)
         )
         for ind_radius in range(radius_bins_size):
-            gt_lbdobs_z = self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+            deltasigma_lbin_rbin_z = self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 p_lbin_m_z * excess_surface_mass_density[:, :, ind_radius]
             )
-            gt_zbin_lbin_rbin[:, :, ind_radius] = (
+            deltasigma_zbin_lbin_rbin[:, :, ind_radius] = (
                 self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
                     m_sig_crit_m1[:, np.newaxis, :]
-                    * gt_lbdobs_z[np.newaxis, :, :]
+                    * deltasigma_lbin_rbin_z[np.newaxis, :, :]
                     * dvdz_zbin_lbin_z
                 )
                 / nc_zbin_lbin
             )
-        return gt_zbin_lbin_rbin
+        return deltasigma_zbin_lbin_rbin

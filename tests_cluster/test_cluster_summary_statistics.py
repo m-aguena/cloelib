@@ -165,7 +165,7 @@ def get_values():
         counts_intermediate_products_zbin_lbin["p_lbin_m_z"],
         counts_intermediate_products_zbin_lbin["dvdz_zbin_lbin_z"],
     )
-    gt_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_profile(
+    deltasigma_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_profile(
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
@@ -186,7 +186,7 @@ def get_values():
     )
     return (
         nc_zbin_lbin,
-        gt_zbin_lbin_rbin,
+        deltasigma_zbin_lbin_rbin,
         clustering_zbin_lbin_rbin,
         cov_nc_zbin_lbin,
         cov_clustering_zbin_lbin_rbin,
@@ -196,15 +196,17 @@ def get_values():
 def test_clustersummmarystatitistics():
     (
         nc_zbin_lbin,
-        gt_zbin_lbin_rbin,
+        deltasigma_zbin_lbin_rbin,
         clustering_zbin_lbin_rbin,
         cov_nc_zbin_lbin,
         cov_clustering_zbin_lbin_rbin,
     ) = get_values()
 
-    assert_allclose(nc_zbin_lbin, benchmark_values.nc_ref, rtol=1e-2)
+    assert_allclose(nc_zbin_lbin, benchmark_values.nc, rtol=1e-2)
 
-    assert_allclose(gt_zbin_lbin_rbin[0:2], benchmark_values.gt, rtol=1e-2)
+    assert_allclose(
+        deltasigma_zbin_lbin_rbin[0:2], benchmark_values.deltasigma, rtol=1e-2
+    )
 
     assert_allclose(
         clustering_zbin_lbin_rbin[0:2], benchmark_values.clustering, rtol=1e-2
