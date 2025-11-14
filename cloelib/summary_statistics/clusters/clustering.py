@@ -158,36 +158,6 @@ class ClusterClustering:
 
         return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
 
-    def _compute_clustering(self, shell_window, Pk_lambdai_lambdaj):
-        """Computes the 3D two-point correlation function.
-
-        Parameters
-        ----------
-        shell_window : numpy.ndarray
-            Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
-        Pk_lambdai_lambdaj : numpy.ndarray
-            Power spectrum ???
-
-        Returns
-        -------
-        clustering_zbin_lbin_rbin : numpy.ndarray
-            Two point correlation function in richness, redshift and radial bins
-        """
-        # compute 2point correlation function (z_obs, l_obs, l_obs, radius)
-        clustering_zbin_lbin_rbin_buf = (
-            self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
-                shell_window[:, np.newaxis, np.newaxis, :, :]
-                * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
-            )
-        )
-
-        # xi(lambda_i, lambda_j) = xi(lambda_j, lambda_i),  so reshape and keep only one of them
-        lambda_obs_bins_size = Pk_lambdai_lambdaj.shape[1]
-        triangle_indexes = np.triu_indices(lambda_obs_bins_size)
-        return clustering_zbin_lbin_rbin_buf[
-            :, triangle_indexes[0], triangle_indexes[1], :
-        ]
-
     def compute_binned_clustering(
         self,
         z_obs_bins,
@@ -233,9 +203,27 @@ class ClusterClustering:
             radius_bins,
         )
 
-        clustering_zbin_lbin_rbin = self._compute_clustering(
-            shell_window, Pk_lambdai_lambdaj
+        ################################################
+        # Computes the 3D two-point correlation function
+        ################################################
+
+        # compute 2point correlation function (z_obs, l_obs, l_obs, radius)
+        _clustering_zbin_lbin_rbin_buf = (
+            self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
+                shell_window[:, np.newaxis, np.newaxis, :, :]
+                * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
+            )
         )
+
+        # xi(lambda_i, lambda_j) = xi(lambda_j, lambda_i) so we reshape
+        # and keep only one of them, with a (z_obs, l_obs, radius) output
+        triangle_indexes = np.triu_indices(len(lambda_obs_bins) - 1)
+        clustering_zbin_lbin_rbin = _clustering_zbin_lbin_rbin_buf[
+            :, triangle_indexes[0], triangle_indexes[1], :
+        ]
+
+        if not return_intermediate_products:
+            return clustering_zbin_lbin_rbin
 
         intermediate_products_zbin_lbin = {
             "Pk_lambdai_lambdaj": Pk_lambdai_lambdaj,
@@ -244,9 +232,7 @@ class ClusterClustering:
             "shell_volume": shell_volume,
             "volume_zob": volume_zob,
         }
-        if return_intermediate_products:
-            return clustering_zbin_lbin_rbin, intermediate_products_zbin_lbin
-        return clustering_zbin_lbin_rbin
+        return clustering_zbin_lbin_rbin, intermediate_products_zbin_lbin
 
     # ----------------------
     # clustering covariance
