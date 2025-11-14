@@ -102,23 +102,23 @@ class ClusterCounts:
         # Get cluster statistics modeling quantities
         ############################################
 
-        # volume element in each redshift and richness bin shape (z_obs, lambda_obs, z)
+        # volume element in each redshift and richness bin shape : (z_obs, l_obs, z)
         dvdz_zbin_lbin_z = self.cluster_statitstics_modeling.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
-        # integral of p_lbin_m_z*dndm_m_z on mass (l_obs, mass, z)
+        # P(lambda_obs_bins|M, z) : (l_obs, mass, z)
         p_lbin_m_z = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
-        # integral of p_lbin_m_z*dndm_m_z on mass (l_obs, z)
+        # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (l_obs, z)
         p_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 p_lbin_m_z
             )
         )
-        # cluster counts (z_obs, l_obs)
+        # cluster counts : (z_obs, l_obs)
         nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
             p_lbin_z[np.newaxis, :] * dvdz_zbin_lbin_z
         )
@@ -207,13 +207,13 @@ class ClusterCounts:
         # Get cluster statistics modeling quantities
         ############################################
 
-        # integral of p_lbin_m_z*dndm_m_z*bias_m_z on mass (l_obs, z)
+        # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
         _b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 p_lbin_m_z * self.cluster_statitstics_modeling.kernel_tables["bias_m_z"]
             )
         )
-        # cluster integrated bias (z_obs, l_obs)
+        # cluster integrated bias : (z_obs, l_obs)
         hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
             _b_lbin_z[np.newaxis, :] * dvdz_zbin_lbin_z
         )
