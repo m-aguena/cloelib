@@ -59,7 +59,7 @@ class ClusterClustering:
 
         Returns
         -------
-        Pk_lambdai_lambdaj : numpy.ndarray
+        pk_zbin_lbin_lbin_k : numpy.ndarray
             Power spectrum ???
         """
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
@@ -93,11 +93,11 @@ class ClusterClustering:
         )
 
         # Compute output Pk (z_obs, l_obs, l_obs, k)
-        Pk_lambdai_lambdaj = (
+        pk_zbin_lbin_lbin_k = (
             sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
             * sqrt_Pk_zbin_lbin[:, np.newaxis, :, :]
         )
-        return Pk_lambdai_lambdaj
+        return pk_zbin_lbin_lbin_k
 
     def compute_binned_clustering(
         self,
@@ -126,11 +126,11 @@ class ClusterClustering:
             Returned only when `return_intermediate_products` is true.
             Contains :
 
-                * Pk_lambdai_lambdaj (numpy.ndarray) : Power spectrum ???
-                * one_over_n_lambdai_lambdaj (numpy.ndarray) : volume_zob / nc_int_lbdobs_z in each redshift bin
+                * pk_zbin_lbin_lbin_k (numpy.ndarray) : Power spectrum ???
                 * shell_window (numpy.ndarray) : Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
                 * shell_volume (numpy.ndarray) : Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
-                * volume_zob (numpy.ndarray) : Observed volume in each redshift bin
+                * dvdz_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
+                * nc_zbin_lbin (numpy.ndarray) :  Number counts in redshift and richness bins
         """
 
         ############################################
@@ -173,7 +173,7 @@ class ClusterClustering:
 
         # matter power spectrum + IR resummation : (z_obs, l_obs, l_obs, k)
         _lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
-        Pk_lambdai_lambdaj = self._compute_pk_ir_resummation_unnormalized(
+        pk_zbin_lbin_lbin_k = self._compute_pk_ir_resummation_unnormalized(
             _lambda_obs_mid, dvdz_zbin_lbin_z, p_lbin_z, b_lbin_z
         ) / (
             nc_zbin_lbin[:, np.newaxis, :, np.newaxis]
@@ -190,7 +190,7 @@ class ClusterClustering:
         _clustering_zbin_lbin_rbin_buf = (
             self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
                 shell_window[:, np.newaxis, np.newaxis, :, :]
-                * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
+                * pk_zbin_lbin_lbin_k[:, :, :, np.newaxis, :]
             )
         )
 
@@ -205,7 +205,7 @@ class ClusterClustering:
             return clustering_zbin_lbin_rbin
 
         intermediate_products_zbin_lbin = {
-            "Pk_lambdai_lambdaj": Pk_lambdai_lambdaj,
+            "pk_zbin_lbin_lbin_k": pk_zbin_lbin_lbin_k,
             "shell_window": shell_window,
             "shell_volume": shell_volume,
             "nc_zbin_lbin": nc_zbin_lbin,
@@ -221,8 +221,8 @@ class ClusterClustering:
         self,
         alpha,
         beta,
-        Pk_lambdai_lambdaj,
-        one_over_n_lambdai_lambdaj,
+        pk_zbin_lbin_lbin_k,
+        vol_over_nc_zbin_lbin_lbin,
     ):
         """Computes mean alpha and mean beta*Pk  in richness bins
 
@@ -248,14 +248,14 @@ class ClusterClustering:
             beta[:, :, np.newaxis, np.newaxis] * beta[:, np.newaxis, :, np.newaxis]
         )
 
-        beta_pk_ij = beta_ij * Pk_lambdai_lambdaj
-        alpha_n_ij = alpha_ij * one_over_n_lambdai_lambdaj
+        beta_pk_ij = beta_ij * pk_zbin_lbin_lbin_k
+        alpha_n_ij = alpha_ij * vol_over_nc_zbin_lbin_lbin
 
         return alpha_n_ij, beta_pk_ij
 
     def compute_cov(
         self,
-        Pk_lambdai_lambdaj,
+        pk_zbin_lbin_lbin_k,
         shell_window,
         shell_volume,
         dvdz_zbin_lbin_z,
@@ -265,7 +265,7 @@ class ClusterClustering:
 
         Parameters
         ----------
-        Pk_lambdai_lambdaj : numpy.ndarray
+        pk_zbin_lbin_lbin_k : numpy.ndarray
             Power spectrum ???
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         shell_window : numpy.ndarray
@@ -290,12 +290,12 @@ class ClusterClustering:
         _, radius_bins_size = shell_volume.shape
 
         # Compute observed volume in each redshift bin : (z_obs, lambda_obs)
-        volume_zob = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+        vol_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
             dvdz_zbin_lbin_z
         )
         # Compute output shot-noise terms : (z_obs, l_obs, l_obs, 1)
-        one_over_n_lambdai_lambdaj = (
-            volume_zob[:, :, np.newaxis]
+        vol_over_nc_zbin_lbin_lbin = (
+            vol_zbin_lbin[:, :, np.newaxis]
             / nc_zbin_lbin[:, :, np.newaxis]
             * np.identity(lambda_obs_bins_size)[np.newaxis, :, :]
         )[:, :, :, np.newaxis]
@@ -310,8 +310,8 @@ class ClusterClustering:
         alpha_n_ij, beta_pk_ij = self._compute_alpha_beta(
             alpha=np.zeros((z_obs_bins_size, lambda_obs_bins_size)),
             beta=np.ones((z_obs_bins_size, lambda_obs_bins_size)),
-            Pk_lambdai_lambdaj=Pk_lambdai_lambdaj,
-            one_over_n_lambdai_lambdaj=one_over_n_lambdai_lambdaj,
+            pk_zbin_lbin_lbin_k=pk_zbin_lbin_lbin_k,
+            vol_over_nc_zbin_lbin_lbin=vol_over_nc_zbin_lbin_lbin,
         )
         gamma = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
 
@@ -362,9 +362,9 @@ class ClusterClustering:
                             * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
                         )
                         * (1 + gamma[:, ind_lambda_i])
-                        * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
+                        * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_i, ind_lambda_i, 0]
                         * (1 + gamma[:, ind_lambda_j])
-                        * one_over_n_lambdai_lambdaj[:, ind_lambda_j, ind_lambda_j, 0]
+                        * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_j, ind_lambda_j, 0]
                         / shell_volume[:, ind_radius]
                     )
 
@@ -411,7 +411,9 @@ class ClusterClustering:
             + (_cov_g + _cov_ng).transpose(
                 0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_clustering bins
             )
-        ) / volume_zob[:, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis]
+        ) / vol_zbin_lbin[
+            :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis
+        ]
 
         # cov_xi(lambda_i, lambda_j, lambda_k, lambda_l) = cov_xi(lambda_j, lambda_i, lambda_l, lambda_k)
         # so reshape and keep only two of them
