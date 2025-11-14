@@ -132,9 +132,11 @@ class ClusterClustering:
                 * shell_volume (numpy.ndarray) : Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
                 * volume_zob (numpy.ndarray) : Observed volume in each redshift bin
         """
+
         ############################################
         # Get cluster statistics modeling quantities
         ############################################
+
         # volume element in each redshift and richness bin shape (z_obs, lambda_obs, z)
         dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, self.z_tab_sig
@@ -145,13 +147,13 @@ class ClusterClustering:
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
-        # integral of Plob_M_z*dndm_z on mass (l_obs, mass, z)
+        # integral of Plob_M_z*dndm_z on mass (l_obs, z)
         p_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 _p_lbin_M_z
             )
         )
-        # integral of Plob_M_z*dndm_z*bias_z on mass.
+        # integral of Plob_M_z*dndm_z*bias_z on mass (l_obs, z)
         b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 _p_lbin_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
@@ -353,12 +355,9 @@ class ClusterClustering:
                         ind_radius,
                         ind_radius,
                     ] = (
-                        simps(
-                            self.cluster_statitstics_modeling.kernel_tables["k"] ** 2.0
-                            / (2.0 * np.pi**2.0)
-                            * shell_window[:, ind_radius, :]
+                        self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
+                            shell_window[:, ind_radius, :]
                             * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
-                            x=self.cluster_statitstics_modeling.kernel_tables["k"],
                         )
                         * (1 + gamma[:, ind_lambda_i])
                         * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
@@ -379,10 +378,8 @@ class ClusterClustering:
                             ind_lambda_h,
                             :,
                             :,
-                        ] = simps(
-                            self.cluster_statitstics_modeling.kernel_tables["k"] ** 2.0
-                            / (2.0 * np.pi**2.0)
-                            * shell_window[:, np.newaxis, :, :]
+                        ] = self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
+                            shell_window[:, np.newaxis, :, :]
                             * shell_window[:, :, np.newaxis, :]
                             * (beta_pk_ij + alpha_n_ij)[
                                 :,
@@ -399,9 +396,7 @@ class ClusterClustering:
                                 np.newaxis,
                                 np.newaxis,
                                 :,
-                            ],
-                            x=self.cluster_statitstics_modeling.kernel_tables["k"],
-                            axis=-1,
+                            ]
                         )
 
         # Compute the covariance
