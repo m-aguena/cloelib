@@ -158,7 +158,7 @@ class ClusterStatisticsModeling:
         Returns
         -------
         dv_dzob_bin : numpy.ndarray
-            Observed volume element dV/dz_ob in the redshift bin
+            Observed volume element dV/dz in the redshift bin
         """
 
         # P(zob|ztr)
@@ -170,7 +170,7 @@ class ClusterStatisticsModeling:
             x=z_tab,
             axis=0,
         )
-        # observed volume element dV/dz_ob
+        # observed volume element dV/dz
         dv_dzob_bin = (
             self.kernel_tables["dvdzdOmega_z"]
             * p_zob_z
@@ -179,14 +179,12 @@ class ClusterStatisticsModeling:
         )
         return dv_dzob_bin
 
-    def _integrate_in_mass_with_hmf(self, kernel):
-        """Integrates compute counts bin.
-        Compute cluster counts in a single redshift and richness bin
-        Performs integral over z_true of the the volume*p_lbin_z
+    def _integrate_in_mass_with_hmf(self, quantity):
+        """Integrates quantitty in mass with HMF.
 
         Parameters
         ----------
-        kernel : numpy.ndarray
+        quantity : numpy.ndarray
             Kernel to be integrated, must be shape (ztrue, mass).
 
         Returns
@@ -195,17 +193,17 @@ class ClusterStatisticsModeling:
             counts in a richness redshift bin
         """
         return simps(
-            kernel * self.kernel_tables["dndm_m_z"],
+            quantity * self.kernel_tables["dndm_m_z"],
             x=self.kernel_tables["mass"],
             axis=1,
         )
 
-    def _integrate_in_ztrue(self, kernel):
-        """Integrate kernel in volume.
+    def _integrate_in_ztrue(self, quantity):
+        """Integrate quantity in volume.
 
         Parameters
         ----------
-        kernel : numpy.ndarray
+        quantity : numpy.ndarray
             Kernel to be integrated, must be in shape (ztrue).
 
         Returns
@@ -215,7 +213,7 @@ class ClusterStatisticsModeling:
         """
         # computes counts in a richness redshift bin
         return simps(
-            kernel,
+            quantity,
             x=self.kernel_tables["ztrue"],
             axis=0,
         )
@@ -274,7 +272,7 @@ class ClusterStatisticsModeling:
         return integrated_binned_quantity
 
     def integrate_2d_binned_quantity_in_true_redshift(self, binned_quantity):
-        """Integrates in redshift HMF each 2D binned quantity.
+        """Integrates in redshift each 2D binned quantity.
 
         Parameters
         ----------
@@ -321,8 +319,8 @@ class ClusterStatisticsModeling:
     # external cluster statistics functions
     # -------------------------------------
 
-    def compute_binned_volume(self, z_obs_bins, lambda_obs_bins, z_tab_sig):
-        """Computes binned quantities (counts+aux).
+    def compute_binned_volume_element(self, z_obs_bins, lambda_obs_bins, z_tab_sig):
+        """Computes volume element in redshift and richness bins.
 
         Parameters
         ----------
@@ -336,7 +334,7 @@ class ClusterStatisticsModeling:
         Returns
         -------
         dvdz_zbin_lbin_z : numpy.ndarray
-            Observed volume element (dV/dz_ob) in each redshift and richness bin
+            Observed volume element (dV/dz) in each redshift and richness bin
             shape (z_obs, lambda_obs, z) with (z) in kenel_tables.
         """
 
@@ -428,11 +426,11 @@ class ClusterStatisticsModeling:
             Contains :
 
                 * p_lbin_m_z (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
-                * dvdz_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
+                * dvdz_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz) in each redshift and richness bin
                 * p_lbin_z (numpy.ndarry) : integral of p_lbin_m_z*dndm_m_z on mass.
         """
         # outputs
-        dvdz_zbin_lbin_z = self.compute_binned_volume(
+        dvdz_zbin_lbin_z = self.compute_binned_volume_element(
             z_obs_bins, lambda_obs_bins, z_tab_sig
         )
         p_lbin_m_z = self.compute_binned_lambda_obs_probability(
@@ -463,7 +461,7 @@ class ClusterStatisticsModeling:
         p_lbin_m_z : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
         dvdz_zbin_lbin_z : numpy.ndarray
-            Observed volume element (dV/dz_ob) in each redshift and richness bin
+            Observed volume element (dV/dz) in each redshift and richness bin
 
         Returns
         -------

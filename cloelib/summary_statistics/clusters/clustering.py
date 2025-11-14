@@ -138,8 +138,10 @@ class ClusterClustering:
         ############################################
 
         # volume element in each redshift and richness bin shape : (z_obs, l_obs, z)
-        dvdz_zbin_lbin_z = self.cluster_statitstics_modeling.compute_binned_volume(
-            z_obs_bins, lambda_obs_bins, self.z_tab_sig
+        dvdz_zbin_lbin_z = (
+            self.cluster_statitstics_modeling.compute_binned_volume_element(
+                z_obs_bins, lambda_obs_bins, self.z_tab_sig
+            )
         )
         # P(lambda_obs_bins|M, z) : (l_obs, mass, z)
         _p_lbin_m_z = (
@@ -346,7 +348,6 @@ class ClusterClustering:
         for ind_lambda_i in lambda_bin_loop:
             for ind_lambda_j in lambda_bin_loop:
                 for ind_radius in rad_bin_loop:
-
                     _cov_ng[
                         :,
                         ind_lambda_i,
