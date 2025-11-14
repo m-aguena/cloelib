@@ -162,8 +162,8 @@ def get_values():
     cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
         zed_obs_nc_bins,
         nc_zbin_lbin,
-        counts_intermediate_products_zbin_lbin["Plob_M_z"],
-        counts_intermediate_products_zbin_lbin["dV_dzob"],
+        counts_intermediate_products_zbin_lbin["p_lbin_M_z"],
+        counts_intermediate_products_zbin_lbin["dv_dzob"],
     )
     gt_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_profile(
         z_obs_bins=zed_obs_nc_bins,
