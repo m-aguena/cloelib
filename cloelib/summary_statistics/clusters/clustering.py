@@ -141,22 +141,23 @@ class ClusterClustering:
         dv_dz_zbin_z = self.cluster_statitstics_modeling.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
-        # integral of p_lbin_M_z*dndm_z on mass (l_obs, mass, z)
-        _p_lbin_M_z = (
+        # integral of p_lbin_m_z*dndm_m_z on mass (l_obs, mass, z)
+        _p_lbin_m_z = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
-        # integral of p_lbin_M_z*dndm_z on mass (l_obs, z)
+        # integral of p_lbin_m_z*dndm_m_z on mass (l_obs, z)
         p_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                _p_lbin_M_z
+                _p_lbin_m_z
             )
         )
-        # integral of p_lbin_M_z*dndm_z*bias_z on mass (l_obs, z)
+        # integral of p_lbin_m_z*dndm_m_z*bias_m_z on mass (l_obs, z)
         b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                _p_lbin_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
+                _p_lbin_m_z
+                * self.cluster_statitstics_modeling.kernel_tables["bias_m_z"]
             )
         )
         # cluster counts (z_obs, l_obs)

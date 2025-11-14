@@ -32,10 +32,10 @@ class ClusterStatisticsModeling:
             * mass (np.ndarray) : Values of mass to be used in integrations
             * lambda_true (np.ndarray) : Values of true richness to be used in integrations
             * ztrue (np.ndarray) : Values of true redshift to be used in integrations
-            * Pltrue_M_z(np.ndarray) : Values for P(lambda_true|mass, z)
-            * dvdzdomega_z1z2(np.ndarray) : Values for volume element at each redshift
-            * dndm_z(np.ndarray) : Values for the halo mass function dn/dmdz(mass, z)
-            * bias_z(np.ndarray) : Values for the halo bias halo_bias(mass, z)
+            * p_ltrue_m_z(np.ndarray) : Values for P(lambda_true|mass, z)
+            * dv_dzdomega_z(np.ndarray) : Values for volume element at each redshift
+            * dndm_m_z(np.ndarray) : Values for the halo mass function dn/dmdz(mass, z)
+            * bias_m_z(np.ndarray) : Values for the halo bias halo_bias(mass, z)
     """
 
     def __init__(
@@ -83,20 +83,20 @@ class ClusterStatisticsModeling:
             "lambda_true": integ_lambda_true_arr,  # true richness array
             "ztrue": integ_ztrue_arr,  # true redshift array
             # P(ltr|M,ztr), this quantity is also used by cluster clustering
-            "Pltrue_M_z": self.selectionfunction.P_lnlbd(
+            "p_ltrue_m_z": self.selectionfunction.P_lnlbd(
                 integ_ztrue_arr, integ_mass_arr, integ_lambda_true_arr
             ),
             # volume element at each point of z array
-            "dvdzdomega_z1z2": derived_cosmology.dV_dzdO(
+            "dv_dzdomega_z": derived_cosmology.dV_dzdO(
                 self.halo_statistics.perturbations.background,
                 integ_ztrue_arr,
                 hubble_units=True,
             ),
             # hmf at the center of observed redshift bins
-            "dndm_z": self.hmfbias.dn_dm(integ_ztrue_arr, integ_mass_arr),
+            "dndm_m_z": self.hmfbias.dn_dm(integ_ztrue_arr, integ_mass_arr),
             # halo bias at the center of observed redshift bins
             # only work for virial overdensity
-            "bias_z": self.hmfbias.bias(integ_ztrue_arr, integ_mass_arr),
+            "bias_m_z": self.hmfbias.bias(integ_ztrue_arr, integ_mass_arr),
         }
 
     def _compute_p_lob_m_z_in_bin(self, lambda_min, lambda_max, integral_n_steps=31):
@@ -133,7 +133,7 @@ class ClusterStatisticsModeling:
 
         # P(lambda_obs|mass, z)
         p_lob_m_z_in_bin = simps(
-            self.kernel_tables["Pltrue_M_z"][:, :, :] * p_lob_l_z[:, np.newaxis, :],
+            self.kernel_tables["p_ltrue_m_z"][:, :, :] * p_lob_l_z[:, np.newaxis, :],
             x=self.kernel_tables["lambda_true"],
             axis=-1,
         )
@@ -171,7 +171,7 @@ class ClusterStatisticsModeling:
         )
         # observed volume element dV/dz_ob
         dv_dzob_bin = (
-            self.kernel_tables["dvdzdomega_z1z2"]
+            self.kernel_tables["dv_dzdomega_z"]
             * Pzob_z
             * (self.area)
             * (np.pi**2.0 / 180.0**2.0)
@@ -194,7 +194,7 @@ class ClusterStatisticsModeling:
             counts in a richness redshift bin
         """
         return simps(
-            kernel * self.kernel_tables["dndm_z"],
+            kernel * self.kernel_tables["dndm_m_z"],
             x=self.kernel_tables["mass"],
             axis=1,
         )
@@ -354,14 +354,14 @@ class ClusterStatisticsModeling:
 
         Returns
         -------
-        p_lbin_M_z : numpy.ndarray
+        p_lbin_m_z : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, z)
             with masses and redshifts being the values in self.kernel_tables.
             Dimentions: (lobs_bin, mass, z)
         """
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
-        p_lbin_M_z = np.zeros(
+        p_lbin_m_z = np.zeros(
             (
                 lambda_obs_bins_size,
                 self.kernel_tables["ztrue"].size,
@@ -369,12 +369,12 @@ class ClusterStatisticsModeling:
             )
         )
         for ind_lambda in range(lambda_obs_bins_size):
-            p_lbin_M_z[ind_lambda] = self._compute_p_lob_m_z_in_bin(
+            p_lbin_m_z[ind_lambda] = self._compute_p_lob_m_z_in_bin(
                 lambda_obs_bins[ind_lambda],
                 lambda_obs_bins[ind_lambda + 1],
                 integral_n_steps=l_m_tab_sig[ind_lambda],
             )
-        return p_lbin_M_z
+        return p_lbin_m_z
 
     def compute_binned_counts(
         self,
@@ -410,18 +410,18 @@ class ClusterStatisticsModeling:
             Returned only when `return_intermediate_products` is true.
             Contains :
 
-                * p_lbin_M_z (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
+                * p_lbin_m_z (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
                 * dv_dz_zbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
-                * nc_lbdobs_z (numpy.ndarry) : integral of p_lbin_M_z*dndm_z on mass.
+                * nc_lbdobs_z (numpy.ndarry) : integral of p_lbin_m_z*dndm_m_z on mass.
         """
         # outputs
         dv_dz_zbin_z = self.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, z_tab_sig
         )
-        p_lbin_M_z = self.compute_binned_lambda_obs_probability(
+        p_lbin_m_z = self.compute_binned_lambda_obs_probability(
             lambda_obs_bins, l_m_tab_sig
         )
-        p_lbin_z = self.integrate_binned_quantity_in_mass_w_hmf(p_lbin_M_z)
+        p_lbin_z = self.integrate_binned_quantity_in_mass_w_hmf(p_lbin_m_z)
 
         nc_zbin_lbin = self.integrate_2d_binned_quantity_in_true_redshift(
             p_lbin_z[np.newaxis, :] * dv_dz_zbin_z
@@ -429,21 +429,21 @@ class ClusterStatisticsModeling:
         if not return_intermediate_products:
             return nc_zbin_lbin
         intermediate_products_zbin_lbin = {
-            "p_lbin_M_z": p_lbin_M_z,
+            "p_lbin_m_z": p_lbin_m_z,
             "dv_dz_zbin_z": dv_dz_zbin_z,
             "nc_lbdobs_z": p_lbin_z,
         }
         return nc_zbin_lbin, intermediate_products_zbin_lbin
 
     def compute_binned_bias(
-        self, p_lbin_M_z, dv_dz_zbin_z, return_intermediate_products=True
+        self, p_lbin_m_z, dv_dz_zbin_z, return_intermediate_products=True
     ):
         """compute bias.
         Compute halo bias used in counts covariance in bins of redshift and richness
 
         Parameters
         ----------
-        p_lbin_M_z : numpy.ndarray
+        p_lbin_m_z : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
         dv_dz_zbin_z : numpy.ndarray
             Observed volume element (dV/dz_ob) in each redshift and richness bin
@@ -456,11 +456,11 @@ class ClusterStatisticsModeling:
             Dictionary with intermidate products that can be used for other computations.
             Contains :
 
-                * hb_lbdobs_z (numpy.ndarry) : integral of p_lbin_M_z*dndm_z*bias_z on mass.
+                * hb_lbdobs_z (numpy.ndarry) : integral of p_lbin_m_z*dndm_m_z*bias_m_z on mass.
         """
         # outputs
         hb_lbdobs_z = self.integrate_binned_quantity_in_mass_w_hmf(
-            p_lbin_M_z * self.kernel_tables["bias_z"]
+            p_lbin_m_z * self.kernel_tables["bias_m_z"]
         )
         hbias_zbin_lbin = self.integrate_2d_binned_quantity_in_true_redshift(
             hb_lbdobs_z[np.newaxis, :] * dv_dz_zbin_z

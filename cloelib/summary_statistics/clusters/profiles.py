@@ -79,16 +79,16 @@ class ClusterWeakLensing:
         dv_dz_zbin_z = self.cluster_statitstics_modeling.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
-        # integral of p_lbin_M_z*dndm_z on mass (l_obs, mass, z)
-        p_lbin_M_z = (
+        # integral of p_lbin_m_z*dndm_m_z on mass (l_obs, mass, z)
+        p_lbin_m_z = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
-        # integral of p_lbin_M_z*dndm_z on mass (l_obs, z)
+        # integral of p_lbin_m_z*dndm_m_z on mass (l_obs, z)
         _p_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                p_lbin_M_z
+                p_lbin_m_z
             )
         )
         # cluster counts (z_obs, l_obs)
@@ -130,7 +130,7 @@ class ClusterWeakLensing:
         )
         for ind_radius in range(radius_bins_size):
             gt_lbdobs_z = self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                p_lbin_M_z * excess_surface_mass_density[:, :, ind_radius]
+                p_lbin_m_z * excess_surface_mass_density[:, :, ind_radius]
             )
             gt_zbin_lbin_rbin[:, :, ind_radius] = (
                 self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
