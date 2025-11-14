@@ -53,7 +53,7 @@ class ClusterWeakLensing:
         self.l_m_tab_sig = [31, 31, 31, 51]
         self.z_tab_sig = 31
 
-    def compute_binned_profile(self, z_obs_bins, lambda_obs_bins, radius_bins):
+    def compute_binned_deltasigma(self, z_obs_bins, lambda_obs_bins, radius_bins):
         """Compute excess surface density.
 
         Parameters
