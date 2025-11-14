@@ -98,6 +98,7 @@ class ClusterStatisticsModeling:
             # only work for virial overdensity
             "bias_m_z": self.hmfbias.bias(integ_ztrue_arr, integ_mass_arr),
         }
+        self.kernel_tables["dk"] = self.kernel_tables["k"] ** 2.0 / (2.0 * np.pi**2)
 
     def _compute_p_lob_m_z_in_bin(self, lambda_min, lambda_max, integral_n_steps=31):
         """Computes the probability in a observed richness bin given true mass
@@ -219,6 +220,26 @@ class ClusterStatisticsModeling:
             axis=0,
         )
 
+    def _integrate_quantity_in_k(self, quantity):
+        """Integrates the quantity in k.
+
+        Parameters
+        ----------
+        quantity : numpy.ndarray
+            Quantity to be integrated in k space. Can be multidimensional, but
+            the the last dimension must be of size (k) from self.kernel_tables.
+
+        Returns
+        -------
+        integrated_quantity : numpy.ndarray
+            Quantity integrated in k, dimension same as input
+            minus the last one.
+        """
+        return simps(
+            quantity,
+            x=self.kernel_tables["k"],
+        )
+
     # -------------------------------------
     # external integration functions
     # -------------------------------------
@@ -294,11 +315,7 @@ class ClusterStatisticsModeling:
             Quantity integrated in k space, dimension same as input
             minus the last one.
         """
-        return simps(
-            (self.kernel_tables["k"] ** 2.0 * quantity / (2.0 * np.pi**2)),
-            x=self.kernel_tables["k"],
-            # axis=-1,
-        )
+        return self._integrate_quantity_in_k(quantity * self.kernel_tables["dk"])
 
     # -------------------------------------
     # external cluster statistics functions

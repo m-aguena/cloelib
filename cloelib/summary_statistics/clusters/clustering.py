@@ -370,6 +370,9 @@ class ClusterClustering:
                 for ind_lambda_k in lambda_bin_loop:
                     for ind_lambda_h in lambda_bin_loop:
 
+                        # somehow using _integrate_quantity_in_k is much faster then
+                        # integrate_quantity_in_k_space here, to be investigated
+
                         # gaussian term
                         _cov_g[
                             :,
@@ -379,7 +382,7 @@ class ClusterClustering:
                             ind_lambda_h,
                             :,
                             :,
-                        ] = self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
+                        ] = self.cluster_statitstics_modeling._integrate_quantity_in_k(
                             shell_window[:, np.newaxis, :, :]
                             * shell_window[:, :, np.newaxis, :]
                             * (beta_pk_ij + alpha_n_ij)[
@@ -398,6 +401,7 @@ class ClusterClustering:
                                 np.newaxis,
                                 :,
                             ]
+                            * self.cluster_statitstics_modeling.kernel_tables["dk"],
                         )
 
         # Compute the covariance
