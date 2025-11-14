@@ -179,10 +179,10 @@ def get_values():
     )
     cov_clustering_zbin_lbin_rbin = cluster_clustering_statistics.compute_cov(
         clustering_intermediate_products_zbin_lbin["Pk_lambdai_lambdaj"],
-        clustering_intermediate_products_zbin_lbin["one_over_n_lambdai_lambdaj"],
         clustering_intermediate_products_zbin_lbin["shell_window"],
         clustering_intermediate_products_zbin_lbin["shell_volume"],
-        clustering_intermediate_products_zbin_lbin["volume_zob"],
+        clustering_intermediate_products_zbin_lbin["dv_dzob"],
+        clustering_intermediate_products_zbin_lbin["nc_zbin_lbin"],
     )
     return (
         nc_zbin_lbin,
