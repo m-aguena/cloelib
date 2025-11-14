@@ -70,34 +70,39 @@ class ClusterWeakLensing:
         gt_zbin_lbin_rbin : numpy.ndarray
             Reduced shear in redshift, richness, and radial bins.
         """
-        lambda_obs_bins_size = len(lambda_obs_bins) - 1
-        z_obs_bins_size = len(z_obs_bins) - 1
-        radius_bins_size = len(radius_bins) - 1
 
-        # output
-        gt_zbin_lbin_rbin = np.zeros(
-            (z_obs_bins_size, lambda_obs_bins_size, radius_bins_size)
-        )
+        ############################################
+        # Get cluster statistics modeling quantities
+        ############################################
 
-        # get cluster statistics modeling quantities
+        # volume element in each redshift and richness bin shape (z_obs, lambda_obs, z)
         dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
+        # integral of p_lbin_M_z*dndm_z on mass (l_obs, mass, z)
         p_lbin_M_z = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
+        # integral of p_lbin_M_z*dndm_z on mass (l_obs, z)
         _p_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 p_lbin_M_z
             )
-        )  # integral of Plob_M_z*dndm_z on mass.
-
-        # cluster counts
+        )
+        # cluster counts (z_obs, l_obs)
         nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
             _p_lbin_z[np.newaxis, :] * dv_dzob
         )
+
+        ########################
+        # Compute binned profile
+        ########################
+
+        lambda_obs_bins_size = len(lambda_obs_bins) - 1
+        z_obs_bins_size = len(z_obs_bins) - 1
+        radius_bins_size = len(radius_bins) - 1
 
         # pre-compute excess surface mass density
         excess_surface_mass_density = self.profile.excess_surface_mass_density(
@@ -119,7 +124,10 @@ class ClusterWeakLensing:
                 ind_z,
             )
 
-        # compute profile quantities
+        # compute profile
+        gt_zbin_lbin_rbin = np.zeros(
+            (z_obs_bins_size, lambda_obs_bins_size, radius_bins_size)
+        )
         for ind_radius in range(radius_bins_size):
             gt_lbdobs_z = self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 p_lbin_M_z * excess_surface_mass_density[:, :, ind_radius]
@@ -132,5 +140,4 @@ class ClusterWeakLensing:
                 )
                 / nc_zbin_lbin
             )
-
         return gt_zbin_lbin_rbin

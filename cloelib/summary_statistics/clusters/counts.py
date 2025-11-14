@@ -178,7 +178,6 @@ class ClusterCounts:
             )
             # fill 2nd half of symmetrical matrix
             spatial_cov[: (ind_z + 1), ind_z] = spatial_cov[ind_z, : (ind_z + 1)]
-
         return spatial_cov
 
     def compute_cov(self, z_obs_bins, nc_zbin_lbin, p_lbin_M_z, dv_dzob):
@@ -207,6 +206,7 @@ class ClusterCounts:
         ############################################
         # Get cluster statistics modeling quantities
         ############################################
+
         # integral of p_lbin_M_z*dndm_z*bias_z on mass (l_obs, z)
         _b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
@@ -217,6 +217,10 @@ class ClusterCounts:
         hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
             _b_lbin_z[np.newaxis, :] * dv_dzob
         )
+
+        ####################
+        # Compute covraiance
+        ####################
 
         # spatial component of covariance (z_obs, z_obs)
         spatial_cov = self._compute_spatial_cov(z_obs_bins)
