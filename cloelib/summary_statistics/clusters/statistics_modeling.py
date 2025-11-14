@@ -33,7 +33,7 @@ class ClusterStatisticsModeling:
             * lambda_true (np.ndarray) : Values of true richness to be used in integrations
             * ztrue (np.ndarray) : Values of true redshift to be used in integrations
             * p_ltrue_m_z(np.ndarray) : Values for P(lambda_true|mass, z)
-            * dv/dzdOmega(z)(np.ndarray) : Values for volume element at each redshift
+            * dvdzdOmega_z(np.ndarray) : Values for volume element at each redshift
             * dndm_m_z(np.ndarray) : Values for the halo mass function dn/dmdz(mass, z)
             * bias_m_z(np.ndarray) : Values for the halo bias halo_bias(mass, z)
     """
@@ -82,12 +82,12 @@ class ClusterStatisticsModeling:
             "mass": integ_mass_arr,  # mass array in Msun h^-1
             "lambda_true": integ_lambda_true_arr,  # true richness array
             "ztrue": integ_ztrue_arr,  # true redshift array
-            # P(ltr|M,ztr), this quantity is also used by cluster clustering
+            # P(ltr|M,z), this quantity is also used by cluster clustering
             "p_ltrue_m_z": self.selectionfunction.P_lnlbd(
                 integ_ztrue_arr, integ_mass_arr, integ_lambda_true_arr
             ),
             # volume element at each point of z array
-            "dv/dzdOmega(z)": derived_cosmology.dV_dzdO(
+            "dvdzdOmega_z": derived_cosmology.dV_dzdO(
                 self.halo_statistics.perturbations.background,
                 integ_ztrue_arr,
                 hubble_units=True,
@@ -163,7 +163,7 @@ class ClusterStatisticsModeling:
 
         # P(zob|ztr)
         z_tab = np.linspace(z_min, z_max, integral_n_steps)
-        Pzob_z = simps(
+        p_zob_z = simps(
             self.selectionfunction.P_zobs_z(
                 z_tab, lambda_min, self.kernel_tables["ztrue"]
             ),
@@ -172,8 +172,8 @@ class ClusterStatisticsModeling:
         )
         # observed volume element dV/dz_ob
         dv_dzob_bin = (
-            self.kernel_tables["dv/dzdOmega(z)"]
-            * Pzob_z
+            self.kernel_tables["dvdzdOmega_z"]
+            * p_zob_z
             * (self.area)
             * (np.pi**2.0 / 180.0**2.0)
         )
@@ -182,7 +182,7 @@ class ClusterStatisticsModeling:
     def _integrate_in_mass_with_hmf(self, kernel):
         """Integrates compute counts bin.
         Compute cluster counts in a single redshift and richness bin
-        Performs integral over z_true of the the volume*nc_lbdobs_z
+        Performs integral over z_true of the the volume*p_lbin_z
 
         Parameters
         ----------
@@ -429,7 +429,7 @@ class ClusterStatisticsModeling:
 
                 * p_lbin_m_z (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
                 * dvdz_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
-                * nc_lbdobs_z (numpy.ndarry) : integral of p_lbin_m_z*dndm_m_z on mass.
+                * p_lbin_z (numpy.ndarry) : integral of p_lbin_m_z*dndm_m_z on mass.
         """
         # outputs
         dvdz_zbin_lbin_z = self.compute_binned_volume(
@@ -448,7 +448,7 @@ class ClusterStatisticsModeling:
         intermediate_products_zbin_lbin = {
             "p_lbin_m_z": p_lbin_m_z,
             "dvdz_zbin_lbin_z": dvdz_zbin_lbin_z,
-            "nc_lbdobs_z": p_lbin_z,
+            "p_lbin_z": p_lbin_z,
         }
         return nc_zbin_lbin, intermediate_products_zbin_lbin
 
@@ -473,16 +473,16 @@ class ClusterStatisticsModeling:
             Dictionary with intermidate products that can be used for other computations.
             Contains :
 
-                * hb_lbdobs_z (numpy.ndarry) : integral of p_lbin_m_z*dndm_m_z*bias_m_z on mass.
+                * hb_lbin_z (numpy.ndarry) : integral of p_lbin_m_z*dndm_m_z*bias_m_z on mass.
         """
         # outputs
-        hb_lbdobs_z = self.integrate_binned_quantity_in_mass_w_hmf(
+        hb_lbin_z = self.integrate_binned_quantity_in_mass_w_hmf(
             p_lbin_m_z * self.kernel_tables["bias_m_z"]
         )
         hbias_zbin_lbin = self.integrate_2d_binned_quantity_in_true_redshift(
-            hb_lbdobs_z[np.newaxis, :] * dvdz_zbin_lbin_z
+            hb_lbin_z[np.newaxis, :] * dvdz_zbin_lbin_z
         )
         if not return_intermediate_products:
             return hbias_zbin_lbin
-        intermediate_products_zbin_lbin = {"hb_lbdobs_z": hb_lbdobs_z}
+        intermediate_products_zbin_lbin = {"hb_lbin_z": hb_lbin_z}
         return hbias_zbin_lbin, intermediate_products_zbin_lbin
