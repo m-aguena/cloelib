@@ -194,7 +194,7 @@ class ClusterClustering:
             )
         )
 
-        # xi(lambda_i, lambda_j) = xi(lambda_j, lambda_i) so we reshape
+        # xi(l_obs_i, l_obs_j) = xi(l_obs_j, l_obs_i) so we reshape
         # and keep only one of them, with a (z_obs, l_obs, radius) output
         triangle_indexes = np.triu_indices(len(lambda_obs_bins) - 1)
         clustering_zbin_lbin_rbin = _clustering_zbin_lbin_rbin_buf[
