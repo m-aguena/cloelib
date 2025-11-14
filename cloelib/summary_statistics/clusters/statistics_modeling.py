@@ -269,9 +269,10 @@ class ClusterStatisticsModeling:
             Dimension (nbin1, nbin2).
         """
         bins1_size, bins2_size = binned_quantity.shape[:2]
+        out_shape = (*binned_quantity.shape[:2], *binned_quantity.shape[3:])
 
         # outputs
-        integrated_binned_quantity = np.zeros((bins1_size, bins2_size))
+        integrated_binned_quantity = np.zeros(out_shape)
         for ind1 in range(bins1_size):
             for ind2 in range(bins2_size):
                 integrated_binned_quantity[ind1, ind2] = self._integrate_in_ztrue(

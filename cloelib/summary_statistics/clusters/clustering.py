@@ -70,42 +70,25 @@ class ClusterClustering:
         z_obs_bins_size = len(z_obs_bins) - 1
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
-        # output
-
-        # intermediate quantites
-        one_over_n_lambdai_lambdaj = np.zeros(
-            (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-            )
-        )
-        lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
-        sqrt_Pk_zbin_lbin = np.zeros(
-            (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                len(self.cluster_statitstics_modeling.kernel_tables["k"]),
-            )
-        )
-
-        # get cluster statistics modeling quantities
+        ############################################
+        # Get cluster statistics modeling quantities
+        ############################################
         dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
-        p_lbin_M_z = (
+        _p_lbin_M_z = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
         p_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                p_lbin_M_z
+                _p_lbin_M_z
             )
         )  # integral of Plob_M_z*dndm_z on mass.
         b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                p_lbin_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
+                _p_lbin_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
             )
         )  # integral of Plob_M_z*dndm_z*bias_z on mass.
         # cluster counts
@@ -113,68 +96,65 @@ class ClusterClustering:
             p_lbin_z[np.newaxis, :] * dv_dzob
         )
 
-        # Compute volume zob
-        volume_zob = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
-            dv_dzob
-        )
-
-        ############
-        #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
-        ############
-        pk_IR = self.cluster_statitstics_modeling.halo_statistics.matter_power_spectrum(
-            self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-            self.cluster_statitstics_modeling.kernel_tables["k"],
-        )
+        ########################################
+        # Intermediate IR resummation quantities
+        ########################################
 
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
-        # rsd corrections
+        # rsd corrections (l_obs, z, k)
         photoz_corr0, photoz_corr1, photoz_corr2 = np.array(
             [
                 self.clustering.photoz_rsd_correction(
                     self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-                    lambda_obs_mid[ind_lambda],
+                    _lambda_obs_mid,
                 )
-                for ind_lambda in range(lambda_obs_bins_size)
+                for _lambda_obs_mid in 0.5
+                * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
             ]
         ).transpose(1, 0, 2, 3)
-        # compute effective halo bias, with shape (nl, nz, nk)
+
+        # compute effective halo bias, with shape (l_obs, z, 1)
         b_eff = (b_lbin_z / p_lbin_z)[:, :, np.newaxis]
 
-        # corrected power specrum
-        pk_halo = pk_IR * (
+        # corrected power specrum (l_obs, z, k)
+        pk_halo = (
             b_eff**2 * photoz_corr0 + b_eff * photoz_corr1 + photoz_corr2
+        ) * self.cluster_statitstics_modeling.halo_statistics.matter_power_spectrum(
+            self.cluster_statitstics_modeling.kernel_tables["ztrue"],
+            self.cluster_statitstics_modeling.kernel_tables["k"],
         )
 
-        # Compute intermediate quantities
-        for ind_lambda in range(lambda_obs_bins_size):
+        # average square of power spectrum in redshift and richness bins (z_obs, l_obs, k)
+        sqrt_Pk_zbin_lbin = (
+            self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+                dv_dzob[:, :, :, np.newaxis]
+                * p_lbin_z[np.newaxis, :, :, np.newaxis]
+                * np.sqrt(pk_halo[np.newaxis, :, :, :])
+            )
+            / nc_zbin_lbin[:, :, np.newaxis]
+        )
 
-            for ind_z in range(z_obs_bins_size):
+        #########
+        # Outputs
+        #########
 
-                # power spectrum and shot-noise terms
-                sqrt_Pk_zbin_lbin[ind_z, ind_lambda, :] = (
-                    simps(
-                        (dv_dzob[ind_z, ind_lambda] * p_lbin_z[ind_lambda])[
-                            :, np.newaxis
-                        ]
-                        * np.sqrt(pk_halo[ind_lambda]),
-                        x=self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-                        axis=0,
-                    )
-                    / nc_zbin_lbin[ind_z, ind_lambda]
-                )
-
-                one_over_n_lambdai_lambdaj[ind_z, ind_lambda, ind_lambda] = (
-                    volume_zob[ind_z, ind_lambda] / nc_zbin_lbin[ind_z, ind_lambda]
-                )
-
-        # cross Pk and shot-noise in two richness bins
+        # Compute output Pk (z_obs, l_obs, l_obs, k)
         Pk_lambdai_lambdaj = (
             sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
             * sqrt_Pk_zbin_lbin[:, np.newaxis, :, :]
-        )  # dim = [nz,nl,nl,nk]
-        one_over_n_lambdai_lambdaj = one_over_n_lambdai_lambdaj[
-            :, :, :, np.newaxis
-        ]  # dim = [nz,nl,nl,nk]
+        )
+
+        # Compute output volume zob
+        volume_zob = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            dv_dzob
+        )
+
+        # Compute output shot-noise terms (z_obs, l_obs, l_obs, 1)
+        one_over_n_lambdai_lambdaj = (
+            volume_zob[:, :, np.newaxis]
+            / nc_zbin_lbin[:, :, np.newaxis]
+            * np.identity(lambda_obs_bins_size)[np.newaxis, :, :]
+        )[:, :, :, np.newaxis]
 
         return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
 
@@ -197,7 +177,7 @@ class ClusterClustering:
         lambda_obs_bins_size = Pk_lambdai_lambdaj.shape[1]
 
         # compute 2point correlation function
-        # dim = [nz,nl,nl,nr]
+        # dim = [z_obs, l_obs, l_obs, radius]
         clustering_zbin_lbin_rbin_buf = simps(
             (
                 self.cluster_statitstics_modeling.kernel_tables["k"] ** 2.0
