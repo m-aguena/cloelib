@@ -95,7 +95,7 @@ class ClusterCounts:
             Contains :
 
                 * p_lbin_m_z (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, z) for masses and redshifts in table
-                * dv_dz_zbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
+                * dvdz_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
         """
 
         ############################################
@@ -103,7 +103,7 @@ class ClusterCounts:
         ############################################
 
         # volume element in each redshift and richness bin shape (z_obs, lambda_obs, z)
-        dv_dz_zbin_z = self.cluster_statitstics_modeling.compute_binned_volume(
+        dvdz_zbin_lbin_z = self.cluster_statitstics_modeling.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
         # integral of p_lbin_m_z*dndm_m_z on mass (l_obs, mass, z)
@@ -120,7 +120,7 @@ class ClusterCounts:
         )
         # cluster counts (z_obs, l_obs)
         nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
-            p_lbin_z[np.newaxis, :] * dv_dz_zbin_z
+            p_lbin_z[np.newaxis, :] * dvdz_zbin_lbin_z
         )
 
         if not return_intermediate_products:
@@ -128,7 +128,7 @@ class ClusterCounts:
 
         return nc_zbin_lbin, {
             "p_lbin_m_z": p_lbin_m_z,
-            "dv_dz_zbin_z": dv_dz_zbin_z,
+            "dvdz_zbin_lbin_z": dvdz_zbin_lbin_z,
         }
 
     # -------------------
@@ -180,7 +180,7 @@ class ClusterCounts:
             spatial_cov[: (ind_z + 1), ind_z] = spatial_cov[ind_z, : (ind_z + 1)]
         return spatial_cov
 
-    def compute_cov(self, z_obs_bins, nc_zbin_lbin, p_lbin_m_z, dv_dz_zbin_z):
+    def compute_cov(self, z_obs_bins, nc_zbin_lbin, p_lbin_m_z, dvdz_zbin_lbin_z):
         """Computes theoretical covariance for cluster counts, including shot noise and sample covariance
 
         Parameters
@@ -193,7 +193,7 @@ class ClusterCounts:
             Probability of observed richness bin P(lobs_bin|M, z),
             with masses and redshifts being the values in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_products_zbin_lbin output of compute_binned_counts.
-        dv_dz_zbin_z : numpy.ndarray
+        dvdz_zbin_lbin_z : numpy.ndarray
             Observed volume element (dV/dz_ob) in each redshift and richness bin.
             Is in the intermediate_products_zbin_lbin output of compute_binned_counts.
 
@@ -215,7 +215,7 @@ class ClusterCounts:
         )
         # cluster integrated bias (z_obs, l_obs)
         hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
-            _b_lbin_z[np.newaxis, :] * dv_dz_zbin_z
+            _b_lbin_z[np.newaxis, :] * dvdz_zbin_lbin_z
         )
 
         ####################

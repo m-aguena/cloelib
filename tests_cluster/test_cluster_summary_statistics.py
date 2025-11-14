@@ -163,7 +163,7 @@ def get_values():
         zed_obs_nc_bins,
         nc_zbin_lbin,
         counts_intermediate_products_zbin_lbin["p_lbin_m_z"],
-        counts_intermediate_products_zbin_lbin["dv_dz_zbin_z"],
+        counts_intermediate_products_zbin_lbin["dvdz_zbin_lbin_z"],
     )
     gt_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_profile(
         z_obs_bins=zed_obs_nc_bins,
@@ -181,7 +181,7 @@ def get_values():
         clustering_intermediate_products_zbin_lbin["Pk_lambdai_lambdaj"],
         clustering_intermediate_products_zbin_lbin["shell_window"],
         clustering_intermediate_products_zbin_lbin["shell_volume"],
-        clustering_intermediate_products_zbin_lbin["dv_dz_zbin_z"],
+        clustering_intermediate_products_zbin_lbin["dvdz_zbin_lbin_z"],
         clustering_intermediate_products_zbin_lbin["nc_zbin_lbin"],
     )
     return (
