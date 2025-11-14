@@ -173,24 +173,16 @@ class ClusterClustering:
         clustering_zbin_lbin_rbin : numpy.ndarray
             Two point correlation function in richness, redshift and radial bins
         """
-
-        lambda_obs_bins_size = Pk_lambdai_lambdaj.shape[1]
-
-        # compute 2point correlation function
-        # dim = [z_obs, l_obs, l_obs, radius]
-        clustering_zbin_lbin_rbin_buf = simps(
-            (
-                self.cluster_statitstics_modeling.kernel_tables["k"] ** 2.0
-                / (2.0 * np.pi**2)
-                * shell_window[:, np.newaxis, np.newaxis, :, :]
+        # compute 2point correlation function (z_obs, l_obs, l_obs, radius)
+        clustering_zbin_lbin_rbin_buf = (
+            self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
+                shell_window[:, np.newaxis, np.newaxis, :, :]
                 * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
-            ),
-            x=self.cluster_statitstics_modeling.kernel_tables["k"],
-            axis=-1,
+            )
         )
 
         # xi(lambda_i, lambda_j) = xi(lambda_j, lambda_i),  so reshape and keep only one of them
-
+        lambda_obs_bins_size = Pk_lambdai_lambdaj.shape[1]
         triangle_indexes = np.triu_indices(lambda_obs_bins_size)
         return clustering_zbin_lbin_rbin_buf[
             :, triangle_indexes[0], triangle_indexes[1], :

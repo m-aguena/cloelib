@@ -280,6 +280,27 @@ class ClusterStatisticsModeling:
                 )
         return integrated_binned_quantity
 
+    def integrate_quantity_in_k_space(self, quantity):
+        """Integrates the quantity in k space with a k^2/2pi kernel.
+
+        Parameters
+        ----------
+        quantity : numpy.ndarray
+            Quantity to be integrated in k space. Can be multidimensional, but
+            the the last dimension must be of size (k) from self.kernel_tables.
+
+        Returns
+        -------
+        integrated_quantity : numpy.ndarray
+            Quantity integrated in k space, dimension same as input
+            minus the last one.
+        """
+        return simps(
+            (self.kernel_tables["k"] ** 2.0 * quantity / (2.0 * np.pi**2)),
+            x=self.kernel_tables["k"],
+            # axis=-1,
+        )
+
     # -------------------------------------
     # external cluster statistics functions
     # -------------------------------------
