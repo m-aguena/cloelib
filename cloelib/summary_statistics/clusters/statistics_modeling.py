@@ -321,6 +321,7 @@ class ClusterStatisticsModeling:
         -------
         dv_dzob : numpy.ndarray
             Observed volume element (dV/dz_ob) in each redshift and richness bin
+            shape (z_obs, lambda_obs, z) with (z) in kenel_tables.
         """
 
         z_obs_bins_size = len(z_obs_bins) - 1

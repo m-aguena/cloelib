@@ -47,13 +47,11 @@ class ClusterClustering:
         self.l_m_tab_sig = [31, 51]
         self.z_tab_sig = 31
 
-    def _compute_pk_ir_resummation(self, z_obs_bins, lambda_obs_bins):
+    def _compute_pk_ir_resummation(self, lambda_obs_mid, dv_dzob, nc_zbin_lbin, p_lbin_z, b_lbin_z):
         """Computes Pk IR resummation.
 
         Parameters
         ----------
-        z_obs_bins : numpy.ndarray
-            Redshift bins for the integration.
         lambda_obs_bins : numpy.ndarray
             Richness bins for the integration.
 
@@ -61,55 +59,16 @@ class ClusterClustering:
         -------
         Pk_lambdai_lambdaj : numpy.ndarray
             Power spectrum ???
-        volume_zob : numpy.ndarray
-            Observed volume in each redshift bin
-        one_over_n_lambdai_lambdaj : numpy.ndarray
-            volume_zob / nc_int_lbdobs_z in each redshift bin
         """
-
-        z_obs_bins_size = len(z_obs_bins) - 1
-        lambda_obs_bins_size = len(lambda_obs_bins) - 1
-
-        ############################################
-        # Get cluster statistics modeling quantities
-        ############################################
-        dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
-            z_obs_bins, lambda_obs_bins, self.z_tab_sig
-        )
-        _p_lbin_M_z = (
-            self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
-                lambda_obs_bins, self.l_m_tab_sig
-            )
-        )
-        p_lbin_z = (
-            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                _p_lbin_M_z
-            )
-        )  # integral of Plob_M_z*dndm_z on mass.
-        b_lbin_z = (
-            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                _p_lbin_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
-            )
-        )  # integral of Plob_M_z*dndm_z*bias_z on mass.
-        # cluster counts
-        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
-            p_lbin_z[np.newaxis, :] * dv_dzob
-        )
-
-        ########################################
-        # Intermediate IR resummation quantities
-        ########################################
-
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
         # rsd corrections (l_obs, z, k)
         photoz_corr0, photoz_corr1, photoz_corr2 = np.array(
             [
                 self.clustering.photoz_rsd_correction(
                     self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-                    _lambda_obs_mid,
+                    _lambda_obs,
                 )
-                for _lambda_obs_mid in 0.5
-                * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
+                for _lambda_obs in lambda_obs_mid
             ]
         ).transpose(1, 0, 2, 3)
 
@@ -134,29 +93,13 @@ class ClusterClustering:
             / nc_zbin_lbin[:, :, np.newaxis]
         )
 
-        #########
-        # Outputs
-        #########
 
         # Compute output Pk (z_obs, l_obs, l_obs, k)
         Pk_lambdai_lambdaj = (
             sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
             * sqrt_Pk_zbin_lbin[:, np.newaxis, :, :]
         )
-
-        # Compute output volume zob
-        volume_zob = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
-            dv_dzob
-        )
-
-        # Compute output shot-noise terms (z_obs, l_obs, l_obs, 1)
-        one_over_n_lambdai_lambdaj = (
-            volume_zob[:, :, np.newaxis]
-            / nc_zbin_lbin[:, :, np.newaxis]
-            * np.identity(lambda_obs_bins_size)[np.newaxis, :, :]
-        )[:, :, :, np.newaxis]
-
-        return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
+        return Pk_lambdai_lambdaj
 
     def compute_binned_clustering(
         self,
@@ -191,21 +134,46 @@ class ClusterClustering:
                 * shell_volume (numpy.ndarray) : Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
                 * volume_zob (numpy.ndarray) : Observed volume in each redshift bin
         """
-        # matter power spectrum + IR resummation
-        Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj = (
-            self._compute_pk_ir_resummation(z_obs_bins, lambda_obs_bins)
+        ############################################
+        # Get cluster statistics modeling quantities
+        ############################################
+        dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
+            z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
-
-        # spherical shell window function W(R,K) and volume of the shell (compute once outside the redshift loop)
-        # these are used by covariance
-        shell_window, shell_volume = self.clustering.WF_ra(
-            0.5 * (z_obs_bins[1:] + z_obs_bins[:-1]),
-            radius_bins,
+        _p_lbin_M_z = (
+            self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
+                lambda_obs_bins, self.l_m_tab_sig
+            )
+        )
+        p_lbin_z = (
+            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                _p_lbin_M_z
+            )
+        )  # integral of Plob_M_z*dndm_z on mass.
+        b_lbin_z = (
+            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+                _p_lbin_M_z * self.cluster_statitstics_modeling.kernel_tables["bias_z"]
+            )
+        )  # integral of Plob_M_z*dndm_z*bias_z on mass.
+        # cluster counts
+        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            p_lbin_z[np.newaxis, :] * dv_dzob
         )
 
         ################################################
         # Computes the 3D two-point correlation function
         ################################################
+
+        # matter power spectrum + IR resummation
+        _lambda_obs_mid = 0.5* (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
+        Pk_lambdai_lambdaj = self._compute_pk_ir_resummation(_lambda_obs_mid, dv_dzob, nc_zbin_lbin, p_lbin_z, b_lbin_z)
+
+        # spherical shell window function W(R,K) and volume of the shell (compute once outside the redshift loop)
+        # shell_volume is used only by covariance
+        shell_window, shell_volume = self.clustering.WF_ra(
+            0.5 * (z_obs_bins[1:] + z_obs_bins[:-1]),
+            radius_bins,
+        )
 
         # compute 2point correlation function (z_obs, l_obs, l_obs, radius)
         _clustering_zbin_lbin_rbin_buf = (
@@ -227,10 +195,10 @@ class ClusterClustering:
 
         intermediate_products_zbin_lbin = {
             "Pk_lambdai_lambdaj": Pk_lambdai_lambdaj,
-            "one_over_n_lambdai_lambdaj": one_over_n_lambdai_lambdaj,
             "shell_window": shell_window,
             "shell_volume": shell_volume,
-            "volume_zob": volume_zob,
+            "nc_zbin_lbin": nc_zbin_lbin,
+            "dv_dzob": dv_dzob,
         }
         return clustering_zbin_lbin_rbin, intermediate_products_zbin_lbin
 
@@ -277,10 +245,10 @@ class ClusterClustering:
     def compute_cov(
         self,
         Pk_lambdai_lambdaj,
-        one_over_n_lambdai_lambdaj,
         shell_window,
         shell_volume,
-        volume_zob,
+        dv_dzob,
+        nc_zbin_lbin,
     ):
         """Computes clustering covariance.
 
@@ -289,9 +257,6 @@ class ClusterClustering:
         Pk_lambdai_lambdaj : numpy.ndarray
             Power spectrum ???
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        one_over_n_lambdai_lambdaj : numpy.ndarray
-            volume_zob / nc_int_lbdobs_z in each redshift bin.
-            Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         shell_window : numpy.ndarray
             Cluster count covariance window (i,j,k) where i is the redshift bin,
             j is the radial bin and k are the wavenumbers.
@@ -299,17 +264,30 @@ class ClusterClustering:
         shell_volume : numpy.ndarray
             Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin.
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        volume_zob : numpy.ndarray
-            Observed volume in each redshift bin.
-            Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
+        dv_dzob : numpy.ndarray
+            Observed volume element (dV/dz_ob) in each redshift and richness bin
+            shape (z_obs, lambda_obs, z) with (z) in cluster_statitstics_modeling.kenel_tables.
+        nc_zbin_lbin : numpy.ndarray
+            Number counts in redshift and richness bins
 
         Returns
         -------
         cov_clustering_zbin_lbin_rbin : numpy.ndarray
             Covariance of the two point correlation function in richness, redshift and radial bins
         """
-        z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
+        z_obs_bins_size, lambda_obs_bins_size = nc_zbin_lbin.shape
         _, radius_bins_size = shell_volume.shape
+
+        # Compute observed volume in each redshift bin (z_obs, lambda_obs)
+        volume_zob = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+            dv_dzob
+        )
+        # Compute output shot-noise terms (z_obs, l_obs, l_obs, 1)
+        one_over_n_lambdai_lambdaj = (
+            volume_zob[:, :, np.newaxis]
+            / nc_zbin_lbin[:, :, np.newaxis]
+            * np.identity(lambda_obs_bins_size)[np.newaxis, :, :]
+        )[:, :, :, np.newaxis]
 
         # compute nuisance parameters
 
