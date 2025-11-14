@@ -76,7 +76,7 @@ class ClusterWeakLensing:
         ############################################
 
         # volume element in each redshift and richness bin shape (z_obs, lambda_obs, z)
-        dv_dzob = self.cluster_statitstics_modeling.compute_binned_volume(
+        dv_dz_zbin_z = self.cluster_statitstics_modeling.compute_binned_volume(
             z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
         # integral of p_lbin_M_z*dndm_z on mass (l_obs, mass, z)
@@ -93,7 +93,7 @@ class ClusterWeakLensing:
         )
         # cluster counts (z_obs, l_obs)
         nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
-            _p_lbin_z[np.newaxis, :] * dv_dzob
+            _p_lbin_z[np.newaxis, :] * dv_dz_zbin_z
         )
 
         ########################
@@ -136,7 +136,7 @@ class ClusterWeakLensing:
                 self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
                     m_sig_crit_m1[:, np.newaxis, :]
                     * gt_lbdobs_z[np.newaxis, :, :]
-                    * dv_dzob
+                    * dv_dz_zbin_z
                 )
                 / nc_zbin_lbin
             )
