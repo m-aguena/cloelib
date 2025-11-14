@@ -100,7 +100,7 @@ class ClusterStatisticsModeling:
         }
         self.kernel_tables["dk"] = self.kernel_tables["k"] ** 2.0 / (2.0 * np.pi**2)
 
-    def _compute_p_lob_m_z_in_bin(self, lambda_min, lambda_max, integral_n_steps=31):
+    def _compute_p_lobs_m_z_in_bin(self, lambda_min, lambda_max, integral_n_steps=31):
         """Computes the probability in a observed richness bin given true mass
         and redshift P(lambda_obs_bin|mass, z).
 
@@ -115,12 +115,12 @@ class ClusterStatisticsModeling:
 
         Returns
         -------
-        p_lob_m_z_in_bin : numpy.ndarray
+        p_lobs_m_z_in_bin : numpy.ndarray
             P(lambda_obs_bin|mass, z)
         """
         l_tab = np.geomspace(lambda_min, lambda_max, integral_n_steps)
         # P(lob|ltr,ztr)
-        p_lob_l_z = simps(
+        p_lobs_l_z = simps(
             self.selectionfunction.P_lbdobs_lbd(
                 self.kernel_tables["ztrue"],
                 self.kernel_tables["lambda_true"],
@@ -130,15 +130,15 @@ class ClusterStatisticsModeling:
             axis=-1,
         )
         #       if external_richness_selection_function == 'CG_ESF' :
-        #       p_lob_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
+        #       p_lobs_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
 
         # P(lambda_obs|mass, z)
-        p_lob_m_z_in_bin = simps(
-            self.kernel_tables["p_ltrue_m_z"][:, :, :] * p_lob_l_z[:, np.newaxis, :],
+        p_lobs_m_z_in_bin = simps(
+            self.kernel_tables["p_ltrue_m_z"][:, :, :] * p_lobs_l_z[:, np.newaxis, :],
             x=self.kernel_tables["lambda_true"],
             axis=-1,
         )
-        return p_lob_m_z_in_bin
+        return p_lobs_m_z_in_bin
 
     def _compute_volume_in_bin(self, z_min, z_max, lambda_min, integral_n_steps):
         """compute volume bin.
@@ -163,7 +163,7 @@ class ClusterStatisticsModeling:
 
         # P(zob|ztr)
         z_tab = np.linspace(z_min, z_max, integral_n_steps)
-        p_zob_z = simps(
+        p_zobs_z = simps(
             self.selectionfunction.P_zobs_z(
                 z_tab, lambda_min, self.kernel_tables["ztrue"]
             ),
@@ -173,7 +173,7 @@ class ClusterStatisticsModeling:
         # observed volume element dV/dz
         dv_dzob_bin = (
             self.kernel_tables["dvdzdOmega_z"]
-            * p_zob_z
+            * p_zobs_z
             * (self.area)
             * (np.pi**2.0 / 180.0**2.0)
         )
@@ -377,7 +377,7 @@ class ClusterStatisticsModeling:
             )
         )
         for ind_lambda in range(lambda_obs_bins_size):
-            p_lbin_m_z[ind_lambda] = self._compute_p_lob_m_z_in_bin(
+            p_lbin_m_z[ind_lambda] = self._compute_p_lobs_m_z_in_bin(
                 lambda_obs_bins[ind_lambda],
                 lambda_obs_bins[ind_lambda + 1],
                 integral_n_steps=l_m_tab_sig[ind_lambda],
