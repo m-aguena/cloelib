@@ -82,7 +82,7 @@ class ClusterWeakLensing:
             )
         )
         # P(lambda_obs_bins|M, z) : (l_obs, mass, z)
-        p_lbin_m_z = (
+        p_lbin_z_m = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
@@ -90,7 +90,7 @@ class ClusterWeakLensing:
         # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (l_obs, z)
         _p_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                p_lbin_m_z
+                p_lbin_z_m
             )
         )
         # cluster counts : (z_obs, l_obs)
@@ -132,7 +132,7 @@ class ClusterWeakLensing:
         )
         for ind_radius in range(radius_bins_size):
             deltasigma_lbin_rbin_z = self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                p_lbin_m_z * excess_surface_mass_density[:, :, ind_radius]
+                p_lbin_z_m * excess_surface_mass_density[:, :, ind_radius]
             )
             deltasigma_zbin_lbin_rbin[:, :, ind_radius] = (
                 self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(

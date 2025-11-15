@@ -162,7 +162,7 @@ def get_values():
     cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
         zed_obs_nc_bins,
         nc_zbin_lbin,
-        counts_zbin_lbin_intermediate_products["p_lbin_m_z"],
+        counts_zbin_lbin_intermediate_products["p_lbin_z_m"],
         counts_zbin_lbin_intermediate_products["dvdz_zbin_lbin_z"],
     )
     deltasigma_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_deltasigma(

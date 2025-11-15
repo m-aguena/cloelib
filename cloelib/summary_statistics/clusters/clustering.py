@@ -144,7 +144,7 @@ class ClusterClustering:
             )
         )
         # P(lambda_obs_bins|M, z) : (l_obs, mass, z)
-        _p_lbin_m_z = (
+        _p_lbin_z_m = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
@@ -152,14 +152,14 @@ class ClusterClustering:
         # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (l_obs, z)
         p_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                _p_lbin_m_z
+                _p_lbin_z_m
             )
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
         b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
-                _p_lbin_m_z
-                * self.cluster_statitstics_modeling.kernel_tables["bias_m_z"]
+                _p_lbin_z_m
+                * self.cluster_statitstics_modeling.kernel_tables["bias_z_m"]
             )
         )
         # cluster counts : (z_obs, l_obs)
