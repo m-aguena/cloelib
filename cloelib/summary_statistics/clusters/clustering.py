@@ -127,8 +127,8 @@ class ClusterClustering:
             Contains :
 
                 * pk_zbin_lbin_lbin_k (numpy.ndarray) : Power spectrum ???
-                * shell_window (numpy.ndarray) : Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
-                * shell_volume (numpy.ndarray) : Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
+                * window_zbin_lbin_k (numpy.ndarray) : Cluster count covariance window (z_obs, l_obs, k).
+                * vol_zbin_rbin (numpy.ndarray) : Spherical shell volume (z_obs, radius).
                 * dvdz_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
                 * nc_zbin_lbin (numpy.ndarray) :  Number counts in redshift and richness bins
         """
@@ -182,14 +182,16 @@ class ClusterClustering:
 
         # Spherical shell window : (z_obs, radius, k) and
         # volume of the shell : (z_obs, radius) in each z_obs_bin
-        # shell_volume is used only by covariance
+        # vol_zbin_rbin is used only by covariance
         _z_obs_mid = 0.5 * (z_obs_bins[1:] + z_obs_bins[:-1])
-        shell_window, shell_volume = self.clustering.WF_ra(_z_obs_mid, radius_bins)
+        window_zbin_lbin_k, vol_zbin_rbin = self.clustering.WF_ra(
+            _z_obs_mid, radius_bins
+        )
 
         # compute 2point correlation function : (z_obs, l_obs, l_obs, radius)
         _clustering_zbin_lbin_rbin_buf = (
             self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
-                shell_window[:, np.newaxis, np.newaxis, :, :]
+                window_zbin_lbin_k[:, np.newaxis, np.newaxis, :, :]
                 * pk_zbin_lbin_lbin_k[:, :, :, np.newaxis, :]
             )
         )
@@ -206,8 +208,8 @@ class ClusterClustering:
 
         intermediate_products_zbin_lbin = {
             "pk_zbin_lbin_lbin_k": pk_zbin_lbin_lbin_k,
-            "shell_window": shell_window,
-            "shell_volume": shell_volume,
+            "window_zbin_lbin_k": window_zbin_lbin_k,
+            "vol_zbin_rbin": vol_zbin_rbin,
             "nc_zbin_lbin": nc_zbin_lbin,
             "dvdz_zbin_lbin_z": dvdz_zbin_lbin_z,
         }
@@ -220,8 +222,8 @@ class ClusterClustering:
     def compute_cov(
         self,
         pk_zbin_lbin_lbin_k,
-        shell_window,
-        shell_volume,
+        window_zbin_lbin_k,
+        vol_zbin_rbin,
         dvdz_zbin_lbin_z,
         nc_zbin_lbin,
     ):
@@ -232,12 +234,12 @@ class ClusterClustering:
         pk_zbin_lbin_lbin_k : numpy.ndarray
             Power spectrum ???
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        shell_window : numpy.ndarray
-            Cluster count covariance window (i,j,k) where i is the redshift bin,
-            j is the radial bin and k are the wavenumbers.
+        window_zbin_lbin_k : numpy.ndarray
+            Cluster count covariance window (z_obs, l_obs, k),
+            with (k) in cluster_statitstics_modeling.kenel_tables.
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        shell_volume : numpy.ndarray
-            Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin.
+        vol_zbin_rbin : numpy.ndarray
+            Spherical shell volume (z_obs, radius).
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         dvdz_zbin_lbin_z : numpy.ndarray
             Observed volume element (dV/dz_ob) in each redshift and richness bin
@@ -251,7 +253,7 @@ class ClusterClustering:
             Covariance of the two point correlation function in richness, redshift and radial bins
         """
         z_obs_bins_size, lambda_obs_bins_size = nc_zbin_lbin.shape
-        _, radius_bins_size = shell_volume.shape
+        _, radius_bins_size = vol_zbin_rbin.shape
 
         ########################################
         # Cluster statistics modeling quantities
@@ -308,7 +310,7 @@ class ClusterClustering:
         rad_bin_loop = range(radius_bins_size)
 
         # cov_g, cov_ng are TWO TERMS OF EQ. 73
-        _cov_g = np.zeros(
+        _cov_g_zbin_4lbin_2rbin = np.zeros(
             (
                 z_obs_bins_size,
                 lambda_obs_bins_size,
@@ -319,7 +321,7 @@ class ClusterClustering:
                 radius_bins_size,
             )
         )
-        _cov_ng = np.zeros(
+        _cov_ng_zbin_4lbin_2rbin = np.zeros(
             (
                 z_obs_bins_size,
                 lambda_obs_bins_size,
@@ -335,7 +337,7 @@ class ClusterClustering:
         for ind_lambda_i in lambda_bin_loop:
             for ind_lambda_j in lambda_bin_loop:
                 for ind_radius in rad_bin_loop:
-                    _cov_ng[
+                    _cov_ng_zbin_4lbin_2rbin[
                         :,
                         ind_lambda_i,
                         ind_lambda_j,
@@ -345,7 +347,7 @@ class ClusterClustering:
                         ind_radius,
                     ] = (
                         self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
-                            shell_window[:, ind_radius, :]
+                            window_zbin_lbin_k[:, ind_radius, :]
                             * beta_pk_zbin_lbin_lbin_k[
                                 :, ind_lambda_i, ind_lambda_j, :
                             ],
@@ -354,7 +356,7 @@ class ClusterClustering:
                         * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_i, ind_lambda_i]
                         * (1 + gamma[:, ind_lambda_j])
                         * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_j, ind_lambda_j]
-                        / shell_volume[:, ind_radius]
+                        / vol_zbin_rbin[:, ind_radius]
                     )
 
                 for ind_lambda_k in lambda_bin_loop:
@@ -364,7 +366,7 @@ class ClusterClustering:
                         # integrate_quantity_in_k_space here, to be investigated
 
                         # gaussian term
-                        _cov_g[
+                        _cov_g_zbin_4lbin_2rbin[
                             :,
                             ind_lambda_i,
                             ind_lambda_j,
@@ -373,8 +375,8 @@ class ClusterClustering:
                             :,
                             :,
                         ] = self.cluster_statitstics_modeling._integrate_quantity_in_k(
-                            shell_window[:, np.newaxis, :, :]
-                            * shell_window[:, :, np.newaxis, :]
+                            window_zbin_lbin_k[:, np.newaxis, :, :]
+                            * window_zbin_lbin_k[:, :, np.newaxis, :]
                             * avol_bpk_zbin_lbin_lbin_k[
                                 :,
                                 ind_lambda_i,
@@ -396,8 +398,8 @@ class ClusterClustering:
 
         # Compute the covariance
         cov_clustering_zbin_lbin_rbin = (
-            (_cov_g + _cov_ng)
-            + (_cov_g + _cov_ng).transpose(
+            (_cov_g_zbin_4lbin_2rbin + _cov_ng_zbin_4lbin_2rbin)
+            + (_cov_g_zbin_4lbin_2rbin + _cov_ng_zbin_4lbin_2rbin).transpose(
                 0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_clustering bins
             )
         ) / vol_zbin_lbin[

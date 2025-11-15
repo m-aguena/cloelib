@@ -179,8 +179,8 @@ def get_values():
     )
     cov_clustering_zbin_lbin_rbin = cluster_clustering_statistics.compute_cov(
         clustering_intermediate_products_zbin_lbin["pk_zbin_lbin_lbin_k"],
-        clustering_intermediate_products_zbin_lbin["shell_window"],
-        clustering_intermediate_products_zbin_lbin["shell_volume"],
+        clustering_intermediate_products_zbin_lbin["window_zbin_lbin_k"],
+        clustering_intermediate_products_zbin_lbin["vol_zbin_rbin"],
         clustering_intermediate_products_zbin_lbin["dvdz_zbin_lbin_z"],
         clustering_intermediate_products_zbin_lbin["nc_zbin_lbin"],
     )
