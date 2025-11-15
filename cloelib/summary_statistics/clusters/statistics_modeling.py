@@ -100,46 +100,6 @@ class ClusterStatisticsModeling:
         }
         self.kernel_tables["dk"] = self.kernel_tables["k"] ** 2.0 / (2.0 * np.pi**2)
 
-    def _compute_p_lobs_z_m_in_bin(self, lambda_min, lambda_max, integral_n_steps=31):
-        """Computes the probability in a observed richness bin given true mass
-        and redshift P(lambda_obs_bin|mass, z).
-
-        Parameters
-        ----------
-        lambda_min : float
-            Lower richness edge of the integration bin
-        lambda_max : float
-            Upper richness edge of the integration bin
-        integral_n_steps : int
-            Number of points to be used for the interpolation in the integral
-
-        Returns
-        -------
-        p_lobs_z_m_in_bin : numpy.ndarray
-            P(lambda_obs_bin|mass, z)
-        """
-        l_tab = np.geomspace(lambda_min, lambda_max, integral_n_steps)
-        # P(lob|ltr,ztr)
-        p_lobs_l_z = simps(
-            self.selectionfunction.P_lbdobs_lbd(
-                self.kernel_tables["ztrue"],
-                self.kernel_tables["lambda_true"],
-                l_tab,
-            ),
-            x=l_tab,
-            axis=-1,
-        )
-        #       if external_richness_selection_function == 'CG_ESF' :
-        #       p_lobs_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
-
-        # P(lambda_obs|mass, z)
-        p_lobs_z_m_in_bin = simps(
-            self.kernel_tables["p_ltrue_z_m"][:, :, :] * p_lobs_l_z[:, np.newaxis, :],
-            x=self.kernel_tables["lambda_true"],
-            axis=-1,
-        )
-        return p_lobs_z_m_in_bin
-
     def _integrate_in_mass_with_hmf(self, quantity):
         """Integrates quantitty in mass with HMF.
 
@@ -352,9 +312,28 @@ class ClusterStatisticsModeling:
             )
         )
         for ind_lambda in range(lambda_obs_bins_size):
-            p_lbin_z_m[ind_lambda] = self._compute_p_lobs_z_m_in_bin(
+            # P(lambda_obs_bin|lambda_true, z)
+            l_tab = np.geomspace(
                 lambda_obs_bins[ind_lambda],
                 lambda_obs_bins[ind_lambda + 1],
-                integral_n_steps=l_m_tab_sig[ind_lambda],
+                l_m_tab_sig[ind_lambda],
+            )
+            p_lobs_l_z = simps(
+                self.selectionfunction.P_lbdobs_lbd(
+                    self.kernel_tables["ztrue"],
+                    self.kernel_tables["lambda_true"],
+                    l_tab,
+                ),
+                x=l_tab,
+                axis=-1,
+            )
+            #       if external_richness_selection_function == 'CG_ESF' :
+            #       p_lobs_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
+
+            # P(lambda_obs_bin|mass, z)
+            p_lbin_z_m[ind_lambda] = simps(
+                self.kernel_tables["p_ltrue_z_m"] * p_lobs_l_z[:, np.newaxis, :],
+                x=self.kernel_tables["lambda_true"],
+                axis=-1,
             )
         return p_lbin_z_m
