@@ -153,7 +153,7 @@ def get_values():
 
     # Compute values
 
-    nc_zbin_lbin, counts_intermediate_products_zbin_lbin = (
+    nc_zbin_lbin, counts_zbin_lbin_intermediate_products = (
         cluster_counts_statistics.compute_binned_counts(
             z_obs_bins=zed_obs_nc_bins,
             lambda_obs_bins=lambda_obs_nc_bins,
@@ -162,15 +162,15 @@ def get_values():
     cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
         zed_obs_nc_bins,
         nc_zbin_lbin,
-        counts_intermediate_products_zbin_lbin["p_lbin_m_z"],
-        counts_intermediate_products_zbin_lbin["dvdz_zbin_lbin_z"],
+        counts_zbin_lbin_intermediate_products["p_lbin_m_z"],
+        counts_zbin_lbin_intermediate_products["dvdz_zbin_lbin_z"],
     )
     deltasigma_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_deltasigma(
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
     )
-    clustering_zbin_lbin_rbin, clustering_intermediate_products_zbin_lbin = (
+    clustering_zbin_lbin_rbin, clustering_zbin_lbin_intermediate_products = (
         cluster_clustering_statistics.compute_binned_clustering(
             lambda_obs_bins=lambda_obs_clustering_bins,
             radius_bins=radius_clustering_bins,
@@ -178,11 +178,11 @@ def get_values():
         )
     )
     cov_clustering_zbin_lbin_rbin = cluster_clustering_statistics.compute_cov(
-        clustering_intermediate_products_zbin_lbin["pk_zbin_lbin_lbin_k"],
-        clustering_intermediate_products_zbin_lbin["window_zbin_lbin_k"],
-        clustering_intermediate_products_zbin_lbin["vol_zbin_rbin"],
-        clustering_intermediate_products_zbin_lbin["dvdz_zbin_lbin_z"],
-        clustering_intermediate_products_zbin_lbin["nc_zbin_lbin"],
+        clustering_zbin_lbin_intermediate_products["pk_zbin_lbin_lbin_k"],
+        clustering_zbin_lbin_intermediate_products["window_zbin_lbin_k"],
+        clustering_zbin_lbin_intermediate_products["vol_zbin_rbin"],
+        clustering_zbin_lbin_intermediate_products["dvdz_zbin_lbin_z"],
+        clustering_zbin_lbin_intermediate_products["nc_zbin_lbin"],
     )
     return (
         nc_zbin_lbin,
