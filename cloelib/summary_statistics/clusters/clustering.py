@@ -397,7 +397,7 @@ class ClusterClustering:
                         )
 
         # Compute the covariance
-        cov_clustering_zbin_lbin_rbin = (
+        _cov_clustering_zbin_4lbin_2rbin = (
             (_cov_g_zbin_4lbin_2rbin + _cov_ng_zbin_4lbin_2rbin)
             + (_cov_g_zbin_4lbin_2rbin + _cov_ng_zbin_4lbin_2rbin).transpose(
                 0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_clustering bins
@@ -410,11 +410,11 @@ class ClusterClustering:
         # so reshape and keep only two of them
         triangle_indexes = np.triu_indices(lambda_obs_bins_size)
         # simplify first pair
-        cov_clustering_zbin_lbin_rbin = cov_clustering_zbin_lbin_rbin[
+        _cov_clustering_zbin_3lbin_2rbin = _cov_clustering_zbin_4lbin_2rbin[
             :, triangle_indexes[0], triangle_indexes[1], :, :, :, :
         ]
         # simplify second pair
-        cov_clustering_zbin_lbin_rbin = cov_clustering_zbin_lbin_rbin[
+        _cov_clustering_zbin_2lbin_2rbin = _cov_clustering_zbin_3lbin_2rbin[
             :, :, triangle_indexes[0], triangle_indexes[1], :, :
         ]
 
@@ -422,10 +422,14 @@ class ClusterClustering:
         # Current covariance is shape (z_obs, l_obs, l_obs, radius, radius),
         # make it (z_obs, z_obs, l_obs, l_obs, radius, radius),
         # being diagonal in (z_obs, z_obs)
+        # ---------------------------------------------------------------------------------
+        # OBS: for simplicity and homeneity with other outputs, it will be written down as
+        # cov_clustering_zbin_lbin_rbin instead of cov_clustering_2zbin_2lbin_2rbin
+        # ---------------------------------------------------------------------------------
         cov_clustering_zbin_lbin_rbin = (
             np.identity(z_obs_bins_size)[
                 :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis
             ]
-            * cov_clustering_zbin_lbin_rbin
+            * _cov_clustering_zbin_2lbin_2rbin
         )
         return cov_clustering_zbin_lbin_rbin
