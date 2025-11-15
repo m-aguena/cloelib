@@ -140,45 +140,6 @@ class ClusterStatisticsModeling:
         )
         return p_lobs_z_m_in_bin
 
-    def _compute_volume_in_bin(self, z_min, z_max, lambda_min, integral_n_steps):
-        """compute volume bin.
-        Computes volume in a given richness redshift bin for cluster counts.
-
-        Parameters
-        ----------
-        z_min : float
-            Lower redshift edge of the integration bin
-        z_max : float
-            Upper redshift edge of the integration bin
-        lambda_min : float
-            Lower richness edge of the integration bin
-        integral_n_steps : int
-            Number of points to be used for z_obs integration.
-
-        Returns
-        -------
-        dv_dzob_bin : numpy.ndarray
-            Observed volume element dV/dz in the redshift bin
-        """
-
-        # P(zob|ztr)
-        z_tab = np.linspace(z_min, z_max, integral_n_steps)
-        p_zobs_z = simps(
-            self.selectionfunction.P_zobs_z(
-                z_tab, lambda_min, self.kernel_tables["ztrue"]
-            ),
-            x=z_tab,
-            axis=0,
-        )
-        # observed volume element dV/dz
-        dv_dzob_bin = (
-            self.kernel_tables["dvdzdOmega_z"]
-            * p_zobs_z
-            * (self.area)
-            * (np.pi**2.0 / 180.0**2.0)
-        )
-        return dv_dzob_bin
-
     def _integrate_in_mass_with_hmf(self, quantity):
         """Integrates quantitty in mass with HMF.
 
@@ -340,11 +301,25 @@ class ClusterStatisticsModeling:
         )
         for ind_lambda in range(lambda_obs_bins_size):
             for ind_z in range(z_obs_bins_size):
-                dvdz_zbin_lbin_z[ind_z, ind_lambda] = self._compute_volume_in_bin(
+                # P(zob|ztr)
+                z_tab = np.linspace(
                     z_obs_bins[ind_z],
                     z_obs_bins[ind_z + 1],
-                    lambda_obs_bins[ind_lambda],
-                    integral_n_steps=z_tab_sig,
+                    z_tab_sig,
+                )
+                p_zobs_z = simps(
+                    self.selectionfunction.P_zobs_z(
+                        z_tab, lambda_obs_bins[ind_lambda], self.kernel_tables["ztrue"]
+                    ),
+                    x=z_tab,
+                    axis=0,
+                )
+                # observed volume element dV/dz
+                dvdz_zbin_lbin_z[ind_z, ind_lambda] = (
+                    self.kernel_tables["dvdzdOmega_z"]
+                    * p_zobs_z
+                    * (self.area)
+                    * (np.pi**2.0 / 180.0**2.0)
                 )
         return dvdz_zbin_lbin_z
 
