@@ -267,11 +267,11 @@ class ClusterStatisticsModeling:
                 # P(zob|ztr)
                 p_zobs_z = simps(
                     self.selectionfunction.P_zobs_z(
-                        z_obs_tabs[ind_z],
+                        z_obs_tabs[:, ind_z],
                         lambda_obs_bins[ind_lambda],
                         self.kernel_tables["ztrue"],
                     ),
-                    x=z_obs_tabs[ind_z],
+                    x=z_obs_tabs[:, ind_z],
                     axis=0,
                 )
                 # observed volume element dV/dz
