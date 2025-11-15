@@ -255,23 +255,23 @@ class ClusterStatisticsModeling:
         z_obs_bins_size = len(z_obs_bins) - 1
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
+        # for z_obs integration
+        z_obs_tabs = np.linspace(z_obs_bins[:-1], z_obs_bins[1:], z_tab_sig)
+
         # outputs
         dvdz_zbin_lbin_z = np.zeros(
             (z_obs_bins_size, lambda_obs_bins_size, self.kernel_tables["ztrue"].size)
         )
-        for ind_lambda in range(lambda_obs_bins_size):
-            for ind_z in range(z_obs_bins_size):
+        for ind_z in range(z_obs_bins_size):
+            for ind_lambda in range(lambda_obs_bins_size):
                 # P(zob|ztr)
-                z_tab = np.linspace(
-                    z_obs_bins[ind_z],
-                    z_obs_bins[ind_z + 1],
-                    z_tab_sig,
-                )
                 p_zobs_z = simps(
                     self.selectionfunction.P_zobs_z(
-                        z_tab, lambda_obs_bins[ind_lambda], self.kernel_tables["ztrue"]
+                        z_obs_tabs[ind_z],
+                        lambda_obs_bins[ind_lambda],
+                        self.kernel_tables["ztrue"],
                     ),
-                    x=z_tab,
+                    x=z_obs_tabs[ind_z],
                     axis=0,
                 )
                 # observed volume element dV/dz
