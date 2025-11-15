@@ -242,7 +242,7 @@ class ClusterStatisticsModeling:
         ----------
         binned_quantity : numpy.ndarray
             Binned quantity to be integrated in mass, must be dimension
-            (nbins, mass, z) with (mass, z) from self.kernel_tables.
+            (nbins, z, mass, ...) with (z, mass) from self.kernel_tables.
 
         Returns
         -------
@@ -256,7 +256,7 @@ class ClusterStatisticsModeling:
 
         # outputs
         integrated_binned_quantity = np.zeros(
-            (bins_size, self.kernel_tables["ztrue"].size)
+            (*binned_quantity.shape[:2], *binned_quantity.shape[3:])
         )
         for ind in range(bins_size):
             integrated_binned_quantity[ind] = self._integrate_in_mass_with_hmf(
