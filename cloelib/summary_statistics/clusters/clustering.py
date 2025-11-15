@@ -60,7 +60,8 @@ class ClusterClustering:
         Returns
         -------
         pk_zbin_lbin_lbin_k : numpy.ndarray
-            Power spectrum ???
+            Power spectrum averaged on redshift and richnesses bins (with IR-resummation),
+            NOT normalized by the number counts.
         """
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
         # rsd corrections (l_obs, z, k)
@@ -126,7 +127,7 @@ class ClusterClustering:
             Returned only when `return_intermediate_products` is true.
             Contains :
 
-                * pk_zbin_lbin_lbin_k (numpy.ndarray) : Power spectrum ???
+                * pk_zbin_lbin_lbin_k (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
                 * window_zbin_lbin_k (numpy.ndarray) : Cluster count covariance window (z_obs, l_obs, k).
                 * vol_zbin_rbin (numpy.ndarray) : Spherical shell volume (z_obs, radius).
                 * dvdz_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
@@ -232,7 +233,7 @@ class ClusterClustering:
         Parameters
         ----------
         pk_zbin_lbin_lbin_k : numpy.ndarray
-            Power spectrum ???
+            Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         window_zbin_lbin_k : numpy.ndarray
             Cluster count covariance window (z_obs, l_obs, k),
