@@ -32,10 +32,10 @@ class ClusterStatisticsModeling:
             * mass (np.ndarray) : Values of mass to be used in integrations
             * lambda_true (np.ndarray) : Values of true richness to be used in integrations
             * ztrue (np.ndarray) : Values of true redshift to be used in integrations
-            * p_ltrue_z_m(np.ndarray) : Values for P(lambda_true|M, z)
-            * dvdzdOmega_z(np.ndarray) : Values for volume element at each redshift
-            * dndm_z_m(np.ndarray) : Values for the halo mass function dn/dmdz(mass, z)
-            * bias_z_m(np.ndarray) : Values for the halo bias halo_bias(mass, z)
+            * p_ltrue_z_m(np.ndarray) : Values for P(lambda_true|M, z) - shape (z, mass, lambda_true)
+            * dvdzdOmega_z(np.ndarray) : Values for volume element at each redshift - shape (z)
+            * dndm_z_m(np.ndarray) : Values for the halo mass function dn/dmdz - shape (z, mass)
+            * bias_z_m(np.ndarray) : Values for the halo bias halo_bias - shape (z, mass)
     """
 
     def __init__(
@@ -82,7 +82,7 @@ class ClusterStatisticsModeling:
             "mass": integ_mass_arr,  # mass array in Msun h^-1
             "lambda_true": integ_lambda_true_arr,  # true richness array
             "ztrue": integ_ztrue_arr,  # true redshift array
-            # P(ltr|M,z), this quantity is also used by cluster clustering
+            # P(lambda_true|M,z), this quantity is also used by cluster clustering
             "p_ltrue_z_m": self.selectionfunction.P_lnlbd(
                 integ_ztrue_arr, integ_mass_arr, integ_lambda_true_arr
             ),
@@ -318,7 +318,7 @@ class ClusterStatisticsModeling:
                 lambda_obs_bins[ind_lambda + 1],
                 l_m_tab_sig[ind_lambda],
             )
-            p_lobs_l_z = simps(
+            p_lbin_z_ltrue = simps(
                 self.selectionfunction.P_lbdobs_lbd(
                     self.kernel_tables["ztrue"],
                     self.kernel_tables["lambda_true"],
@@ -332,7 +332,7 @@ class ClusterStatisticsModeling:
 
             # P(lambda_obs_bin|mass, z)
             p_lbin_z_m[ind_lambda] = simps(
-                self.kernel_tables["p_ltrue_z_m"] * p_lobs_l_z[:, np.newaxis, :],
+                self.kernel_tables["p_ltrue_z_m"] * p_lbin_z_ltrue[:, np.newaxis, :],
                 x=self.kernel_tables["lambda_true"],
                 axis=-1,
             )
