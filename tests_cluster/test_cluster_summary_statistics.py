@@ -1,4 +1,6 @@
 # import jax.numpy as np
+import time
+
 import benchmark_values
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
@@ -25,6 +27,7 @@ def get_values():
     ###########
 
     print("# Cosmology parameters")
+    t0 = time.time()
     _H0 = 67.0
     _h = _H0 / 100.0
     _omch2 = 0.12
@@ -51,6 +54,8 @@ def get_values():
     perturbations_fid = CAMBLinearPerturbations(
         background_fid, np.linspace(0.0, 2.0, 100)
     )
+    print(f"cosmo     :  {time.time()-t0:.4f} seconds")
+    t0 = time.time()
 
     #############
     # Observables
@@ -122,9 +127,15 @@ def get_values():
         perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
     )
 
+    print(f"init obs  :  {time.time()-t0:.4f} seconds")
+    t0 = time.time()
+
     ####################
     # Summary Statistics
     ####################
+
+    print("---------------------------")
+    t1 = time.time()
 
     # Istanciate objects
     cluster_statitstics_modeling = ClusterStatisticsModeling(
@@ -151,6 +162,9 @@ def get_values():
         haloClustering,
     )
 
+    print(f"init stat :  {time.time()-t0:.4f} seconds")
+    t0 = time.time()
+
     # Compute values
 
     nc_zbin_lbin, counts_zbin_lbin_intermediate_products = (
@@ -159,17 +173,23 @@ def get_values():
             lambda_obs_bins=lambda_obs_nc_bins,
         )
     )
+    print(f"nc        :  {time.time()-t0:.4f} seconds")
+    t0 = time.time()
     cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
         zed_obs_nc_bins,
         nc_zbin_lbin,
         counts_zbin_lbin_intermediate_products["p_lbin_z_m"],
         counts_zbin_lbin_intermediate_products["dvdz_zbin_lbin_z"],
     )
+    print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
+    t0 = time.time()
     deltasigma_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_deltasigma(
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
     )
+    print(f"dsig      :  {time.time()-t0:.4f} seconds")
+    t0 = time.time()
     clustering_zbin_lbin_rbin, clustering_zbin_lbin_intermediate_products = (
         cluster_clustering_statistics.compute_binned_clustering(
             lambda_obs_bins=lambda_obs_clustering_bins,
@@ -177,6 +197,8 @@ def get_values():
             z_obs_bins=zed_obs_clustering_bins,
         )
     )
+    print(f"xi        :  {time.time()-t0:.4f} seconds")
+    t0 = time.time()
     cov_clustering_zbin_lbin_rbin = cluster_clustering_statistics.compute_cov(
         clustering_zbin_lbin_intermediate_products["pk_zbin_lbin_lbin_k"],
         clustering_zbin_lbin_intermediate_products["window_zbin_lbin_k"],
@@ -184,6 +206,10 @@ def get_values():
         clustering_zbin_lbin_intermediate_products["dvdz_zbin_lbin_z"],
         clustering_zbin_lbin_intermediate_products["nc_zbin_lbin"],
     )
+    print(f"xi_cov    :  {time.time()-t0:.4f} seconds")
+    t0 = time.time()
+    print("---------------------------")
+    print(f"tot like  :  {time.time()-t1:.4f} seconds")
     return (
         nc_zbin_lbin,
         deltasigma_zbin_lbin_rbin,
