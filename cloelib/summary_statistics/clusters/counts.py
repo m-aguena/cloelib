@@ -116,12 +116,12 @@ class ClusterCounts:
         )
         # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (l_obs, z)
         p_lbin_z = (
-            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+            self.cluster_statitstics_modeling.integrate_binned_kernel_in_mass_w_hmf(
                 p_lbin_z_m
             )
         )
         # cluster counts : (z_obs, l_obs)
-        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_kernel_in_true_redshift(
             p_lbin_z[np.newaxis, :] * dvdz_zbin_lbin_z
         )
 
@@ -173,7 +173,7 @@ class ClusterCounts:
                 z_obs_bins[ind_z], z_obs_bins[ind_z + 1], self.z_tab_sig
             )
             spatial_cov[ind_z, : (ind_z + 1)] = (
-                self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
+                self.cluster_statitstics_modeling.integrate_kernel_in_k_space(
                     np.sqrt(pk[ind_z] * pk[: (ind_z + 1)])
                     * self.covariance.cov_window(ind_z, z_tab, KL),
                 )
@@ -211,13 +211,13 @@ class ClusterCounts:
 
         # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
         _b_lbin_z = (
-            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+            self.cluster_statitstics_modeling.integrate_binned_kernel_in_mass_w_hmf(
                 p_lbin_z_m
                 * self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"]
             )
         )
         # cluster integrated bias : (z_obs, l_obs)
-        hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+        hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_kernel_in_true_redshift(
             _b_lbin_z[np.newaxis, :] * dvdz_zbin_lbin_z
         )
 

@@ -87,7 +87,7 @@ class ClusterClustering:
         )
 
         # average square of power spectrum in redshift and richness bins (z_obs, l_obs, k)
-        sqrt_Pk_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+        sqrt_Pk_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_kernel_in_true_redshift(
             dvdz_zbin_lbin_z[:, :, :, np.newaxis]
             * p_lbin_z[np.newaxis, :, :, np.newaxis]
             * np.sqrt(pk_halo[np.newaxis, :, :, :])
@@ -152,19 +152,19 @@ class ClusterClustering:
         )
         # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (l_obs, z)
         p_lbin_z = (
-            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+            self.cluster_statitstics_modeling.integrate_binned_kernel_in_mass_w_hmf(
                 _p_lbin_z_m
             )
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
         b_lbin_z = (
-            self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
+            self.cluster_statitstics_modeling.integrate_binned_kernel_in_mass_w_hmf(
                 _p_lbin_z_m
                 * self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"]
             )
         )
         # cluster counts : (z_obs, l_obs)
-        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_kernel_in_true_redshift(
             p_lbin_z[np.newaxis, :] * dvdz_zbin_lbin_z
         )
 
@@ -191,7 +191,7 @@ class ClusterClustering:
 
         # compute 2point correlation function : (z_obs, l_obs, l_obs, radius)
         _clustering_zbin_lbin_rbin_buf = (
-            self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
+            self.cluster_statitstics_modeling.integrate_kernel_in_k_space(
                 window_zbin_lbin_k[:, np.newaxis, np.newaxis, :, :]
                 * pk_zbin_lbin_lbin_k[:, :, :, np.newaxis, :]
             )
@@ -261,7 +261,7 @@ class ClusterClustering:
         ########################################
 
         # Compute observed volume in each redshift bin : (z_obs, l_obs)
-        vol_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_quantity_in_true_redshift(
+        vol_zbin_lbin = self.cluster_statitstics_modeling.integrate_2d_binned_kernel_in_true_redshift(
             dvdz_zbin_lbin_z
         )
         # Compute output shot-noise terms : (z_obs, l_obs, l_obs)
@@ -345,7 +345,7 @@ class ClusterClustering:
                         ind_radius,
                         ind_radius,
                     ] = (
-                        self.cluster_statitstics_modeling.integrate_quantity_in_k_space(
+                        self.cluster_statitstics_modeling.integrate_kernel_in_k_space(
                             window_zbin_lbin_k[:, ind_radius, :]
                             * beta_pk_zbin_lbin_lbin_k[
                                 :, ind_lambda_i, ind_lambda_j, :
@@ -361,8 +361,8 @@ class ClusterClustering:
                 for ind_lambda_k in lambda_bin_loop:
                     for ind_lambda_h in lambda_bin_loop:
 
-                        # somehow using _integrate_quantity_in_k is much faster then
-                        # integrate_quantity_in_k_space here, to be investigated
+                        # somehow using _integrate_kernel_in_k is much faster then
+                        # integrate_kernel_in_k_space here, to be investigated
 
                         # gaussian term
                         _cov_g_zbin_4lbin_2rbin[
@@ -373,7 +373,7 @@ class ClusterClustering:
                             ind_lambda_h,
                             :,
                             :,
-                        ] = self.cluster_statitstics_modeling._integrate_quantity_in_k(
+                        ] = self.cluster_statitstics_modeling._integrate_kernel_in_k(
                             window_zbin_lbin_k[:, np.newaxis, :, :]
                             * window_zbin_lbin_k[:, :, np.newaxis, :]
                             * avol_bpk_zbin_lbin_lbin_k[
