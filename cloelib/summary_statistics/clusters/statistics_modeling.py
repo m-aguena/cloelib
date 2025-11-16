@@ -302,8 +302,11 @@ class ClusterStatisticsModeling:
             with masses and redshifts being the values in self.kernel_tables.
             Dimentions: (lobs_bin, z, mass)
         """
-        lambda_obs_bins_size = len(lambda_obs_bins) - 1
 
+        # if external_richness_selection_function == 'CG_ESF' :
+        #     p_lbin_z_m  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
+
+        lambda_obs_bins_size = len(lambda_obs_bins) - 1
         p_lbin_z_m = np.zeros(
             (
                 lambda_obs_bins_size,
@@ -327,9 +330,6 @@ class ClusterStatisticsModeling:
                 x=l_tab,
                 axis=-1,
             )
-            #       if external_richness_selection_function == 'CG_ESF' :
-            #       p_lobs_l_z  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
-
             # P(lambda_obs_bin|mass, z)
             p_lbin_z_m[ind_lambda] = simps(
                 self.kernel_tables["p_ltrue_z_m"] * p_lbin_z_ltrue[:, np.newaxis, :],
