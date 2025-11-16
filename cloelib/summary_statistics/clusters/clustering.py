@@ -144,7 +144,7 @@ class ClusterClustering:
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
         )
-        # P(lambda_obs_bins|M, z) : (l_obs, mass, z)
+        # P(lambda_obs_bins|M, z) : (l_obs, M, z)
         _p_lbin_z_m = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
@@ -160,7 +160,7 @@ class ClusterClustering:
         b_lbin_z = (
             self.cluster_statitstics_modeling.integrate_binned_quantity_in_mass_w_hmf(
                 _p_lbin_z_m
-                * self.cluster_statitstics_modeling.kernel_tables["bias_z_m"]
+                * self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"]
             )
         )
         # cluster counts : (z_obs, l_obs)
@@ -244,7 +244,7 @@ class ClusterClustering:
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
         dvdz_zbin_lbin_z : numpy.ndarray
             Observed volume element (dV/dz_ob) in each redshift and richness bin
-            shape (z_obs, lambda_obs, z) with (z) in cluster_statitstics_modeling.kenel_tables.
+            shape (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kenel_tables.
         nc_zbin_lbin : numpy.ndarray
             Number counts in redshift and richness bins
 

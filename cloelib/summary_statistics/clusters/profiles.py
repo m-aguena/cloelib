@@ -81,7 +81,7 @@ class ClusterWeakLensing:
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
         )
-        # P(lambda_obs_bins|M, z) : (l_obs, mass, z)
+        # P(lambda_obs_bins|M, z) : (l_obs, M, z)
         p_lbin_z_m = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
@@ -110,7 +110,7 @@ class ClusterWeakLensing:
         excess_surface_mass_density = self.profile.excess_surface_mass_density(
             radius_bins,
             self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-            self.cluster_statitstics_modeling.kernel_tables["mass"],
+            self.cluster_statitstics_modeling.kernel_tables["M"],
             self.halo_concentration,
         )
         # pre-compute effective inverse critical surface mass density.
