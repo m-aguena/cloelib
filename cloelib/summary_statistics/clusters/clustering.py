@@ -286,18 +286,16 @@ class ClusterClustering:
 
         # Combine alpha, beta with pk, vol and reshape to be used
         # in cov_g, cov_ng integral
-        _ap1sq_vol_over_nc_zbin_lbin_lbin = (
-            (1 + alpha)[:, :, np.newaxis]
-            * (1 + alpha)[:, np.newaxis, :]
-            * vol_over_nc_zbin_lbin_lbin
-        )
         beta_pk_zbin_lbin_lbin_k = (
             beta[:, :, np.newaxis, np.newaxis]
             * beta[:, np.newaxis, :, np.newaxis]
             * pk_zbin_lbin_lbin_k
         )
         avol_bpk_zbin_lbin_lbin_k = (
-            _ap1sq_vol_over_nc_zbin_lbin_lbin[:, :, :, np.newaxis]
+            # reshape alpha to be (z_obs, l_obs, l_obs)
+            (1 + alpha)[:, :, np.newaxis, np.newaxis]
+            * (1 + alpha)[:, np.newaxis, :, np.newaxis]
+            * vol_over_nc_zbin_lbin_lbin[:, :, :, np.newaxis]
             + beta_pk_zbin_lbin_lbin_k
         )
 
