@@ -102,138 +102,9 @@ class ClusterStatisticsModeling:
             "dk": integ_k_arr**2.0 / (2.0 * np.pi**2),
         }
 
-    def _integrate_in_mass_with_hmf(self, kernel):
-        """Integrates quantitty in mass with HMF.
-
-        Parameters
-        ----------
-        kernel : numpy.ndarray
-            Kernel to be integrated, must be shape (ztrue, M).
-
-        Returns
-        -------
-        numpy.ndarray
-            counts in a richness redshift bin
-        """
-        return simps(
-            kernel * self.kernel_tables["dn/dM(ztrue,M)"],
-            x=self.kernel_tables["M"],
-            axis=1,
-        )
-
-    def _integrate_in_ztrue(self, kernel):
-        """Integrate kernel in volume.
-
-        Parameters
-        ----------
-        kernel : numpy.ndarray
-            Kernel to be integrated, must be in shape (ztrue).
-
-        Returns
-        -------
-        numpy.ndarray
-            counts in a richness redshift bin
-        """
-        # computes counts in a richness redshift bin
-        return simps(kernel, x=self.kernel_tables["ztrue"], axis=0)
-
-    def _integrate_kernel_in_k(self, kernel):
-        """Integrates the kernel in k.
-
-        Parameters
-        ----------
-        kernel : numpy.ndarray
-            Quantity to be integrated in k space. Can be multidimensional, but
-            the the last dimension must be of size (k) from self.kernel_tables.
-
-        Returns
-        -------
-        integrated_kernel : numpy.ndarray
-            Quantity integrated in k, dimension same as input
-            minus the last one.
-        """
-        return simps(kernel, x=self.kernel_tables["k"])
-
-    # -------------------------------------
-    # external integration functions
-    # -------------------------------------
-
-    def integrate_binned_kernel_in_mass_w_hmf(self, binned_kernel):
-        """Integrates in mass with HMF each binned kernel.
-
-        Parameters
-        ----------
-        binned_kernel : numpy.ndarray
-            Binned kernel to be integrated in mass, must be dimension
-            (nbins, ztrue, M, ...) with (ztrue, M) from self.kernel_tables.
-
-        Returns
-        -------
-        integrated_binned_kernel : numpy.ndarray
-            Quantity integrated in mass with the halo
-            mass function for each bin. Dimension (nbin, ztrue),
-            with (ztrue) from self.kernel_tables.
-        """
-
-        bins_size = len(binned_kernel)
-
-        # outputs
-        integrated_binned_kernel = np.zeros(
-            (*binned_kernel.shape[:2], *binned_kernel.shape[3:])
-        )
-        for ind in range(bins_size):
-            integrated_binned_kernel[ind] = self._integrate_in_mass_with_hmf(
-                binned_kernel[ind]
-            )
-        return integrated_binned_kernel
-
-    def integrate_2d_binned_kernel_in_true_redshift(self, binned_kernel):
-        """Integrates in redshift each 2D binned kernel.
-
-        Parameters
-        ----------
-        binned_kernel : numpy.ndarray
-            2D binned kernel to be integrated in redhisft, must be dimension
-            (nbins1, nbins2, ztrue) with (ztrue) from self.kernel_tables.
-
-        Returns
-        -------
-        integrated_binned_kernel : numpy.ndarray
-            Quantity integrated in true redshift for each bin.
-            Dimension (nbin1, nbin2).
-        """
-        bins1_size, bins2_size = binned_kernel.shape[:2]
-        out_shape = (*binned_kernel.shape[:2], *binned_kernel.shape[3:])
-
-        # outputs
-        integrated_binned_kernel = np.zeros(out_shape)
-        for ind1 in range(bins1_size):
-            for ind2 in range(bins2_size):
-                integrated_binned_kernel[ind1, ind2] = self._integrate_in_ztrue(
-                    binned_kernel[ind1, ind2]
-                )
-        return integrated_binned_kernel
-
-    def integrate_kernel_in_k_space(self, kernel):
-        """Integrates the kernel in k space with a k^2/2pi kernel.
-
-        Parameters
-        ----------
-        kernel : numpy.ndarray
-            Quantity to be integrated in k space. Can be multidimensional, but
-            the the last dimension must be of size (k) from self.kernel_tables.
-
-        Returns
-        -------
-        integrated_kernel : numpy.ndarray
-            Quantity integrated in k space, dimension same as input
-            minus the last one.
-        """
-        return self._integrate_kernel_in_k(kernel * self.kernel_tables["dk"])
-
-    # -------------------------------------
-    # external cluster statistics functions
-    # -------------------------------------
+    # ----------------------------
+    # cluster statistics functions
+    # ----------------------------
 
     def compute_binned_volume_element(self, z_obs_bins, lambda_obs_bins, z_tab_sig):
         """Computes volume element in redshift and richness bins.
@@ -340,3 +211,122 @@ class ClusterStatisticsModeling:
                 axis=-1,
             )
         return p_lbin_z_m
+
+    # ---------------------
+    # integration functions
+    # ---------------------
+
+    def _integrate_kernel_in_k(self, kernel):
+        """Integrates the kernel in k.
+
+        Parameters
+        ----------
+        kernel : numpy.ndarray
+            Quantity to be integrated in k space. Can be multidimensional, but
+            the the last dimension must be of size (k) from self.kernel_tables.
+
+        Returns
+        -------
+        integrated_kernel : numpy.ndarray
+            Quantity integrated in k, dimension same as input
+            minus the last one.
+        """
+        return simps(kernel, x=self.kernel_tables["k"])
+
+    def integrate_kernel_in_k_space(self, kernel):
+        """Integrates the kernel in k space with a k^2/2pi kernel.
+
+        Parameters
+        ----------
+        kernel : numpy.ndarray
+            Quantity to be integrated in k space. Can be multidimensional, but
+            the the last dimension must be of size (k) from self.kernel_tables.
+
+        Returns
+        -------
+        integrated_kernel : numpy.ndarray
+            Quantity integrated in k space, dimension same as input
+            minus the last one.
+        """
+        return self._integrate_kernel_in_k(kernel * self.kernel_tables["dk"])
+
+    def integrate_kernel_in_mass_w_hmf(self, kernel_z_m, p_lbin_z_m):
+        """Integrates in mass with HMF each binned kernel.
+
+        Parameters
+        ----------
+        kernel : numpy.ndarray
+            Kernel to be integrated in mass and convoluted with observed richness bins,
+            must be dimension (ztrue, M, ...) with (ztrue, M) from self.kernel_tables.
+        p_lbin_z_m : numpy.ndarray
+            Probability of observed richness bin P(lobs_bin|M, ztrue)
+            with masses and redshifts being the values in self.kernel_tables.
+            Dimentions: (lobs_bin, ztrue, M)
+
+        Returns
+        -------
+        kernel_lbin_z : numpy.ndarray
+            Quantity integrated in mass with the halo mass function and convoluted
+            with observed richness bins. Dimension (lambda_obs, ztrue, ...),
+            with (ztrue) from self.kernel_tables.
+        """
+        # Add lbin dimension to kernel_lbin_z
+        _kernel_lbin_z_m = kernel_z_m[np.newaxis, ...]
+
+        # to make p_lbin_z_m, hmf same shape as kernel
+        extra_axes = [np.newaxis] * len(_kernel_lbin_z_m.shape[3:])
+
+        # reshape p_lbin_z_m
+        axes_p_lbin_z_m = (slice(i) for i in p_lbin_z_m.shape)
+        _p_lbin_z_m = p_lbin_z_m[(*axes_p_lbin_z_m, *extra_axes)]
+
+        # reshape HMF
+        axes_hmf = (slice(i) for i in self.kernel_tables["dn/dM(ztrue,M)"].shape)
+        _hmf_lbin_z_m = self.kernel_tables["dn/dM(ztrue,M)"][
+            (np.newaxis, *axes_hmf, *extra_axes)
+        ]
+
+        # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (l_obs, z)
+        kernel_lbin_z = simps(
+            _kernel_lbin_z_m * _hmf_lbin_z_m * _p_lbin_z_m,
+            x=self.kernel_tables["M"],
+            axis=2,
+        )
+        return kernel_lbin_z
+
+    def integrate_lbin_kernel_in_true_volume(self, kernel_lbin_z, dvdz_zbin_lbin_z):
+        """Integrates in true volume dv/dzdOmega(ztrue) a kernel binned in observed richness,
+        in each observed redsfhit bin.
+
+        Parameters
+        ----------
+        kernel_lbin_z : numpy.ndarray
+            Kernel binned in observed richness to be integrated in true redshift, and
+            convoluted with observed redshift bins. Must be dimension
+            (lambda_obs, ztrue) with (ztrue) from self.kernel_tables.
+        dvdz_zbin_lbin_z : numpy.ndarray
+            Observed volume element (dV/dz) in each redshift and richness bin
+            shape (z_obs, lambda_obs, ztrue) with (ztrue) in kenel_tables.
+
+        Returns
+        -------
+        kernel_zbin_lbin : numpy.ndarray
+            Quantity integrated in true redshift for each observed bin.
+            Dimension (z_obs, lambda_obs).
+        """
+        # Add zbin dimension to kernel_lbin_z
+        _kernel_zbin_lbin_z = kernel_lbin_z[np.newaxis, ...]
+
+        # reshape dvdz_zbin_lbin_z
+        extra_axes = [np.newaxis] * len(_kernel_zbin_lbin_z.shape[3:])
+        axes_dvdz_zbin_lbin_z = (slice(i) for i in dvdz_zbin_lbin_z.shape)
+        _dvdz_zbin_lbin_z = dvdz_zbin_lbin_z[(*axes_dvdz_zbin_lbin_z, *extra_axes)]
+
+        # cluster counts : (z_obs, l_obs)
+        kernel_zbin_lbin = simps(
+            _kernel_zbin_lbin_z * _dvdz_zbin_lbin_z,
+            x=self.kernel_tables["ztrue"],
+            axis=2,
+        )
+
+        return kernel_zbin_lbin
