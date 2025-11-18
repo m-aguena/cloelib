@@ -167,7 +167,7 @@ def get_values():
 
     # Compute values
 
-    nc_zbin_lbin, counts_zbin_lbin_intermediate_products = (
+    cluster_counts, counts_intermediate_integration_products = (
         cluster_counts_statistics.compute_binned_counts(
             z_obs_bins=zed_obs_nc_bins,
             lambda_obs_bins=lambda_obs_nc_bins,
@@ -175,22 +175,22 @@ def get_values():
     )
     print(f"nc        :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
-    cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
+    cov_cluster_counts = cluster_counts_statistics.compute_cov(
         zed_obs_nc_bins,
-        nc_zbin_lbin,
-        counts_zbin_lbin_intermediate_products["prob_lambda_obs_lbin_z_m"],
-        counts_zbin_lbin_intermediate_products["prob_z_obs_zbin_lbin_z"],
+        cluster_counts,
+        counts_intermediate_integration_products["prob_lambda_obs_bins"],
+        counts_intermediate_integration_products["prob_z_obs"],
     )
     print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
-    deltasigma_zbin_lbin_rbin = cluster_wl_statistics.compute_binned_deltasigma(
+    deltasigma_mean_values = cluster_wl_statistics.compute_binned_deltasigma(
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
     )
     print(f"dsig      :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
-    clustering_zbin_lbin_rbin, clustering_zbin_lbin_intermediate_products = (
+    cluster_clustering, clustering_intermediate_integration_products = (
         cluster_clustering_statistics.compute_binned_clustering(
             lambda_obs_bins=lambda_obs_clustering_bins,
             radius_bins=radius_clustering_bins,
@@ -199,50 +199,50 @@ def get_values():
     )
     print(f"xi        :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
-    cov_clustering_zbin_lbin_rbin = cluster_clustering_statistics.compute_cov(
-        clustering_zbin_lbin_intermediate_products["pk_zbin_lbin_lbin_k"],
-        clustering_zbin_lbin_intermediate_products["window_zbin_lbin_k"],
-        clustering_zbin_lbin_intermediate_products["vol_zbin_rbin"],
-        clustering_zbin_lbin_intermediate_products["prob_z_obs_zbin_lbin_z"],
-        clustering_zbin_lbin_intermediate_products["nc_zbin_lbin"],
+    cov_cluster_clustering = cluster_clustering_statistics.compute_cov(
+        clustering_intermediate_integration_products["pk_mean_values"],
+        clustering_intermediate_integration_products["covariance_window"],
+        clustering_intermediate_integration_products["volume_obs_shell"],
+        clustering_intermediate_integration_products["prob_z_obs"],
+        clustering_intermediate_integration_products["cluster_counts"],
     )
     print(f"xi_cov    :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
     print("---------------------------")
     print(f"tot like  :  {time.time()-t1:.4f} seconds")
     return (
-        nc_zbin_lbin,
-        deltasigma_zbin_lbin_rbin,
-        clustering_zbin_lbin_rbin,
-        cov_nc_zbin_lbin,
-        cov_clustering_zbin_lbin_rbin,
+        cluster_counts,
+        deltasigma_mean_values,
+        cluster_clustering,
+        cov_cluster_counts,
+        cov_cluster_clustering,
     )
 
 
 def test_clustersummmarystatitistics():
     (
-        nc_zbin_lbin,
-        deltasigma_zbin_lbin_rbin,
-        clustering_zbin_lbin_rbin,
-        cov_nc_zbin_lbin,
-        cov_clustering_zbin_lbin_rbin,
+        cluster_counts,
+        deltasigma_mean_values,
+        cluster_clustering,
+        cov_cluster_counts,
+        cov_cluster_clustering,
     ) = get_values()
 
-    assert_allclose(nc_zbin_lbin, benchmark_values.nc, rtol=1e-2)
+    assert_allclose(cluster_counts, benchmark_values.cluster_counts, rtol=1e-2)
 
     assert_allclose(
-        deltasigma_zbin_lbin_rbin[0:2], benchmark_values.deltasigma, rtol=1e-2
+        deltasigma_mean_values[0:2], benchmark_values.deltasigma, rtol=1e-2
     )
 
     assert_allclose(
-        clustering_zbin_lbin_rbin[0:2], benchmark_values.clustering, rtol=1e-2
+        cluster_clustering[0:2], benchmark_values.cluster_clustering, rtol=1e-2
     )
 
-    assert_allclose(cov_nc_zbin_lbin[1:2], benchmark_values.nc_cov, rtol=5e-2)
+    assert_allclose(cov_cluster_counts[1:2], benchmark_values.cov_cluster_counts, rtol=5e-2)
 
     assert_allclose(
-        cov_clustering_zbin_lbin_rbin[1, 1, 1:3, 1:3, 10:20, 10:20],
-        benchmark_values.clustering_cov,
+        cov_cluster_clustering[1, 1, 1:3, 1:3, 10:20, 10:20],
+        benchmark_values.cov_cluster_clustering,
         rtol=5e-2,
     )
 

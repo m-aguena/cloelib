@@ -82,52 +82,52 @@ class ClusterCounts:
         lambda_obs_bins : numpy.ndarray
             Richness bins for the integration.
         return_intermediate_products : bool
-            If true, also returns `intermediate_products_zbin_lbin`, a dictionary
+            If true, also returns `intermediate_integration_products`, a dictionary
             with the intermediate products computed.
 
         Returns
         -------
-        nc_zbin_lbin : numpy.ndarray
+        cluster_counts : numpy.ndarray
             Number counts in redshift and richness bins
-        intermediate_products_zbin_lbin (optional) : dict
+        intermediate_integration_products (optional) : dict
             Dictionary with intermidate products that can be used for other computations.
             Returned only when `return_intermediate_products` is true.
             Contains :
 
-                * prob_lambda_obs_lbin_z_m (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, ztrue) for masses and redshifts in table
-                * prob_z_obs_zbin_lbin_z (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * prob_lambda_obs_bins (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, ztrue) for masses and redshifts in table
+                * prob_z_obs (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
         """
 
         ############################################
         # Get cluster statistics modeling quantities
         ############################################
-        # P(lambda_obs_bins|M, z) : (l_obs, M, z)
-        prob_lambda_obs_lbin_z_m = (
+        # P(lambda_obs_bins|M, z) : (lambda_obs, M, ztrue)
+        prob_lambda_obs_bins = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
-        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
-        prob_z_obs_zbin_lbin_z = (
+        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
+        prob_z_obs = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
         )
-        # cluster counts : (z_obs, l_obs)
-        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
-            # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
+        # cluster counts : (z_obs, lambda_obs)
+        cluster_counts = self.cluster_statitstics_modeling.integrate_in_true_redshift(
+            # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (lambda_obs, ztrue)
             self.cluster_statitstics_modeling.integrate_in_mass(
-                np.ones((1, 1)), prob_lambda_obs_lbin_z_m
+                np.ones((1, 1)), prob_lambda_obs_bins
             ),
-            prob_z_obs_zbin_lbin_z,
+            prob_z_obs,
         )
 
         if not return_intermediate_products:
-            return nc_zbin_lbin
+            return cluster_counts
 
-        return nc_zbin_lbin, {
-            "prob_lambda_obs_lbin_z_m": prob_lambda_obs_lbin_z_m,
-            "prob_z_obs_zbin_lbin_z": prob_z_obs_zbin_lbin_z,
+        return cluster_counts, {
+            "prob_lambda_obs_bins": prob_lambda_obs_bins,
+            "prob_z_obs": prob_z_obs,
         }
 
     # -------------------
@@ -179,30 +179,28 @@ class ClusterCounts:
             spatial_cov[: (ind_z + 1), ind_z] = spatial_cov[ind_z, : (ind_z + 1)]
         return spatial_cov
 
-    def compute_cov(
-        self, z_obs_bins, nc_zbin_lbin, prob_lambda_obs_lbin_z_m, prob_z_obs_zbin_lbin_z
-    ):
+    def compute_cov(self, z_obs_bins, cluster_counts, prob_lambda_obs_bins, prob_z_obs):
         """Computes theoretical covariance for cluster counts, including shot noise and sample covariance
 
         Parameters
         ----------
         z_obs_bins : numpy.ndarray
             Redshift bins for the integration.
-        nc_zbin_lbin : numpy.ndarray
+        cluster_counts : numpy.ndarray
             Number counts in redshift and richness bins
-        prob_lambda_obs_lbin_z_m : numpy.ndarray
+        prob_lambda_obs_bins : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, ztrue),
             with masses and redshifts being the values in cluster_statitstics_modeling.kernel_tables.
-            Is in the intermediate_products_zbin_lbin output of compute_binned_counts.
-        prob_z_obs_zbin_lbin_z : numpy.ndarray
+            Is in the intermediate_integration_products output of compute_binned_counts.
+        prob_z_obs : numpy.ndarray
             Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
             given a observed richness bin and a true redshift.
             Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
-            Is in the intermediate_products_zbin_lbin output of compute_binned_counts.
+            Is in the intermediate_integration_products output of compute_binned_counts.
 
         Returns
         -------
-        cov_nc_zbin_lbin : numpy.ndarray
+        cov_cluster_counts : numpy.ndarray
             Covariance number counts in redshift and richness bins
         """
 
@@ -210,15 +208,15 @@ class ClusterCounts:
         # Get cluster statistics modeling quantities
         ############################################
 
-        # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
-        # cluster integrated bias : (z_obs, l_obs)
-        hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
-            # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
+        # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (lambda_obs, ztrue)
+        # cluster integrated bias : (z_obs, lambda_obs)
+        hbias_mean_values = self.cluster_statitstics_modeling.integrate_in_true_redshift(
+            # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (lambda_obs, ztrue)
             self.cluster_statitstics_modeling.integrate_in_mass(
                 self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
-                prob_lambda_obs_lbin_z_m,
+                prob_lambda_obs_bins,
             ),
-            prob_z_obs_zbin_lbin_z,
+            prob_z_obs,
         )
 
         ####################
@@ -228,18 +226,18 @@ class ClusterCounts:
         # spatial component of covariance (z_obs, z_obs)
         spatial_cov = self._compute_spatial_cov(z_obs_bins)
 
-        # shot noise (z_obs, z_obs, l_obs, l_obs)
+        # shot noise (z_obs, z_obs, lambda_obs, lambda_obs)
         _shot_noise = (
-            np.diag(nc_zbin_lbin.flatten())
-            .reshape(*nc_zbin_lbin.shape, *nc_zbin_lbin.shape)
+            np.diag(cluster_counts.flatten())
+            .reshape(*cluster_counts.shape, *cluster_counts.shape)
             .transpose(0, 2, 1, 3)
         )
 
-        # total covariance = shot-noise + sample covariance (z_obs, z_obs, l_obs, l_obs)
-        cov_nc_zbin_lbin = _shot_noise + (
-            hbias_zbin_lbin[np.newaxis, :, np.newaxis, :]
-            * hbias_zbin_lbin[:, np.newaxis, :, np.newaxis]
+        # total covariance = shot-noise + sample covariance (z_obs, z_obs, lambda_obs, lambda_obs)
+        cov_cluster_counts = _shot_noise + (
+            hbias_mean_values[np.newaxis, :, np.newaxis, :]
+            * hbias_mean_values[:, np.newaxis, :, np.newaxis]
             * spatial_cov[:, :, np.newaxis, np.newaxis]
         )
 
-        return cov_nc_zbin_lbin
+        return cov_cluster_counts

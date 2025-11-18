@@ -67,7 +67,7 @@ class ClusterWeakLensing:
 
         Returns
         -------
-        deltasigma_zbin_lbin_rbin : numpy.ndarray
+        deltasigma_mean_values : numpy.ndarray
             Excess surface density in redshift, richness, and radial bins.
         """
         z_obs_bins_size = len(z_obs_bins) - 1
@@ -76,25 +76,25 @@ class ClusterWeakLensing:
         # Get cluster statistics modeling quantities
         ############################################
 
-        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
-        prob_z_obs_zbin_lbin_z = (
+        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
+        prob_z_obs = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
         )
-        # P(lambda_obs_bins|M, z) : (l_obs, M, z)
-        prob_lambda_obs_lbin_z_m = (
+        # P(lambda_obs_bins|M, z) : (lambda_obs, M, ztrue)
+        prob_lambda_obs_bins = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
-        # cluster counts : (z_obs, l_obs)
-        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
-            # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
+        # cluster counts : (z_obs, lambda_obs)
+        cluster_counts = self.cluster_statitstics_modeling.integrate_in_true_redshift(
+            # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (lambda_obs, ztrue)
             self.cluster_statitstics_modeling.integrate_in_mass(
-                np.ones((1, 1)), prob_lambda_obs_lbin_z_m
+                np.ones((1, 1)), prob_lambda_obs_bins
             ),
-            prob_z_obs_zbin_lbin_z,
+            prob_z_obs,
         )
 
         ########################
@@ -103,37 +103,40 @@ class ClusterWeakLensing:
 
         # mass/richness part
 
-        # excess surface mass density
-        deltasigma_z_m_rbin = self.profile.excess_surface_mass_density(
+        # excess surface mass density : (ztrue, M, radius)
+        deltasigma = self.profile.excess_surface_mass_density(
             radius_bins[:-1],
             self.cluster_statitstics_modeling.kernel_tables["ztrue"],
             self.cluster_statitstics_modeling.kernel_tables["M"],
             self.halo_concentration,
         )
-        # excess surface mass density in a richness bin, integrated on mass w HMF : (l_obs, z)
-        deltasigma_lbin_z_rbin = self.cluster_statitstics_modeling.integrate_in_mass(
-            deltasigma_z_m_rbin, prob_lambda_obs_lbin_z_m
+        # excess surface mass density in a richness bin, integrated on mass w HMF : (lambda_obs, ztrue, M, radius)
+        deltasigma_lambda_obs_bins = (
+            self.cluster_statitstics_modeling.integrate_in_mass(
+                deltasigma, prob_lambda_obs_bins
+            )
         )
 
         # redshift part
 
-        # Effective inverse critical surface mass density.
-        inv_sig_crit_eff_zbin_z = np.zeros(
+        # Effective inverse critical surface mass density : (z_obs, ztrue)
+        inv_sig_crit_eff = np.zeros(
             (
                 z_obs_bins_size,
                 self.cluster_statitstics_modeling.kernel_tables["ztrue"].size,
             )
         )
         for ind_z in range(z_obs_bins_size):
-            inv_sig_crit_eff_zbin_z[ind_z] = self.profile.m_sig_crit_m1(
+            inv_sig_crit_eff[ind_z] = self.profile.m_sig_crit_m1(
                 self.cluster_statitstics_modeling.kernel_tables["ztrue"],
                 ind_z,
             )
 
-        deltasigma_zbin_lbin_rbin = (
+        # output : (z_obs, lambda_obs, radius)
+        deltasigma_mean_values = (
             self.cluster_statitstics_modeling.integrate_in_true_redshift(
-                deltasigma_lbin_z_rbin,
-                prob_z_obs_zbin_lbin_z * inv_sig_crit_eff_zbin_z[:, np.newaxis, :],
+                deltasigma_lambda_obs_bins,
+                prob_z_obs * inv_sig_crit_eff[:, np.newaxis, :],
             )
-        ) / nc_zbin_lbin[:, :, np.newaxis]
-        return deltasigma_zbin_lbin_rbin
+        ) / cluster_counts[:, :, np.newaxis]
+        return deltasigma_mean_values
