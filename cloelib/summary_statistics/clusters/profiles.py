@@ -76,7 +76,7 @@ class ClusterWeakLensing:
         # Get cluster statistics modeling quantities
         ############################################
 
-        # volume element in each redshift and richness bin shape : (z_obs, l_obs, z)
+        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
         pzobs_zbin_lbin_z = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig

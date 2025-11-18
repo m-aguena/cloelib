@@ -131,7 +131,7 @@ class ClusterClustering:
                 * pk_zbin_lbin_lbin_k (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
                 * window_zbin_lbin_k (numpy.ndarray) : Cluster count covariance window (z_obs, l_obs, k).
                 * vol_zbin_rbin (numpy.ndarray) : Spherical shell volume (z_obs, radius).
-                * pzobs_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
+                * pzobs_zbin_lbin_z (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
                 * nc_zbin_lbin (numpy.ndarray) :  Number counts in redshift and richness bins
         """
 
@@ -139,7 +139,7 @@ class ClusterClustering:
         # Get cluster statistics modeling quantities
         ############################################
 
-        # volume element in each redshift and richness bin shape : (z_obs, l_obs, z)
+        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
         pzobs_zbin_lbin_z = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig

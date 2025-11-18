@@ -95,7 +95,7 @@ class ClusterCounts:
             Contains :
 
                 * plobs_lbin_z_m (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, ztrue) for masses and redshifts in table
-                * pzobs_zbin_lbin_z (numpy.ndarray) : Observed volume element (dV/dz_ob) in each redshift and richness bin
+                * pzobs_zbin_lbin_z (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
         """
 
         ############################################
@@ -113,7 +113,7 @@ class ClusterCounts:
                 np.ones((1, 1)), plobs_lbin_z_m
             )
         )
-        # volume element in each redshift and richness bin shape : (z_obs, l_obs, z)
+        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
         pzobs_zbin_lbin_z = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
