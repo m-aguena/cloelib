@@ -280,19 +280,15 @@ class ClusterStatisticsModeling:
         _kernel = kernel[np.newaxis, ...]
 
         # to make prob_lambda_obs_bins, hmf same shape as kernel
-        extra_axes = [np.newaxis] * len(_kernel.shape[3:])
+        extra_axes = tuple(range(3, 3 + len(_kernel.shape[3:])))
 
         # reshape prob_lambda_obs_bins
-        axes_prob_lambda_obs_bins = (slice(i) for i in prob_lambda_obs_bins.shape)
-        _prob_lambda_obs_bins = prob_lambda_obs_bins[
-            (*axes_prob_lambda_obs_bins, *extra_axes)
-        ]
+        _prob_lambda_obs_bins = np.expand_dims(prob_lambda_obs_bins, axis=extra_axes)
 
         # reshape HMF
-        axes_hmf = (slice(i) for i in self.kernel_tables["dn/dM(ztrue,M)"].shape)
-        _hmf = self.kernel_tables["dn/dM(ztrue,M)"][
-            (np.newaxis, *axes_hmf, *extra_axes)
-        ]
+        _hmf = np.expand_dims(
+            self.kernel_tables["dn/dM(ztrue,M)"], axis=(0, *extra_axes)
+        )
 
         # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (lambda_obs_bins, z)
         integrated_kernel = simps(
@@ -326,18 +322,16 @@ class ClusterStatisticsModeling:
         # Add z_obs_bins dimension to kernel
         _kernel = kernel[np.newaxis, ...]
 
-        # to make prob_lambda_obs_bins, hmf same shape as kernel
-        extra_axes = [np.newaxis] * len(_kernel.shape[3:])
+        # to make prob_z_obs, dvdz same shape as kernel
+        extra_axes = tuple(range(3, 3 + len(_kernel.shape[3:])))
 
         # reshape prob_z_obs
-        axes_prob_z_obs = (slice(i) for i in prob_z_obs.shape)
-        _prob_z_obs = prob_z_obs[(*axes_prob_z_obs, *extra_axes)]
+        _prob_z_obs = np.expand_dims(prob_z_obs, axis=extra_axes)
 
         # reshape dvdz
-        axis_ztrue = slice(len(self.kernel_tables["dv/dz(ztrue)"]))
-        _dvdz = self.kernel_tables["dv/dz(ztrue)"][
-            (np.newaxis, np.newaxis, axis_ztrue, *extra_axes)
-        ]
+        _dvdz = np.expand_dims(
+            self.kernel_tables["dv/dz(ztrue)"], axis=(0, 1, *extra_axes)
+        )
 
         # output : (z_obs, lambda_obs_bins)
         integrated_kernel = simps(
