@@ -48,7 +48,11 @@ class ClusterClustering:
         self.z_tab_sig = 31
 
     def _compute_pk_ir_resummation_unnormalized(
-        self, lambda_obs_mid, prob_z_obs_zbin_lbin_z, prob_lambda_obs_lbin_z, b_lbin_z
+        self,
+        lambda_obs_mid,
+        prob_z_obs_zbin_lbin_z,
+        prob_lambda_obs_lbin_z,
+        hbias_lambda_obs_lbin_z,
     ):
         """Computes Pk IR resummation.
 
@@ -76,7 +80,7 @@ class ClusterClustering:
         ).transpose(1, 0, 2, 3)
 
         # compute effective halo bias, with shape (l_obs, z, 1)
-        b_eff = (b_lbin_z / prob_lambda_obs_lbin_z)[:, :, np.newaxis]
+        b_eff = (hbias_lambda_obs_lbin_z / prob_lambda_obs_lbin_z)[:, :, np.newaxis]
 
         # corrected power specrum (l_obs, z, k)
         pk_halo = (
@@ -156,7 +160,7 @@ class ClusterClustering:
             np.ones((1, 1)), _prob_lambda_obs_lbin_z_m
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
-        b_lbin_z = self.cluster_statitstics_modeling.integrate_in_mass(
+        hbias_lambda_obs_lbin_z = self.cluster_statitstics_modeling.integrate_in_mass(
             self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
             _prob_lambda_obs_lbin_z_m,
         )
@@ -172,7 +176,10 @@ class ClusterClustering:
         # matter power spectrum + IR resummation : (z_obs, l_obs, l_obs, k)
         _lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
         pk_zbin_lbin_lbin_k = self._compute_pk_ir_resummation_unnormalized(
-            _lambda_obs_mid, prob_z_obs_zbin_lbin_z, prob_lambda_obs_lbin_z, b_lbin_z
+            _lambda_obs_mid,
+            prob_z_obs_zbin_lbin_z,
+            prob_lambda_obs_lbin_z,
+            hbias_lambda_obs_lbin_z,
         ) / (
             nc_zbin_lbin[:, np.newaxis, :, np.newaxis]
             * nc_zbin_lbin[:, :, np.newaxis, np.newaxis]
