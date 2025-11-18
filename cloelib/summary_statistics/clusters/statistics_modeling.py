@@ -136,21 +136,23 @@ class ClusterStatisticsModeling:
         # for z_obs integration
         z_obs_tabs = np.linspace(z_obs_bins[:-1], z_obs_bins[1:], z_tab_sig)
 
+        # reshape for multiplication
+        _z_obs_tabs = z_obs_tabs[:, :, np.newaxis]
+        _lambda_obs = lambda_obs_bins[np.newaxis, :-1, np.newaxis]
+        _ztrue = self.kernel_tables["ztrue"][np.newaxis, np.newaxis, :]
+
         # outputs
         pzobs_zbin_lbin_z = np.zeros(
             (z_obs_bins_size, lambda_obs_bins_size, self.kernel_tables["ztrue"].size)
         )
         for ind_z in range(z_obs_bins_size):
-            for ind_lambda in range(lambda_obs_bins_size):
-                pzobs_zbin_lbin_z[ind_z, ind_lambda] = simps(
-                    self.selectionfunction.P_zobs_z(  # P(zob|ztr)
-                        z_obs_tabs[:, ind_z],
-                        lambda_obs_bins[ind_lambda],
-                        self.kernel_tables["ztrue"],
-                    ),
-                    x=z_obs_tabs[:, ind_z],
-                    axis=0,
-                )
+            pzobs_zbin_lbin_z[ind_z] = simps(
+                self.selectionfunction.P_zobs_z(
+                    _z_obs_tabs[:, ind_z], _lambda_obs, _ztrue
+                ),
+                x=z_obs_tabs[:, ind_z],
+                axis=0,
+            )
         return pzobs_zbin_lbin_z
 
     def compute_binned_lambda_obs_probability(self, lambda_obs_bins, l_m_tab_sig):
