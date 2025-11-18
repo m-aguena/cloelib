@@ -107,12 +107,6 @@ class ClusterCounts:
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
-        # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
-        _plobs_lbin_z = (
-            self.cluster_statitstics_modeling.integrate_kernel_in_mass_w_hmf(
-                np.ones((1, 1)), plobs_lbin_z_m
-            )
-        )
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
         pzobs_zbin_lbin_z = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
@@ -120,10 +114,12 @@ class ClusterCounts:
             )
         )
         # cluster counts : (z_obs, l_obs)
-        nc_zbin_lbin = (
-            self.cluster_statitstics_modeling.integrate_lbin_kernel_in_true_volume(
-                _plobs_lbin_z, pzobs_zbin_lbin_z
-            )
+        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
+            # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
+            self.cluster_statitstics_modeling.integrate_in_mass(
+                np.ones((1, 1)), plobs_lbin_z_m
+            ),
+            pzobs_zbin_lbin_z,
         )
 
         if not return_intermediate_products:
@@ -213,15 +209,14 @@ class ClusterCounts:
         ############################################
 
         # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
-        _b_lbin_z = self.cluster_statitstics_modeling.integrate_kernel_in_mass_w_hmf(
-            self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
-            plobs_lbin_z_m,
-        )
         # cluster integrated bias : (z_obs, l_obs)
-        hbias_zbin_lbin = (
-            self.cluster_statitstics_modeling.integrate_lbin_kernel_in_true_volume(
-                _b_lbin_z, pzobs_zbin_lbin_z
-            )
+        hbias_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
+            # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
+            self.cluster_statitstics_modeling.integrate_in_mass(
+                self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
+                plobs_lbin_z_m,
+            ),
+            pzobs_zbin_lbin_z,
         )
 
         ####################

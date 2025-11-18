@@ -88,7 +88,7 @@ class ClusterClustering:
 
         # average square of power spectrum in redshift and richness bins (z_obs, l_obs, k)
         sqrt_Pk_zbin_lbin = (
-            self.cluster_statitstics_modeling.integrate_lbin_kernel_in_true_volume(
+            self.cluster_statitstics_modeling.integrate_in_true_redshift(
                 np.sqrt(pk_halo) * plobs_lbin_z[:, :, np.newaxis],
                 pzobs_zbin_lbin_z,
             )
@@ -152,19 +152,17 @@ class ClusterClustering:
             )
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
-        plobs_lbin_z = self.cluster_statitstics_modeling.integrate_kernel_in_mass_w_hmf(
+        plobs_lbin_z = self.cluster_statitstics_modeling.integrate_in_mass(
             np.ones((1, 1)), _plobs_lbin_z_m
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
-        b_lbin_z = self.cluster_statitstics_modeling.integrate_kernel_in_mass_w_hmf(
+        b_lbin_z = self.cluster_statitstics_modeling.integrate_in_mass(
             self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
             _plobs_lbin_z_m,
         )
         # cluster counts : (z_obs, l_obs)
-        nc_zbin_lbin = (
-            self.cluster_statitstics_modeling.integrate_lbin_kernel_in_true_volume(
-                plobs_lbin_z, pzobs_zbin_lbin_z
-            )
+        nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
+            plobs_lbin_z, pzobs_zbin_lbin_z
         )
 
         ################################################
@@ -262,10 +260,8 @@ class ClusterClustering:
         ########################################
 
         # Compute observed volume in each redshift bin : (z_obs, l_obs)
-        vol_zbin_lbin = (
-            self.cluster_statitstics_modeling.integrate_lbin_kernel_in_true_volume(
-                np.ones((1, 1)), pzobs_zbin_lbin_z
-            )
+        vol_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
+            np.ones((1, 1)), pzobs_zbin_lbin_z
         )
         # Compute output shot-noise terms : (z_obs, l_obs, l_obs)
         vol_over_nc_zbin_lbin_lbin = (
@@ -364,7 +360,7 @@ class ClusterClustering:
                 for ind_lambda_k in lambda_bin_loop:
                     for ind_lambda_h in lambda_bin_loop:
 
-                        # somehow using _integrate_kernel_in_k is much faster then
+                        # somehow using integrate_kernel_in_k is much faster then
                         # integrate_kernel_in_k_space here, to be investigated
 
                         # gaussian term
@@ -376,7 +372,7 @@ class ClusterClustering:
                             ind_lambda_h,
                             :,
                             :,
-                        ] = self.cluster_statitstics_modeling._integrate_kernel_in_k(
+                        ] = self.cluster_statitstics_modeling.integrate_kernel_in_k(
                             window_zbin_lbin_k[:, np.newaxis, :, :]
                             * window_zbin_lbin_k[:, :, np.newaxis, :]
                             * avol_bpk_zbin_lbin_lbin_k[

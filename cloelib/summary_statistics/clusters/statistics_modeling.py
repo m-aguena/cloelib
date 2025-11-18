@@ -215,7 +215,7 @@ class ClusterStatisticsModeling:
     # integration functions
     # ---------------------
 
-    def _integrate_kernel_in_k(self, kernel):
+    def integrate_kernel_in_k(self, kernel):
         """Integrates the kernel in k.
 
         Parameters
@@ -229,6 +229,13 @@ class ClusterStatisticsModeling:
         integrated_kernel : numpy.ndarray
             Quantity integrated in k, dimension same as input
             minus the last one.
+
+
+        Note
+        ----
+            This exist as a function on its own for the cluster clustering covariange
+            computation, somehow it is faster than using integrate_kernel_in_k_space,
+            to be investigated.
         """
         return simps(kernel, x=self.kernel_tables["k"])
 
@@ -247,9 +254,9 @@ class ClusterStatisticsModeling:
             Quantity integrated in k space, dimension same as input
             minus the last one.
         """
-        return self._integrate_kernel_in_k(kernel * self.kernel_tables["dk"])
+        return self.integrate_kernel_in_k(kernel * self.kernel_tables["dk"])
 
-    def integrate_kernel_in_mass_w_hmf(self, kernel_z_m, plobs_lbin_z_m):
+    def integrate_in_mass(self, kernel_z_m, plobs_lbin_z_m):
         """Integrates in mass with HMF each binned kernel.
 
         Parameters
@@ -293,7 +300,7 @@ class ClusterStatisticsModeling:
         )
         return kernel_lbin_z
 
-    def integrate_lbin_kernel_in_true_volume(self, kernel_lbin_z, pzobs_zbin_lbin_z):
+    def integrate_in_true_redshift(self, kernel_lbin_z, pzobs_zbin_lbin_z):
         """Integrates in true volume dv/dz(ztrue) a kernel binned in observed richness,
         in each observed redsfhit bin.
 
