@@ -1,11 +1,12 @@
-# cloelib imports
 # General imports
-# import interpax
 import numpy as np
 from scipy.integrate import simpson as simps
 
+# cloelib imports
 from cloelib.observables.clusters.clustering import HaloClustering
-from cloelib.summary_statistics.clusters.counts import ClusterCounts
+from cloelib.summary_statistics.clusters.statistics_modeling import (
+    ClusterStatisticsModeling,
+)
 
 # import jax
 
@@ -21,208 +22,84 @@ from cloelib.summary_statistics.clusters.counts import ClusterCounts
 class ClusterClustering:
     def __init__(
         self,
-        cluster_counts: ClusterCounts,
+        cluster_statitstics_modeling: ClusterStatisticsModeling,
         clustering: HaloClustering,
-        area: float = 10313,
     ):
         """
         Initializes the cluster profile lensing
 
         Parameters
         ----------
-        cluster_counts : ClusterCounts
-            Cluster counts summary statistics object
+        cluster_statitstics_modeling : ClusterStatisticsModeling
+            Cluster summary statistics modeling object, it contains functions
+            for cluster statistics and tabled values for integration.
         clustering : HaloClustering
             Halo clustering object
-        area : float
-            Area of the survey in deg2.
         """
         # cluster counts summary statistics, contains tables for integrals
         # and functions to compute binned integrals of counts
-        self.cluster_counts = cluster_counts
+        self.cluster_statitstics_modeling = cluster_statitstics_modeling
 
         # observable objects
         self.clustering = clustering
 
-        # internal values
-        self.area = area
-
-        # hardcoded quantities
+        # hardcoded quantities for integration
         self.l_m_tab_sig = [31, 51]
         self.z_tab_sig = 31
 
-    def _compute_pk_ir_resummation(self, z_obs_bins, lambda_obs_bins):
+    def _compute_pk_ir_resummation_unnormalized(
+        self, lambda_obs_mid, pzobs_zbin_lbin_z, plobs_lbin_z, b_lbin_z
+    ):
         """Computes Pk IR resummation.
 
         Parameters
         ----------
-        z_obs_bins : numpy.ndarray
-            Redshift bins for the integration.
         lambda_obs_bins : numpy.ndarray
             Richness bins for the integration.
 
         Returns
         -------
-        Pk_lambdai_lambdaj : numpy.ndarray
-            Power spectrum ???
-        volume_zob : numpy.ndarray
-            Observed volume in each redshift bin
-        one_over_n_lambdai_lambdaj : numpy.ndarray
-            volume_zob / nc_int_lbdobs_z in each redshift bin
+        pk_zbin_lbin_lbin_k : numpy.ndarray
+            Power spectrum averaged on redshift and richnesses bins (with IR-resummation),
+            NOT normalized by the number counts.
         """
-
-        z_obs_bins_size = len(z_obs_bins) - 1
-        lambda_obs_bins_size = len(lambda_obs_bins) - 1
-
-        # output
-        volume_zob = np.zeros(z_obs_bins_size)
-
-        # intermediate quantites
-        one_over_n_lambdai_lambdaj = np.zeros(
-            (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-            )
-        )
-        lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
-        sqrt_Pk_zbin_lbin = np.zeros(
-            (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                len(self.cluster_counts.cluster_stat_kernel_tables["k"]),
-            )
-        )
-
-        # get cluster counts quantities
-        nc_zbin_lbin, counts_intermediate_products_zbin_lbin = (
-            self.cluster_counts.compute_binned_counts(
-                z_obs_bins=z_obs_bins,
-                lambda_obs_bins=lambda_obs_bins,
-                z_tab_sig=self.z_tab_sig,
-                l_m_tab_sig=self.l_m_tab_sig,
-            )
-        )
-        _, bias_intermediate_products_zbin_lbin = (
-            self.cluster_counts.compute_binned_bias(
-                counts_intermediate_products_zbin_lbin["Plob_M_z"],
-                counts_intermediate_products_zbin_lbin["dV_dzob"],
-            )
-        )
-        # effective halo bias
-        b_eff = (
-            bias_intermediate_products_zbin_lbin["hb_lbdobs_z"]
-            / counts_intermediate_products_zbin_lbin["nc_lbdobs_z"]
-        )
-
-        ############
-        #### !!!!! ADD IR RESUMMATION (to be implemented? already implemented for galaxy clustering?)
-        ############
-        pk_IR = self.cluster_counts.halo_statistics.matter_power_spectrum(
-            self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
-            self.cluster_counts.cluster_stat_kernel_tables["k"],
-        )
-
-        # Compute intermediate quantities
-        for ind_lambda in range(lambda_obs_bins_size):
-
-            # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
-
-            # effective halo bias
-            _b_eff = b_eff[ind_lambda][:, np.newaxis]
-            # rsd corrections
-            photoz_corr0, photoz_corr1, photoz_corr2 = (
+        # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
+        # rsd corrections (l_obs, z, k)
+        photoz_corr0, photoz_corr1, photoz_corr2 = np.array(
+            [
                 self.clustering.photoz_rsd_correction(
-                    self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
-                    lambda_obs_mid[ind_lambda],
+                    self.cluster_statitstics_modeling.kernel_tables["ztrue"],
+                    _lambda_obs,
                 )
+                for _lambda_obs in lambda_obs_mid
+            ]
+        ).transpose(1, 0, 2, 3)
+
+        # compute effective halo bias, with shape (l_obs, z, 1)
+        b_eff = (b_lbin_z / plobs_lbin_z)[:, :, np.newaxis]
+
+        # corrected power specrum (l_obs, z, k)
+        pk_halo = (
+            b_eff**2 * photoz_corr0 + b_eff * photoz_corr1 + photoz_corr2
+        ) * self.cluster_statitstics_modeling.halo_statistics.matter_power_spectrum(
+            self.cluster_statitstics_modeling.kernel_tables["ztrue"],
+            self.cluster_statitstics_modeling.kernel_tables["k"],
+        )
+
+        # average square of power spectrum in redshift and richness bins (z_obs, l_obs, k)
+        sqrt_Pk_zbin_lbin = (
+            self.cluster_statitstics_modeling.integrate_lbin_kernel_in_true_volume(
+                np.sqrt(pk_halo) * plobs_lbin_z[:, :, np.newaxis],
+                pzobs_zbin_lbin_z,
             )
-            # corrected power specrum
-            pk_halo = pk_IR * (
-                _b_eff**2 * photoz_corr0 + _b_eff * photoz_corr1 + photoz_corr2
-            )
+        )
 
-            for ind_z in range(z_obs_bins_size):
-
-                # volume of the observed redshift slice
-                volume_zob[ind_z] = simps(
-                    counts_intermediate_products_zbin_lbin["dV_dzob"][
-                        ind_z, ind_lambda
-                    ],
-                    x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
-                    axis=0,
-                )
-
-                # power spectrum and shot-noise terms
-                sqrt_Pk_zbin_lbin[ind_z, ind_lambda, :] = (
-                    simps(
-                        (
-                            counts_intermediate_products_zbin_lbin["dV_dzob"][
-                                ind_z, ind_lambda
-                            ]
-                            * counts_intermediate_products_zbin_lbin["nc_lbdobs_z"][
-                                ind_lambda
-                            ]
-                        )[:, np.newaxis]
-                        * np.sqrt(pk_halo),
-                        x=self.cluster_counts.cluster_stat_kernel_tables["ztrue"],
-                        axis=0,
-                    )
-                    / nc_zbin_lbin[ind_z, ind_lambda]
-                )
-
-                one_over_n_lambdai_lambdaj[ind_z, ind_lambda, ind_lambda] = (
-                    volume_zob[ind_z] / nc_zbin_lbin[ind_z, ind_lambda]
-                )
-
-        # cross Pk and shot-noise in two richness bins
-        Pk_lambdai_lambdaj = (
+        # Compute output Pk (z_obs, l_obs, l_obs, k)
+        pk_zbin_lbin_lbin_k = (
             sqrt_Pk_zbin_lbin[:, :, np.newaxis, :]
             * sqrt_Pk_zbin_lbin[:, np.newaxis, :, :]
-        )  # dim = [nz,nl,nl,nk]
-        one_over_n_lambdai_lambdaj = one_over_n_lambdai_lambdaj[
-            :, :, :, np.newaxis
-        ]  # dim = [nz,nl,nl,nk]
-
-        return Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj
-
-    def _compute_clustering(self, shell_window, Pk_lambdai_lambdaj):
-        """Computes the 3D two-point correlation function.
-
-        Parameters
-        ----------
-        shell_window : numpy.ndarray
-            Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
-        Pk_lambdai_lambdaj : numpy.ndarray
-            Power spectrum ???
-
-        Returns
-        -------
-        clustering_zbin_lbin_rbin : numpy.ndarray
-            Two point correlation function in richness, redshift and radial bins
-        """
-
-        lambda_obs_bins_size = Pk_lambdai_lambdaj.shape[1]
-
-        # compute 2point correlation function
-        # dim = [nz,nl,nl,nr]
-        clustering_zbin_lbin_rbin_buf = simps(
-            (
-                self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
-                / (2.0 * np.pi**2)
-                * shell_window[:, np.newaxis, np.newaxis, :, :]
-                * Pk_lambdai_lambdaj[:, :, :, np.newaxis, :]
-            ),
-            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
-            axis=-1,
         )
-
-        # xi(lambda_i, lambda_j) = xi(lambda_j, lambda_i),  so reshape and keep only one of them
-
-        triangle_indexes = np.triu_indices(lambda_obs_bins_size)
-        return clustering_zbin_lbin_rbin_buf[
-            :, triangle_indexes[0], triangle_indexes[1], :
-        ]
+        return pk_zbin_lbin_lbin_k
 
     def compute_binned_clustering(
         self,
@@ -251,34 +128,90 @@ class ClusterClustering:
             Returned only when `return_intermediate_products` is true.
             Contains :
 
-                * Pk_lambdai_lambdaj (numpy.ndarray) : Power spectrum ???
-                * one_over_n_lambdai_lambdaj (numpy.ndarray) : volume_zob / nc_int_lbdobs_z in each redshift bin
-                * shell_window (numpy.ndarray) : Cluster count covariance window (i,j,k) where i is the redshift bin, j is the radial bin and k are the wavenumbers
-                * shell_volume (numpy.ndarray) : Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin
-                * volume_zob (numpy.ndarray) : Observed volume in each redshift bin
+                * pk_zbin_lbin_lbin_k (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
+                * window_zbin_lbin_k (numpy.ndarray) : Cluster count covariance window (z_obs, l_obs, k).
+                * vol_zbin_rbin (numpy.ndarray) : Spherical shell volume (z_obs, radius).
+                * pzobs_zbin_lbin_z (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * nc_zbin_lbin (numpy.ndarray) :  Number counts in redshift and richness bins
         """
-        # matter power spectrum + IR resummation
-        Pk_lambdai_lambdaj, volume_zob, one_over_n_lambdai_lambdaj = (
-            self._compute_pk_ir_resummation(z_obs_bins, lambda_obs_bins)
+
+        ############################################
+        # Get cluster statistics modeling quantities
+        ############################################
+
+        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
+        pzobs_zbin_lbin_z = (
+            self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
+                z_obs_bins, lambda_obs_bins, self.z_tab_sig
+            )
+        )
+        # P(lambda_obs_bins|M, z) : (l_obs, M, z)
+        _plobs_lbin_z_m = (
+            self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
+                lambda_obs_bins, self.l_m_tab_sig
+            )
+        )
+        # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
+        plobs_lbin_z = self.cluster_statitstics_modeling.integrate_kernel_in_mass_w_hmf(
+            np.ones((1, 1)), _plobs_lbin_z_m
+        )
+        # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
+        b_lbin_z = self.cluster_statitstics_modeling.integrate_kernel_in_mass_w_hmf(
+            self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
+            _plobs_lbin_z_m,
+        )
+        # cluster counts : (z_obs, l_obs)
+        nc_zbin_lbin = (
+            self.cluster_statitstics_modeling.integrate_lbin_kernel_in_true_volume(
+                plobs_lbin_z, pzobs_zbin_lbin_z
+            )
         )
 
-        # spherical shell window function W(R,K) and volume of the shell (compute once outside the redshift loop)
-        # these are used by covariance
-        shell_window, shell_volume = self.clustering.WF_ra(
-            0.5 * (z_obs_bins[1:] + z_obs_bins[:-1]),
-            radius_bins,
+        ################################################
+        # Computes the 3D two-point correlation function
+        ################################################
+
+        # matter power spectrum + IR resummation : (z_obs, l_obs, l_obs, k)
+        _lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
+        pk_zbin_lbin_lbin_k = self._compute_pk_ir_resummation_unnormalized(
+            _lambda_obs_mid, pzobs_zbin_lbin_z, plobs_lbin_z, b_lbin_z
+        ) / (
+            nc_zbin_lbin[:, np.newaxis, :, np.newaxis]
+            * nc_zbin_lbin[:, :, np.newaxis, np.newaxis]
         )
 
-        clustering_zbin_lbin_rbin = self._compute_clustering(
-            shell_window, Pk_lambdai_lambdaj
+        # Spherical shell window : (z_obs, radius, k) and
+        # volume of the shell : (z_obs, radius) in each z_obs_bin
+        # vol_zbin_rbin is used only by covariance
+        _z_obs_mid = 0.5 * (z_obs_bins[1:] + z_obs_bins[:-1])
+        window_zbin_lbin_k, vol_zbin_rbin = self.clustering.WF_ra(
+            _z_obs_mid, radius_bins
         )
+
+        # compute 2point correlation function : (z_obs, l_obs, l_obs, radius)
+        _clustering_zbin_lbin_rbin_buf = (
+            self.cluster_statitstics_modeling.integrate_kernel_in_k_space(
+                window_zbin_lbin_k[:, np.newaxis, np.newaxis, :, :]
+                * pk_zbin_lbin_lbin_k[:, :, :, np.newaxis, :]
+            )
+        )
+
+        # xi(l_obs_i, l_obs_j) = xi(l_obs_j, l_obs_i) so we reshape
+        # and keep only one of them, with a (z_obs, l_obs, radius) output
+        triangle_indexes = np.triu_indices(len(lambda_obs_bins) - 1)
+        clustering_zbin_lbin_rbin = _clustering_zbin_lbin_rbin_buf[
+            :, triangle_indexes[0], triangle_indexes[1], :
+        ]
+
+        if not return_intermediate_products:
+            return clustering_zbin_lbin_rbin
 
         intermediate_products_zbin_lbin = {
-            "Pk_lambdai_lambdaj": Pk_lambdai_lambdaj,
-            "one_over_n_lambdai_lambdaj": one_over_n_lambdai_lambdaj,
-            "shell_window": shell_window,
-            "shell_volume": shell_volume,
-            "volume_zob": volume_zob,
+            "pk_zbin_lbin_lbin_k": pk_zbin_lbin_lbin_k,
+            "window_zbin_lbin_k": window_zbin_lbin_k,
+            "vol_zbin_rbin": vol_zbin_rbin,
+            "nc_zbin_lbin": nc_zbin_lbin,
+            "pzobs_zbin_lbin_z": pzobs_zbin_lbin_z,
         }
         return clustering_zbin_lbin_rbin, intermediate_products_zbin_lbin
 
@@ -286,129 +219,127 @@ class ClusterClustering:
     # clustering covariance
     # ----------------------
 
-    def _compute_alpha_beta(
-        self,
-        alpha,
-        beta,
-        Pk_lambdai_lambdaj,
-        one_over_n_lambdai_lambdaj,
-    ):
-        """Computes mean alpha and mean beta*Pk  in richness bins
-
-        Parameters
-        ----------
-        alpha : numpy.ndarray
-            Alpha parameter
-        beta : numpy.ndarray
-            Beta parameter
-
-        Returns
-        -------
-        alpha_n_ij : numpy.ndarray
-            Mean alpha in richness bins
-        beta_pk_ij : numpy.ndarray
-            Mean beta*Pk in richness bins
-        """
-        # combine and reshape
-        alpha_ij = (1 + alpha[:, :, np.newaxis, np.newaxis]) * (
-            1 + alpha[:, np.newaxis, :, np.newaxis]
-        )
-        beta_ij = (
-            beta[:, :, np.newaxis, np.newaxis] * beta[:, np.newaxis, :, np.newaxis]
-        )
-
-        beta_pk_ij = beta_ij * Pk_lambdai_lambdaj
-        alpha_n_ij = alpha_ij * one_over_n_lambdai_lambdaj
-
-        return alpha_n_ij, beta_pk_ij
-
     def compute_cov(
         self,
-        Pk_lambdai_lambdaj,
-        one_over_n_lambdai_lambdaj,
-        shell_window,
-        shell_volume,
-        volume_zob,
+        pk_zbin_lbin_lbin_k,
+        window_zbin_lbin_k,
+        vol_zbin_rbin,
+        pzobs_zbin_lbin_z,
+        nc_zbin_lbin,
     ):
         """Computes clustering covariance.
 
         Parameters
         ----------
-        Pk_lambdai_lambdaj : numpy.ndarray
-            Power spectrum ???
+        pk_zbin_lbin_lbin_k : numpy.ndarray
+            Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        one_over_n_lambdai_lambdaj : numpy.ndarray
-            volume_zob / nc_int_lbdobs_z in each redshift bin.
+        window_zbin_lbin_k : numpy.ndarray
+            Cluster count covariance window (z_obs, l_obs, k),
+            with (k) in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        shell_window : numpy.ndarray
-            Cluster count covariance window (i,j,k) where i is the redshift bin,
-            j is the radial bin and k are the wavenumbers.
+        vol_zbin_rbin : numpy.ndarray
+            Spherical shell volume (z_obs, radius).
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        shell_volume : numpy.ndarray
-            Spherical shell volume (i,j) where i is the redshift bin and j is the radial bin.
+        pzobs_zbin_lbin_z : numpy.ndarray
+            Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
+            given a observed richness bin and a true redshift.
+            Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        volume_zob : numpy.ndarray
-            Observed volume in each redshift bin.
-            Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
+        nc_zbin_lbin : numpy.ndarray
+            Number counts in redshift and richness bins
 
         Returns
         -------
         cov_clustering_zbin_lbin_rbin : numpy.ndarray
             Covariance of the two point correlation function in richness, redshift and radial bins
         """
-        z_obs_bins_size, lambda_obs_bins_size, _, _ = one_over_n_lambdai_lambdaj.shape
-        _, radius_bins_size = shell_volume.shape
+        z_obs_bins_size, lambda_obs_bins_size = nc_zbin_lbin.shape
+        _, radius_bins_size = vol_zbin_rbin.shape
 
-        # compute nuisance parameters
+        ########################################
+        # Cluster statistics modeling quantities
+        ########################################
+
+        # Compute observed volume in each redshift bin : (z_obs, l_obs)
+        vol_zbin_lbin = (
+            self.cluster_statitstics_modeling.integrate_lbin_kernel_in_true_volume(
+                np.ones((1, 1)), pzobs_zbin_lbin_z
+            )
+        )
+        # Compute output shot-noise terms : (z_obs, l_obs, l_obs)
+        vol_over_nc_zbin_lbin_lbin = (
+            vol_zbin_lbin[:, :, np.newaxis]
+            / nc_zbin_lbin[:, :, np.newaxis]
+            * np.identity(lambda_obs_bins_size)[np.newaxis, :, :]
+        )
+
+        #############################
+        # Compute nuisance parameters
+        #############################
 
         #    alpha(z,l), beta(z,l), gamma(z,l) are nuisance parameters to be
         #    fitted on (few, ~100) simulations to correct for bias model
         #    inaccuracy, non-poissonian shot-noise and high-order terms ref
-        #    values are alpha=0,beta=1,gamma=0 (see Euclid Collaboration :
+        #    values are alpha=0, beta=1, gamma=0 (see Euclid Collaboration :
         #    Fumagalli et al. 2022)
-        alpha_n_ij, beta_pk_ij = self._compute_alpha_beta(
-            alpha=np.zeros((z_obs_bins_size, lambda_obs_bins_size)),
-            beta=np.ones((z_obs_bins_size, lambda_obs_bins_size)),
-            Pk_lambdai_lambdaj=Pk_lambdai_lambdaj,
-            one_over_n_lambdai_lambdaj=one_over_n_lambdai_lambdaj,
-        )
+        alpha = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
+        beta = np.ones((z_obs_bins_size, lambda_obs_bins_size))
         gamma = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
 
-        # cov_g, cov_ng are TWO TERMS OF EQ. 73
-        _cov_g = np.zeros(
-            (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                radius_bins_size,
-                radius_bins_size,
-            )
+        # Combine alpha, beta with pk, vol and reshape to be used
+        # in cov_g, cov_ng integral
+        beta_pk_zbin_lbin_lbin_k = (
+            beta[:, :, np.newaxis, np.newaxis]
+            * beta[:, np.newaxis, :, np.newaxis]
+            * pk_zbin_lbin_lbin_k
         )
-        _cov_ng = np.zeros(
-            (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                radius_bins_size,
-                radius_bins_size,
-            )
+        avol_bpk_zbin_lbin_lbin_k = (
+            # reshape alpha to be (z_obs, l_obs, l_obs)
+            (1 + alpha)[:, :, np.newaxis, np.newaxis]
+            * (1 + alpha)[:, np.newaxis, :, np.newaxis]
+            * vol_over_nc_zbin_lbin_lbin[:, :, :, np.newaxis]
+            + beta_pk_zbin_lbin_lbin_k
         )
+
+        ####################
+        # Compute covariance
+        ####################
 
         # define cluster clustering bin numbers for loops
         z_bin_loop = range(z_obs_bins_size)
         lambda_bin_loop = range(lambda_obs_bins_size)
         rad_bin_loop = range(radius_bins_size)
 
+        # cov_g, cov_ng are TWO TERMS OF EQ. 73
+        _cov_g_zbin_4lbin_2rbin = np.zeros(
+            (
+                z_obs_bins_size,
+                lambda_obs_bins_size,
+                lambda_obs_bins_size,
+                lambda_obs_bins_size,
+                lambda_obs_bins_size,
+                radius_bins_size,
+                radius_bins_size,
+            )
+        )
+        _cov_ng_zbin_4lbin_2rbin = np.zeros(
+            (
+                z_obs_bins_size,
+                lambda_obs_bins_size,
+                lambda_obs_bins_size,
+                lambda_obs_bins_size,
+                lambda_obs_bins_size,
+                radius_bins_size,
+                radius_bins_size,
+            )
+        )
+
         # note : this could be reduced to compute only half of the matrix
         for ind_lambda_i in lambda_bin_loop:
             for ind_lambda_j in lambda_bin_loop:
                 for ind_radius in rad_bin_loop:
-
-                    _cov_ng[
+                    _cov_ng_zbin_4lbin_2rbin[
                         :,
                         ind_lambda_i,
                         ind_lambda_j,
@@ -417,25 +348,27 @@ class ClusterClustering:
                         ind_radius,
                         ind_radius,
                     ] = (
-                        simps(
-                            self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
-                            / (2.0 * np.pi**2.0)
-                            * shell_window[:, ind_radius, :]
-                            * beta_pk_ij[:, ind_lambda_i, ind_lambda_j, :],
-                            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
+                        self.cluster_statitstics_modeling.integrate_kernel_in_k_space(
+                            window_zbin_lbin_k[:, ind_radius, :]
+                            * beta_pk_zbin_lbin_lbin_k[
+                                :, ind_lambda_i, ind_lambda_j, :
+                            ],
                         )
                         * (1 + gamma[:, ind_lambda_i])
-                        * one_over_n_lambdai_lambdaj[:, ind_lambda_i, ind_lambda_i, 0]
+                        * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_i, ind_lambda_i]
                         * (1 + gamma[:, ind_lambda_j])
-                        * one_over_n_lambdai_lambdaj[:, ind_lambda_j, ind_lambda_j, 0]
-                        / shell_volume[:, ind_radius]
+                        * vol_over_nc_zbin_lbin_lbin[:, ind_lambda_j, ind_lambda_j]
+                        / vol_zbin_rbin[:, ind_radius]
                     )
 
                 for ind_lambda_k in lambda_bin_loop:
                     for ind_lambda_h in lambda_bin_loop:
 
+                        # somehow using _integrate_kernel_in_k is much faster then
+                        # integrate_kernel_in_k_space here, to be investigated
+
                         # gaussian term
-                        _cov_g[
+                        _cov_g_zbin_4lbin_2rbin[
                             :,
                             ind_lambda_i,
                             ind_lambda_j,
@@ -443,12 +376,10 @@ class ClusterClustering:
                             ind_lambda_h,
                             :,
                             :,
-                        ] = simps(
-                            self.cluster_counts.cluster_stat_kernel_tables["k"] ** 2.0
-                            / (2.0 * np.pi**2.0)
-                            * shell_window[:, np.newaxis, :, :]
-                            * shell_window[:, :, np.newaxis, :]
-                            * (beta_pk_ij + alpha_n_ij)[
+                        ] = self.cluster_statitstics_modeling._integrate_kernel_in_k(
+                            window_zbin_lbin_k[:, np.newaxis, :, :]
+                            * window_zbin_lbin_k[:, :, np.newaxis, :]
+                            * avol_bpk_zbin_lbin_lbin_k[
                                 :,
                                 ind_lambda_i,
                                 ind_lambda_k,
@@ -456,48 +387,51 @@ class ClusterClustering:
                                 np.newaxis,
                                 :,
                             ]
-                            * (beta_pk_ij + alpha_n_ij)[
+                            * avol_bpk_zbin_lbin_lbin_k[
                                 :,
                                 ind_lambda_j,
                                 ind_lambda_h,
                                 np.newaxis,
                                 np.newaxis,
                                 :,
-                            ],
-                            x=self.cluster_counts.cluster_stat_kernel_tables["k"],
-                            axis=-1,
+                            ]
+                            * self.cluster_statitstics_modeling.kernel_tables["dk"],
                         )
 
         # Compute the covariance
-        cov_clustering_zbin_lbin_rbin = (
-            (_cov_g + _cov_ng)
-            + (_cov_g + _cov_ng).transpose(
+        _cov_clustering_zbin_4lbin_2rbin = (
+            (_cov_g_zbin_4lbin_2rbin + _cov_ng_zbin_4lbin_2rbin)
+            + (_cov_g_zbin_4lbin_2rbin + _cov_ng_zbin_4lbin_2rbin).transpose(
                 0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_clustering bins
             )
-        ) / volume_zob[
-            :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis
+        ) / vol_zbin_lbin[
+            :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis
         ]
 
-        # cov_xi(lambda_i, lambda_j, lambda_k, lambda_l) = cov_xi(lambda_j, lambda_i, lambda_l, lambda_k)
+        # cov_xi(l_obs_i, l_obs_j, l_obs_k, l_obs_l) = cov_xi(l_obs_j, l_obs_i, l_obs_l, l_obs_k)
         # so reshape and keep only two of them
         triangle_indexes = np.triu_indices(lambda_obs_bins_size)
         # simplify first pair
-        cov_clustering_zbin_lbin_rbin = cov_clustering_zbin_lbin_rbin[
+        _cov_clustering_zbin_3lbin_2rbin = _cov_clustering_zbin_4lbin_2rbin[
             :, triangle_indexes[0], triangle_indexes[1], :, :, :, :
         ]
         # simplify second pair
-        cov_clustering_zbin_lbin_rbin = cov_clustering_zbin_lbin_rbin[
+        _cov_clustering_zbin_2lbin_2rbin = _cov_clustering_zbin_3lbin_2rbin[
             :, :, triangle_indexes[0], triangle_indexes[1], :, :
         ]
 
         ### EQ. 89 + RESHAPE according to 2ptCF ###
-        # Current covariance is shape (nz, nl_red, nl_red, nrad, nrad),
-        # make it (nz, nz, nl_red, nl_red, nrad, nrad), being diagonal in (nz, nz)
-        # """
+        # Current covariance is shape (z_obs, l_obs, l_obs, radius, radius),
+        # make it (z_obs, z_obs, l_obs, l_obs, radius, radius),
+        # being diagonal in (z_obs, z_obs)
+        # ---------------------------------------------------------------------------------
+        # OBS: for simplicity and homeneity with other outputs, it will be written down as
+        # cov_clustering_zbin_lbin_rbin instead of cov_clustering_2zbin_2lbin_2rbin
+        # ---------------------------------------------------------------------------------
         cov_clustering_zbin_lbin_rbin = (
-            np.diag(np.ones(z_obs_bins_size))[
+            np.identity(z_obs_bins_size)[
                 :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis
             ]
-            * cov_clustering_zbin_lbin_rbin
+            * _cov_clustering_zbin_2lbin_2rbin
         )
         return cov_clustering_zbin_lbin_rbin
