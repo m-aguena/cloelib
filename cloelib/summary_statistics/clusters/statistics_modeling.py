@@ -33,7 +33,7 @@ class ClusterStatisticsModeling:
             * lambda_true (np.ndarray) : Values of true richness to be used in integrations
             * ztrue (np.ndarray) : Values of true redshift to be used in integrations
             * Pltrue(ztrue,M,lambda_true) (np.ndarray) : Values for P(lambda_true|M, ztrue)
-            * dv/dzdOmega(ztrue) (np.ndarray) : Values for volume element at each redshift
+            * dv/dz(ztrue) (np.ndarray) : Values for volume element at each redshift
             * dn/dM(ztrue,M) (np.ndarray) : Values for the halo mass function dn/dmdz
             * bias(ztrue,M) (np.ndarray) : Values for the halo bias halo_bias
             * dk (np.ndarray) : Kernel k^2/2*pi^2 to be used in k integrations
