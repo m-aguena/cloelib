@@ -203,7 +203,7 @@ class ClusterClustering:
 
         # compute 2point correlation function : (z_obs, lambda_obs, lambda_obs, radius)
         _cluster_clustering_buf = (
-            self.cluster_statitstics_modeling.integrate_kernel_in_k_space(
+            self.cluster_statitstics_modeling.integrate_in_k_space(
                 covariance_window[:, np.newaxis, np.newaxis, :, :]
                 * pk_mean_values[:, :, :, np.newaxis, :]
             )
@@ -364,7 +364,7 @@ class ClusterClustering:
                         ind_radius,
                         ind_radius,
                     ] = (
-                        self.cluster_statitstics_modeling.integrate_kernel_in_k_space(
+                        self.cluster_statitstics_modeling.integrate_in_k_space(
                             covariance_window[:, ind_radius, :]
                             * beta_pk_mean_values[:, ind_lambda_i, ind_lambda_j, :],
                         )
@@ -378,8 +378,8 @@ class ClusterClustering:
                 for ind_lambda_k in lambda_bin_loop:
                     for ind_lambda_h in lambda_bin_loop:
 
-                        # somehow using integrate_kernel_in_k is much faster then
-                        # integrate_kernel_in_k_space here, to be investigated
+                        # somehow using integrate_in_k is much faster then
+                        # integrate_in_k_space here, to be investigated
 
                         # gaussian term
                         _cov_gaussian[
@@ -390,7 +390,7 @@ class ClusterClustering:
                             ind_lambda_h,
                             :,
                             :,
-                        ] = self.cluster_statitstics_modeling.integrate_kernel_in_k(
+                        ] = self.cluster_statitstics_modeling.integrate_in_k(
                             covariance_window[:, np.newaxis, :, :]
                             * covariance_window[:, :, np.newaxis, :]
                             * avol_bpk_mean_values[

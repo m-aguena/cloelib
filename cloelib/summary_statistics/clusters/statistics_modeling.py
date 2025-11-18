@@ -215,7 +215,7 @@ class ClusterStatisticsModeling:
     # integration functions
     # ---------------------
 
-    def integrate_kernel_in_k(self, kernel):
+    def integrate_in_k(self, kernel):
         """Integrates the kernel in k.
 
         Parameters
@@ -234,12 +234,12 @@ class ClusterStatisticsModeling:
         Note
         ----
             This exist as a function on its own for the cluster clustering covariange
-            computation, somehow it is faster than using integrate_kernel_in_k_space,
+            computation, somehow it is faster than using integrate_in_k_space,
             to be investigated.
         """
         return simps(kernel, x=self.kernel_tables["k"])
 
-    def integrate_kernel_in_k_space(self, kernel):
+    def integrate_in_k_space(self, kernel):
         """Integrates the kernel in k space with a k^2/2pi kernel.
 
         Parameters
@@ -254,7 +254,7 @@ class ClusterStatisticsModeling:
             Quantity integrated in k space, dimension same as input
             minus the last one.
         """
-        return self.integrate_kernel_in_k(kernel * self.kernel_tables["dk"])
+        return self.integrate_in_k(kernel * self.kernel_tables["dk"])
 
     def integrate_in_mass(self, kernel, prob_lambda_obs_bins):
         """Integrates in mass with HMF each binned kernel.

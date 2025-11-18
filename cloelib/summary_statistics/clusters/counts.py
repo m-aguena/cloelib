@@ -170,7 +170,7 @@ class ClusterCounts:
                 z_obs_bins[ind_z], z_obs_bins[ind_z + 1], self.z_tab_sig
             )
             spatial_cov[ind_z, : (ind_z + 1)] = (
-                self.cluster_statitstics_modeling.integrate_kernel_in_k_space(
+                self.cluster_statitstics_modeling.integrate_in_k_space(
                     np.sqrt(pk[ind_z] * pk[: (ind_z + 1)])
                     * self.covariance.cov_window(ind_z, z_tab, KL),
                 )
