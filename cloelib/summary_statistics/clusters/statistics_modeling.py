@@ -193,7 +193,7 @@ class ClusterStatisticsModeling:
                 lambda_obs_bins[ind_lambda + 1],
                 l_m_tab_sig[ind_lambda],
             )
-            prob_lambda_obs_lbin_z_ltrue = simps(
+            _prob_lambda_obs_lbin_given_lambda_true = simps(
                 self.selectionfunction.P_lbdobs_lbd(
                     self.kernel_tables["ztrue"],
                     self.kernel_tables["lambda_true"],
@@ -205,7 +205,7 @@ class ClusterStatisticsModeling:
             # P(lambda_obs_bin|M, z)
             prob_lambda_obs_lbin_z_m[ind_lambda] = simps(
                 self.kernel_tables["Pltrue(ztrue,M,lambda_true)"]
-                * prob_lambda_obs_lbin_z_ltrue[:, np.newaxis, :],
+                * _prob_lambda_obs_lbin_given_lambda_true[:, np.newaxis, :],
                 x=self.kernel_tables["lambda_true"],
                 axis=-1,
             )
