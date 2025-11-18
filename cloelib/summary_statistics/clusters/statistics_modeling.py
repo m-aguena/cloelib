@@ -88,11 +88,13 @@ class ClusterStatisticsModeling:
                 integ_ztrue_arr, integ_mass_arr, integ_lambda_true_arr
             ),
             # volume element at each point of z array
-            "dv/dzdOmega(ztrue)": derived_cosmology.dV_dzdO(
+            "dv/dz(ztrue)": derived_cosmology.dV_dzdO(
                 self.halo_statistics.perturbations.background,
                 integ_ztrue_arr,
                 hubble_units=True,
-            ),
+            )
+            * self.area
+            * (np.pi**2.0 / 180.0**2.0),
             # hmf at the center of observed redshift bins
             "dn/dM(ztrue,M)": self.hmfbias.dn_dm(integ_ztrue_arr, integ_mass_arr),
             # halo bias at the center of observed redshift bins
@@ -106,7 +108,9 @@ class ClusterStatisticsModeling:
     # cluster statistics functions
     # ----------------------------
 
-    def compute_binned_volume_element(self, z_obs_bins, lambda_obs_bins, z_tab_sig):
+    def compute_binned_redshift_obs_probability(
+        self, z_obs_bins, lambda_obs_bins, z_tab_sig
+    ):
         """Computes volume element in redshift and richness bins.
 
         Parameters
@@ -120,9 +124,10 @@ class ClusterStatisticsModeling:
 
         Returns
         -------
-        dvdz_zbin_lbin_z : numpy.ndarray
-            Observed volume element (dV/dz) in each redshift and richness bin
-            shape (z_obs, lambda_obs, ztrue) with (ztrue) in kenel_tables.
+        plobs_lbin_z_m : numpy.ndarray
+            Probability of observed richness bin P(lambda_obs_bin|M, ztrue)
+            with masses and redshifts being the values in self.kernel_tables.
+            Dimentions: (lobs_bin, ztrue, M)
         """
 
         z_obs_bins_size = len(z_obs_bins) - 1
@@ -132,14 +137,13 @@ class ClusterStatisticsModeling:
         z_obs_tabs = np.linspace(z_obs_bins[:-1], z_obs_bins[1:], z_tab_sig)
 
         # outputs
-        dvdz_zbin_lbin_z = np.zeros(
+        pzobs_zbin_lbin_z = np.zeros(
             (z_obs_bins_size, lambda_obs_bins_size, self.kernel_tables["ztrue"].size)
         )
         for ind_z in range(z_obs_bins_size):
             for ind_lambda in range(lambda_obs_bins_size):
-                # P(zob|ztr)
-                p_zobs_z = simps(
-                    self.selectionfunction.P_zobs_z(
+                pzobs_zbin_lbin_z[ind_z, ind_lambda] = simps(
+                    self.selectionfunction.P_zobs_z(  # P(zob|ztr)
                         z_obs_tabs[:, ind_z],
                         lambda_obs_bins[ind_lambda],
                         self.kernel_tables["ztrue"],
@@ -147,14 +151,7 @@ class ClusterStatisticsModeling:
                     x=z_obs_tabs[:, ind_z],
                     axis=0,
                 )
-                # observed volume element dV/dz
-                dvdz_zbin_lbin_z[ind_z, ind_lambda] = (
-                    self.kernel_tables["dv/dzdOmega(ztrue)"]
-                    * p_zobs_z
-                    * (self.area)
-                    * (np.pi**2.0 / 180.0**2.0)
-                )
-        return dvdz_zbin_lbin_z
+        return pzobs_zbin_lbin_z
 
     def compute_binned_lambda_obs_probability(self, lambda_obs_bins, l_m_tab_sig):
         """Computes the probability of observed richness bin P(lobs_bin|M, ztrue)
@@ -170,17 +167,17 @@ class ClusterStatisticsModeling:
 
         Returns
         -------
-        p_lbin_z_m : numpy.ndarray
+        plobs_lbin_z_m : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, ztrue)
             with masses and redshifts being the values in self.kernel_tables.
             Dimentions: (lobs_bin, ztrue, M)
         """
 
         # if external_richness_selection_function == 'CG_ESF' :
-        #     p_lbin_z_m  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
+        #     plobs_lbin_z_m  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
 
         lambda_obs_bins_size = len(lambda_obs_bins) - 1
-        p_lbin_z_m = np.zeros(
+        plobs_lbin_z_m = np.zeros(
             (
                 lambda_obs_bins_size,
                 self.kernel_tables["ztrue"].size,
@@ -194,7 +191,7 @@ class ClusterStatisticsModeling:
                 lambda_obs_bins[ind_lambda + 1],
                 l_m_tab_sig[ind_lambda],
             )
-            p_lbin_z_ltrue = simps(
+            plobs_lbin_z_ltrue = simps(
                 self.selectionfunction.P_lbdobs_lbd(
                     self.kernel_tables["ztrue"],
                     self.kernel_tables["lambda_true"],
@@ -204,13 +201,13 @@ class ClusterStatisticsModeling:
                 axis=-1,
             )
             # P(lambda_obs_bin|M, z)
-            p_lbin_z_m[ind_lambda] = simps(
+            plobs_lbin_z_m[ind_lambda] = simps(
                 self.kernel_tables["Pltrue(ztrue,M,lambda_true)"]
-                * p_lbin_z_ltrue[:, np.newaxis, :],
+                * plobs_lbin_z_ltrue[:, np.newaxis, :],
                 x=self.kernel_tables["lambda_true"],
                 axis=-1,
             )
-        return p_lbin_z_m
+        return plobs_lbin_z_m
 
     # ---------------------
     # integration functions
@@ -250,7 +247,7 @@ class ClusterStatisticsModeling:
         """
         return self._integrate_kernel_in_k(kernel * self.kernel_tables["dk"])
 
-    def integrate_kernel_in_mass_w_hmf(self, kernel_z_m, p_lbin_z_m):
+    def integrate_kernel_in_mass_w_hmf(self, kernel_z_m, plobs_lbin_z_m):
         """Integrates in mass with HMF each binned kernel.
 
         Parameters
@@ -258,8 +255,8 @@ class ClusterStatisticsModeling:
         kernel : numpy.ndarray
             Kernel to be integrated in mass and convoluted with observed richness bins,
             must be dimension (ztrue, M, ...) with (ztrue, M) from self.kernel_tables.
-        p_lbin_z_m : numpy.ndarray
-            Probability of observed richness bin P(lobs_bin|M, ztrue)
+        plobs_lbin_z_m : numpy.ndarray
+            Probability of observed richness bin P(lambda_obs_bin|M, ztrue)
             with masses and redshifts being the values in self.kernel_tables.
             Dimentions: (lobs_bin, ztrue, M)
 
@@ -273,12 +270,12 @@ class ClusterStatisticsModeling:
         # Add lbin dimension to kernel_lbin_z
         _kernel_lbin_z_m = kernel_z_m[np.newaxis, ...]
 
-        # to make p_lbin_z_m, hmf same shape as kernel
+        # to make plobs_lbin_z_m, hmf same shape as kernel
         extra_axes = [np.newaxis] * len(_kernel_lbin_z_m.shape[3:])
 
-        # reshape p_lbin_z_m
-        axes_p_lbin_z_m = (slice(i) for i in p_lbin_z_m.shape)
-        _p_lbin_z_m = p_lbin_z_m[(*axes_p_lbin_z_m, *extra_axes)]
+        # reshape plobs_lbin_z_m
+        axes_plobs_lbin_z_m = (slice(i) for i in plobs_lbin_z_m.shape)
+        _plobs_lbin_z_m = plobs_lbin_z_m[(*axes_plobs_lbin_z_m, *extra_axes)]
 
         # reshape HMF
         axes_hmf = (slice(i) for i in self.kernel_tables["dn/dM(ztrue,M)"].shape)
@@ -288,14 +285,14 @@ class ClusterStatisticsModeling:
 
         # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (l_obs, z)
         kernel_lbin_z = simps(
-            _kernel_lbin_z_m * _hmf_lbin_z_m * _p_lbin_z_m,
+            _kernel_lbin_z_m * _hmf_lbin_z_m * _plobs_lbin_z_m,
             x=self.kernel_tables["M"],
             axis=2,
         )
         return kernel_lbin_z
 
-    def integrate_lbin_kernel_in_true_volume(self, kernel_lbin_z, dvdz_zbin_lbin_z):
-        """Integrates in true volume dv/dzdOmega(ztrue) a kernel binned in observed richness,
+    def integrate_lbin_kernel_in_true_volume(self, kernel_lbin_z, pzobs_zbin_lbin_z):
+        """Integrates in true volume dv/dz(ztrue) a kernel binned in observed richness,
         in each observed redsfhit bin.
 
         Parameters
@@ -304,9 +301,10 @@ class ClusterStatisticsModeling:
             Kernel binned in observed richness to be integrated in true redshift, and
             convoluted with observed redshift bins. Must be dimension
             (lambda_obs, ztrue) with (ztrue) from self.kernel_tables.
-        dvdz_zbin_lbin_z : numpy.ndarray
-            Observed volume element (dV/dz) in each redshift and richness bin
-            shape (z_obs, lambda_obs, ztrue) with (ztrue) in kenel_tables.
+        pzobs_zbin_lbin_z : numpy.ndarray
+            Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
+            given a observed richness bin and a true redshift.
+            Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in kernel_tables.
 
         Returns
         -------
@@ -317,14 +315,22 @@ class ClusterStatisticsModeling:
         # Add zbin dimension to kernel_lbin_z
         _kernel_zbin_lbin_z = kernel_lbin_z[np.newaxis, ...]
 
-        # reshape dvdz_zbin_lbin_z
+        # to make plobs_lbin_z_m, hmf same shape as kernel
         extra_axes = [np.newaxis] * len(_kernel_zbin_lbin_z.shape[3:])
-        axes_dvdz_zbin_lbin_z = (slice(i) for i in dvdz_zbin_lbin_z.shape)
-        _dvdz_zbin_lbin_z = dvdz_zbin_lbin_z[(*axes_dvdz_zbin_lbin_z, *extra_axes)]
+
+        # reshape pzobs_zbin_lbin_z
+        axes_pzobs_zbin_lbin_z = (slice(i) for i in pzobs_zbin_lbin_z.shape)
+        _pzobs_zbin_lbin_z = pzobs_zbin_lbin_z[(*axes_pzobs_zbin_lbin_z, *extra_axes)]
+
+        # reshape dvdz
+        axis_ztrue = slice(len(self.kernel_tables["dv/dz(ztrue)"]))
+        _dvdz_zbin_lbin_z = self.kernel_tables["dv/dz(ztrue)"][
+            (np.newaxis, np.newaxis, axis_ztrue, *extra_axes)
+        ]
 
         # cluster counts : (z_obs, l_obs)
         kernel_zbin_lbin = simps(
-            _kernel_zbin_lbin_z * _dvdz_zbin_lbin_z,
+            _kernel_zbin_lbin_z * _dvdz_zbin_lbin_z * _pzobs_zbin_lbin_z,
             x=self.kernel_tables["ztrue"],
             axis=2,
         )

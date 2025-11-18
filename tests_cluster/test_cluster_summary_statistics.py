@@ -178,8 +178,8 @@ def get_values():
     cov_nc_zbin_lbin = cluster_counts_statistics.compute_cov(
         zed_obs_nc_bins,
         nc_zbin_lbin,
-        counts_zbin_lbin_intermediate_products["p_lbin_z_m"],
-        counts_zbin_lbin_intermediate_products["dvdz_zbin_lbin_z"],
+        counts_zbin_lbin_intermediate_products["plobs_lbin_z_m"],
+        counts_zbin_lbin_intermediate_products["pzobs_zbin_lbin_z"],
     )
     print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
@@ -203,7 +203,7 @@ def get_values():
         clustering_zbin_lbin_intermediate_products["pk_zbin_lbin_lbin_k"],
         clustering_zbin_lbin_intermediate_products["window_zbin_lbin_k"],
         clustering_zbin_lbin_intermediate_products["vol_zbin_rbin"],
-        clustering_zbin_lbin_intermediate_products["dvdz_zbin_lbin_z"],
+        clustering_zbin_lbin_intermediate_products["pzobs_zbin_lbin_z"],
         clustering_zbin_lbin_intermediate_products["nc_zbin_lbin"],
     )
     print(f"xi_cov    :  {time.time()-t0:.4f} seconds")
