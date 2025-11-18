@@ -77,13 +77,13 @@ class ClusterWeakLensing:
         ############################################
 
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
-        pzobs_zbin_lbin_z = (
+        prob_z_obs_zbin_lbin_z = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
         )
         # P(lambda_obs_bins|M, z) : (l_obs, M, z)
-        plobs_lbin_z_m = (
+        prob_lambda_obs_lbin_z_m = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
@@ -92,9 +92,9 @@ class ClusterWeakLensing:
         nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
             # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
             self.cluster_statitstics_modeling.integrate_in_mass(
-                np.ones((1, 1)), plobs_lbin_z_m
+                np.ones((1, 1)), prob_lambda_obs_lbin_z_m
             ),
-            pzobs_zbin_lbin_z,
+            prob_z_obs_zbin_lbin_z,
         )
 
         ########################
@@ -112,7 +112,7 @@ class ClusterWeakLensing:
         )
         # excess surface mass density in a richness bin, integrated on mass w HMF : (l_obs, z)
         deltasigma_lbin_z_rbin = self.cluster_statitstics_modeling.integrate_in_mass(
-            deltasigma_z_m_rbin, plobs_lbin_z_m
+            deltasigma_z_m_rbin, prob_lambda_obs_lbin_z_m
         )
 
         # redshift part
@@ -133,7 +133,7 @@ class ClusterWeakLensing:
         deltasigma_zbin_lbin_rbin = (
             self.cluster_statitstics_modeling.integrate_in_true_redshift(
                 deltasigma_lbin_z_rbin,
-                pzobs_zbin_lbin_z * inv_sig_crit_eff_zbin_z[:, np.newaxis, :],
+                prob_z_obs_zbin_lbin_z * inv_sig_crit_eff_zbin_z[:, np.newaxis, :],
             )
         ) / nc_zbin_lbin[:, :, np.newaxis]
         return deltasigma_zbin_lbin_rbin

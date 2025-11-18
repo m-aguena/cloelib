@@ -48,7 +48,7 @@ class ClusterClustering:
         self.z_tab_sig = 31
 
     def _compute_pk_ir_resummation_unnormalized(
-        self, lambda_obs_mid, pzobs_zbin_lbin_z, plobs_lbin_z, b_lbin_z
+        self, lambda_obs_mid, prob_z_obs_zbin_lbin_z, prob_lambda_obs_lbin_z, b_lbin_z
     ):
         """Computes Pk IR resummation.
 
@@ -76,7 +76,7 @@ class ClusterClustering:
         ).transpose(1, 0, 2, 3)
 
         # compute effective halo bias, with shape (l_obs, z, 1)
-        b_eff = (b_lbin_z / plobs_lbin_z)[:, :, np.newaxis]
+        b_eff = (b_lbin_z / prob_lambda_obs_lbin_z)[:, :, np.newaxis]
 
         # corrected power specrum (l_obs, z, k)
         pk_halo = (
@@ -89,8 +89,8 @@ class ClusterClustering:
         # average square of power spectrum in redshift and richness bins (z_obs, l_obs, k)
         sqrt_Pk_zbin_lbin = (
             self.cluster_statitstics_modeling.integrate_in_true_redshift(
-                np.sqrt(pk_halo) * plobs_lbin_z[:, :, np.newaxis],
-                pzobs_zbin_lbin_z,
+                np.sqrt(pk_halo) * prob_lambda_obs_lbin_z[:, :, np.newaxis],
+                prob_z_obs_zbin_lbin_z,
             )
         )
 
@@ -131,7 +131,7 @@ class ClusterClustering:
                 * pk_zbin_lbin_lbin_k (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
                 * window_zbin_lbin_k (numpy.ndarray) : Cluster count covariance window (z_obs, l_obs, k).
                 * vol_zbin_rbin (numpy.ndarray) : Spherical shell volume (z_obs, radius).
-                * pzobs_zbin_lbin_z (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * prob_z_obs_zbin_lbin_z (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
                 * nc_zbin_lbin (numpy.ndarray) :  Number counts in redshift and richness bins
         """
 
@@ -140,29 +140,29 @@ class ClusterClustering:
         ############################################
 
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
-        pzobs_zbin_lbin_z = (
+        prob_z_obs_zbin_lbin_z = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
         )
         # P(lambda_obs_bins|M, z) : (l_obs, M, z)
-        _plobs_lbin_z_m = (
+        _prob_lambda_obs_lbin_z_m = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
-        plobs_lbin_z = self.cluster_statitstics_modeling.integrate_in_mass(
-            np.ones((1, 1)), _plobs_lbin_z_m
+        prob_lambda_obs_lbin_z = self.cluster_statitstics_modeling.integrate_in_mass(
+            np.ones((1, 1)), _prob_lambda_obs_lbin_z_m
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
         b_lbin_z = self.cluster_statitstics_modeling.integrate_in_mass(
             self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
-            _plobs_lbin_z_m,
+            _prob_lambda_obs_lbin_z_m,
         )
         # cluster counts : (z_obs, l_obs)
         nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
-            plobs_lbin_z, pzobs_zbin_lbin_z
+            prob_lambda_obs_lbin_z, prob_z_obs_zbin_lbin_z
         )
 
         ################################################
@@ -172,7 +172,7 @@ class ClusterClustering:
         # matter power spectrum + IR resummation : (z_obs, l_obs, l_obs, k)
         _lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
         pk_zbin_lbin_lbin_k = self._compute_pk_ir_resummation_unnormalized(
-            _lambda_obs_mid, pzobs_zbin_lbin_z, plobs_lbin_z, b_lbin_z
+            _lambda_obs_mid, prob_z_obs_zbin_lbin_z, prob_lambda_obs_lbin_z, b_lbin_z
         ) / (
             nc_zbin_lbin[:, np.newaxis, :, np.newaxis]
             * nc_zbin_lbin[:, :, np.newaxis, np.newaxis]
@@ -209,7 +209,7 @@ class ClusterClustering:
             "window_zbin_lbin_k": window_zbin_lbin_k,
             "vol_zbin_rbin": vol_zbin_rbin,
             "nc_zbin_lbin": nc_zbin_lbin,
-            "pzobs_zbin_lbin_z": pzobs_zbin_lbin_z,
+            "prob_z_obs_zbin_lbin_z": prob_z_obs_zbin_lbin_z,
         }
         return clustering_zbin_lbin_rbin, intermediate_products_zbin_lbin
 
@@ -222,7 +222,7 @@ class ClusterClustering:
         pk_zbin_lbin_lbin_k,
         window_zbin_lbin_k,
         vol_zbin_rbin,
-        pzobs_zbin_lbin_z,
+        prob_z_obs_zbin_lbin_z,
         nc_zbin_lbin,
     ):
         """Computes clustering covariance.
@@ -239,7 +239,7 @@ class ClusterClustering:
         vol_zbin_rbin : numpy.ndarray
             Spherical shell volume (z_obs, radius).
             Is in the intermediate_products_zbin_lbin output of compute_binned_clustering.
-        pzobs_zbin_lbin_z : numpy.ndarray
+        prob_z_obs_zbin_lbin_z : numpy.ndarray
             Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
             given a observed richness bin and a true redshift.
             Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
@@ -261,7 +261,7 @@ class ClusterClustering:
 
         # Compute observed volume in each redshift bin : (z_obs, l_obs)
         vol_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
-            np.ones((1, 1)), pzobs_zbin_lbin_z
+            np.ones((1, 1)), prob_z_obs_zbin_lbin_z
         )
         # Compute output shot-noise terms : (z_obs, l_obs, l_obs)
         vol_over_nc_zbin_lbin_lbin = (

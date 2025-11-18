@@ -94,21 +94,21 @@ class ClusterCounts:
             Returned only when `return_intermediate_products` is true.
             Contains :
 
-                * plobs_lbin_z_m (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, ztrue) for masses and redshifts in table
-                * pzobs_zbin_lbin_z (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * prob_lambda_obs_lbin_z_m (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, ztrue) for masses and redshifts in table
+                * prob_z_obs_zbin_lbin_z (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
         """
 
         ############################################
         # Get cluster statistics modeling quantities
         ############################################
         # P(lambda_obs_bins|M, z) : (l_obs, M, z)
-        plobs_lbin_z_m = (
+        prob_lambda_obs_lbin_z_m = (
             self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
                 lambda_obs_bins, self.l_m_tab_sig
             )
         )
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, l_obs, z)
-        pzobs_zbin_lbin_z = (
+        prob_z_obs_zbin_lbin_z = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
@@ -117,17 +117,17 @@ class ClusterCounts:
         nc_zbin_lbin = self.cluster_statitstics_modeling.integrate_in_true_redshift(
             # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (l_obs, z)
             self.cluster_statitstics_modeling.integrate_in_mass(
-                np.ones((1, 1)), plobs_lbin_z_m
+                np.ones((1, 1)), prob_lambda_obs_lbin_z_m
             ),
-            pzobs_zbin_lbin_z,
+            prob_z_obs_zbin_lbin_z,
         )
 
         if not return_intermediate_products:
             return nc_zbin_lbin
 
         return nc_zbin_lbin, {
-            "plobs_lbin_z_m": plobs_lbin_z_m,
-            "pzobs_zbin_lbin_z": pzobs_zbin_lbin_z,
+            "prob_lambda_obs_lbin_z_m": prob_lambda_obs_lbin_z_m,
+            "prob_z_obs_zbin_lbin_z": prob_z_obs_zbin_lbin_z,
         }
 
     # -------------------
@@ -179,7 +179,9 @@ class ClusterCounts:
             spatial_cov[: (ind_z + 1), ind_z] = spatial_cov[ind_z, : (ind_z + 1)]
         return spatial_cov
 
-    def compute_cov(self, z_obs_bins, nc_zbin_lbin, plobs_lbin_z_m, pzobs_zbin_lbin_z):
+    def compute_cov(
+        self, z_obs_bins, nc_zbin_lbin, prob_lambda_obs_lbin_z_m, prob_z_obs_zbin_lbin_z
+    ):
         """Computes theoretical covariance for cluster counts, including shot noise and sample covariance
 
         Parameters
@@ -188,11 +190,11 @@ class ClusterCounts:
             Redshift bins for the integration.
         nc_zbin_lbin : numpy.ndarray
             Number counts in redshift and richness bins
-        plobs_lbin_z_m : numpy.ndarray
+        prob_lambda_obs_lbin_z_m : numpy.ndarray
             Probability of observed richness bin P(lobs_bin|M, ztrue),
             with masses and redshifts being the values in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_products_zbin_lbin output of compute_binned_counts.
-        pzobs_zbin_lbin_z : numpy.ndarray
+        prob_z_obs_zbin_lbin_z : numpy.ndarray
             Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
             given a observed richness bin and a true redshift.
             Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
@@ -214,9 +216,9 @@ class ClusterCounts:
             # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (l_obs, z)
             self.cluster_statitstics_modeling.integrate_in_mass(
                 self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
-                plobs_lbin_z_m,
+                prob_lambda_obs_lbin_z_m,
             ),
-            pzobs_zbin_lbin_z,
+            prob_z_obs_zbin_lbin_z,
         )
 
         ####################
