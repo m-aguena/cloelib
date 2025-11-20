@@ -430,3 +430,32 @@ class HaloStatistics:
             * (12.0 * np.pi) ** (2.0 / 3.0)
             * (1.0 + 0.012299 * np.log10(Omega_m))
         )
+
+    def dn_dm_precomp_input(self, M, fsigmanu, dlnsigmadlnM):
+        r"""Derivative of the number density with pre-computed
+        sigma, dsigma, Omega_m.
+
+        Computes the derivative of the number density
+        at the requested redshift and mass points.
+
+        Parameters
+        ----------
+        M: numpy.ndarray
+            Mass points in h^{-1} Msun.
+        fsigmanu: numpy.ndarray
+            Multiplicity function.
+        dlnsigmadlnM: numpy.ndarray
+            Derivative of the square of thestandard deviation of perturbations
+            by the natural logarithm of the mass.
+            Derivative of the ln rms with respect to the ln of mass
+            at the requested redshift and mass points.
+
+        Returns
+        -------
+        dn_dm: numpy.ndarray
+            dn_dm[i,j], where i is the redshift axis and j the mass axis.
+            Units: h^4 Mpc^{-3} Ms^{-1}.
+        """
+        rho_mean_0 = self._Omega_m(0) * derived_cosmology.rho_crit(self.background, 0.0)
+        rho_mean_0 /= self.background.h**2.0
+        return -rho_mean_0 / M**2.0 * fsigmanu * dlnsigmadlnM
