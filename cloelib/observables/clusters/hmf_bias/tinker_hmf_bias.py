@@ -15,7 +15,7 @@ class TinkerHMFBias:
         r"""Returns the Background class instance"""
         return self.halo_statistics.perturbations.background
 
-    def f_sigma_nu(self, sigma, dlnsigmadlnM, Omega_m, delta_c):
+    def f_sigma_nu(self, sigma, dlnsigmadlnM, delta_c, Omega_m):
         r"""
         Computation of the multiplicity function.
 
@@ -29,11 +29,11 @@ class TinkerHMFBias:
         dlnsigmadlnM: numpy.ndarray
             Mass points in h^{-1} Msun
             Derivative of the log rms with respect to the mass.
+        delta_c: numpy.ndarray
+            Critical overdensity.
         Omega_m: numpy.ndarray
             Matter content of the universe computed at the same redshifts
             as nu, dlnsigmadlnM.
-        delta_c: numpy.ndarray
-            Critical overdensity.
 
         Returns
         -------
@@ -42,7 +42,7 @@ class TinkerHMFBias:
         """
         raise NotImplementedError
 
-    def bias_sigma(self, sigma, dlnsigmadlnM, Omega_m, delta_c, Delta):
+    def bias_nu(self, nu, dlnsigmadlnM, delta_c, Omega_m, Delta):
         r"""
         Computation of the halo bias.
 
@@ -51,15 +51,16 @@ class TinkerHMFBias:
 
         Parameters
         ----------
-        sigma: numpy.ndarray
-            Standard deviation of perturbations.
+        nu: numpy.ndarray
+            Critical overdensity over the rms, delta_c/sigma.
         dlnsigmadlnM: numpy.ndarray
             Mass points in h^{-1} Msun
             Derivative of the log rms with respect to the mass.
-        Omega_m: numpy.ndarray
-            Matter content in the Univese.
         delta_c: numpy.ndarray
             Critical overdensity.
+        Omega_m: numpy.ndarray
+            Matter content of the universe computed at the same redshifts
+            as nu, dlnsigmadlnM.
         Delta: numpy.ndarray
             Overdensity of mass definition.
 
@@ -68,9 +69,6 @@ class TinkerHMFBias:
         bias: numpy.ndarray
             bias[i,j], where i is the redshift axis and j the mass axis
         """
-        # Compute main quantities
-        nu = delta_c[:, np.newaxis] / sigma
-
         # parameters
         p = [1.0, 0.24, 0.44, 0.88, 0.183, 1.5, 0.019, 0.107, 0.19, 2.4]
         y = np.log10(Delta)
@@ -110,15 +108,16 @@ class TinkerHMFBias:
             bias[i,j], where i is the redshift axis and j the mass axis
         """
         # compute inputs
-        sigma = self.halo_statistics.sigma_z_M(z, M)
-        dlnsigmadlnM = None  # not used - self.halo_statistics.dlns_dlnM(z, M, pre_computed_sigma=sigma)
-        Omega_m = self.halo_statistics.background.Omega_m(z)
+        Omega_m = self.halo_statistics._Omega_m(z)
         delta_c = self.halo_statistics.delta_c(z)
+        _sigma = self.halo_statistics.sigma_z_M(z, M)
+        dlnsigmadlnM = None  # not used - self.halo_statistics.dlns_dlnM(z, M, pre_computed_sigma=sigma)
+        nu = delta_c[:, np.newaxis] / _sigma
         Delta = self.halo_statistics.get_Delta_crit(z) / self.halo_statistics._Omega_m(
             z
         )
 
-        return self.bias_sigma(sigma, dlnsigmadlnM, Omega_m, delta_c, Delta)
+        return self.bias_nu(nu, dlnsigmadlnM, delta_c, Omega_m, Delta)
 
     def dn_dm(self, z, M):
         r"""Derivative of the number density.
@@ -140,11 +139,12 @@ class TinkerHMFBias:
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
         # compute inputs
-        sigma = self.halo_statistics.sigma_z_M(z, M)
-        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M, pre_computed_sigma=sigma)
         Omega_m = self.halo_statistics._Omega_m(z)
         delta_c = self.halo_statistics.delta_c(z)
+        _sigma = self.halo_statistics.sigma_z_M(z, M)
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M, pre_computed_sigma=_sigma)
+        nu = delta_c[:, np.newaxis] / _sigma
 
         return self.halo_statistics.dn_dm_precomp_input(
-            M, self.f_sigma_nu(sigma, dlnsigmadlnM, Omega_m, delta_c), dlnsigmadlnM
+            M, self.f_sigma_nu(nu, dlnsigmadlnM, delta_c, Omega_m), dlnsigmadlnM
         )
