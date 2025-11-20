@@ -338,7 +338,7 @@ class HaloStatistics:
         """
         return self.nu_deltac_sigma(self.delta_c(z), self.sigma_z_M(z, M))
 
-    def dlns_dlnM(self, z, M):
+    def dlns_dlnM(self, z, M, pre_computed_sigma=None):
         r"""Derivative of the logarithmic rms.
 
         Computes the derivative of the ln rms
@@ -351,6 +351,9 @@ class HaloStatistics:
             Redshift points.
         M: numpy.ndarray
             Mass points in h^{-1} Msun.
+        pre_computed_sigma: numpy.ndarray, None
+            Pre-computed values for the rms. If provided, must be in the shape:
+            sigma[i,j], where i is the redshift axis and j the mass axis.
 
         Returns
         -------
@@ -374,13 +377,15 @@ class HaloStatistics:
         )
         dsigma2_dlnM = dsigma2_dlnR / 3
 
-        sigma = self.sigma_z_M(z, M)
+        sigma = pre_computed_sigma
+        if sigma is None:
+            sigma = self.sigma_z_M(z, M)
 
         return dsigma2_dlnM / (2 * sigma**2)
 
-    #----------------------------------
+    # ----------------------------------
     # Functions with precomputed values
-    #----------------------------------
+    # ----------------------------------
 
     def nu_deltac_sigma(self, z, sigma):
         r"""Peak height.
@@ -425,4 +430,3 @@ class HaloStatistics:
             * (12.0 * np.pi) ** (2.0 / 3.0)
             * (1.0 + 0.012299 * np.log10(Omega_m))
         )
-
