@@ -387,7 +387,7 @@ class HaloStatistics:
     # Functions with precomputed values
     # ----------------------------------
 
-    def nu_deltac_sigma(self, z, sigma):
+    def nu_deltac_sigma(self, delta_c, sigma):
         r"""Peak height.
 
         Computes the critical overdensity over the rms,
@@ -395,8 +395,8 @@ class HaloStatistics:
 
         Parameters
         ----------
-        z: numpy.ndarray
-            Redshift points.
+        delta_c: numpy.ndarray
+            Computes the critical overdensity.
         sigma: numpy.ndarray
             Standard deviation of perturbations.
 
