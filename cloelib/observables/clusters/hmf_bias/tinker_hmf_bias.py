@@ -15,7 +15,7 @@ class TinkerHMFBias:
         r"""Returns the Background class instance"""
         return self.halo_statistics.perturbations.background
 
-    def f_sigma_nu(self, z, M):
+    def f_sigma_nu(self, nu, dlnsigmadlnM, Omega_m):
         r"""
         Computation of the multiplicity function.
 
@@ -24,10 +24,11 @@ class TinkerHMFBias:
 
         Parameters
         ----------
-        z: numpy.ndarray
-            Redshift points
-        M: numpy.ndarray
+        nu: numpy.ndarray
+            Critical overdensity over the rms, delta_c/sigma.
+        dlnsigmadlnM: numpy.ndarray
             Mass points in h^{-1} Msun
+            Derivative of the log rms with respect to the mass.
 
         Returns
         -------
@@ -103,4 +104,12 @@ class TinkerHMFBias:
         )
         rho_mean_0 /= self.background.h**2.0
 
-        return -rho_mean_0 / M**2.0 * self.f_sigma_nu(z, M) * dlnsigmadlnM
+        nu = self.halo_statistics.nu_z_M(z, M)
+        Ommz = self.halo_statistics._Omega_m(z)
+
+        return (
+            -rho_mean_0
+            / M**2.0
+            * self.f_sigma_nu(nu, dlnsigmadlnM, Ommz)
+            * dlnsigmadlnM
+        )

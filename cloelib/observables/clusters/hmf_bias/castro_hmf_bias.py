@@ -17,7 +17,7 @@ class CastroHMFBias:
         r"""Returns the Background class instance"""
         return self.halo_statistics.perturbations.background
 
-    def f_sigma_nu(self, z, M):
+    def f_sigma_nu(self, nu, dlnsigmadlnM, Omega_m):
         r"""
         Computation of the multiplicity function.
 
@@ -26,10 +26,11 @@ class CastroHMFBias:
 
         Parameters
         ----------
-        z: numpy.ndarray
-            Redshift points
-        M: numpy.ndarray
+        nu: numpy.ndarray
+            Critical overdensity over the rms, delta_c/sigma.
+        dlnsigmadlnM: numpy.ndarray
             Mass points in h^{-1} Msun
+            Derivative of the log rms with respect to the mass.
 
         Returns
         -------
@@ -45,9 +46,8 @@ class CastroHMFBias:
         q2 = -0.2804
         qz = 0.0251
 
-        dlnsigmadlnR = 3 * self.halo_statistics.dlns_dlnM(z, M)
-        Ommz = self.halo_statistics._Omega_m(z)[:, np.newaxis]
-        nu = self.halo_statistics.nu_z_M(z, M)
+        dlnsigmadlnR = 3 * dlnsigmadlnM
+        Ommz = Omega_m[:, np.newaxis]
 
         aR = a1 + a2 * (dlnsigmadlnR + 0.6125) ** 2.0
         a = aR * Ommz**az
@@ -98,14 +98,15 @@ class CastroHMFBias:
         if lenM_orig < 4:
             M = np.append(M, M[-1] * np.arange(2, 6))
 
-        dlnsigmadlnR = 3 * self.halo_statistics.dlns_dlnM(z, M)
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
+        dlnsigmadlnR = 3 * dlnsigmadlnM
         Ommz = self.halo_statistics._Omega_m(z)[:, np.newaxis]
         S8 = self.halo_statistics.sigma8 * np.sqrt(
             self.halo_statistics._Omega_m(0.0) / 0.3
         )
 
         nu = self.halo_statistics.nu_z_M(z, M)
-        nufnu = self.f_sigma_nu(z, M)
+        nufnu = self.f_sigma_nu(nu, dlnsigmadlnM, Ommz[:, 0])
         dlnnufnu_dlnnu = np.zeros(nufnu.shape)
         for i in range(len(z)):
             nufnu_int = interpolate.splrep(np.log(nu[i]), np.log(nufnu[i]), s=0)
@@ -152,4 +153,12 @@ class CastroHMFBias:
         )
         rho_mean_0 /= self.background.h**2.0
 
-        return -rho_mean_0 / M**2.0 * self.f_sigma_nu(z, M) * dlnsigmadlnM
+        nu = self.halo_statistics.nu_z_M(z, M)
+        Ommz = self.halo_statistics._Omega_m(z)
+
+        return (
+            -rho_mean_0
+            / M**2.0
+            * self.f_sigma_nu(nu, dlnsigmadlnM, Ommz)
+            * dlnsigmadlnM
+        )
