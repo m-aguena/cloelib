@@ -222,7 +222,12 @@ class HaloStatistics:
         delta_c:  float or numpy.ndarray
             Value of the critical overdensity a given redshift.
         """
-        return self.delta_c_Om(self.background.Omega_m(z))
+        return (
+            3.0
+            / 20.0
+            * (12.0 * np.pi) ** (2.0 / 3.0)
+            * (1.0 + 0.012299 * np.log10(self.background.Omega_m(z)))
+        )
 
     def get_Delta_crit(self, z):
         r"""Critical overdensity factor.
@@ -386,50 +391,6 @@ class HaloStatistics:
     # ----------------------------------
     # Functions with precomputed values
     # ----------------------------------
-
-    def nu_deltac_sigma(self, delta_c, sigma):
-        r"""Peak height.
-
-        Computes the critical overdensity over the rms,
-        delta_c/sigma, at a given redshift and mass.
-
-        Parameters
-        ----------
-        delta_c: numpy.ndarray
-            Computes the critical overdensity.
-        sigma: numpy.ndarray
-            Standard deviation of perturbations.
-
-        Returns
-        -------
-        nu_z_M: numpy.ndarray
-            nu_z_M[i,j], where i is the redshift axis and j the mass axis.
-        """
-        return delta_c[:, np.newaxis] / sigma
-
-    def delta_c_Om(self, Omega_m):
-        r"""Critical overdensity.
-
-        Computes the critical overdensity at a given redshift
-        following an approximation from Kitayama & Suto (1999).
-
-        Parameters
-        ----------
-        Omega_m: numpy.ndarray
-            Matter content in the Univese.
-
-        Returns
-        -------
-        delta_c:  float or numpy.ndarray
-            Value of the critical overdensity a given redshift.
-        """
-
-        return (
-            3.0
-            / 20.0
-            * (12.0 * np.pi) ** (2.0 / 3.0)
-            * (1.0 + 0.012299 * np.log10(Omega_m))
-        )
 
     def dn_dm_precomp_input(self, M, fsigmanu, dlnsigmadlnM):
         r"""Derivative of the number density with pre-computed
