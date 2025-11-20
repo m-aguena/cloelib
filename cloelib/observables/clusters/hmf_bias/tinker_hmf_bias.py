@@ -97,10 +97,10 @@ class TinkerHMFBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        dlnsigmadlnR = self.halo_statistics.dlns_dlnR(z, M)
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
         rho_mean_0 = self.halo_statistics._Omega_m(0) * derived_cosmology.rho_crit(
             self.background, 0.0
         )
         rho_mean_0 /= self.background.h**2.0
 
-        return rho_mean_0 / M**2.0 * self.f_sigma_nu(z, M) * dlnsigmadlnR / (-3)
+        return -rho_mean_0 / M**2.0 * self.f_sigma_nu(z, M) * dlnsigmadlnM

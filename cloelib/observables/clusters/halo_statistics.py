@@ -344,7 +344,28 @@ class HaloStatistics:
         """
         return self.delta_c(z)[:, np.newaxis] / self.sigma_z_M(z, M)
 
-    def dlns_dlnR(self, z, M):
+    def _dlns_dlnM(self, sigma, dsigma2_dlnM):
+        r"""Derivative of the logarithmic rms.
+
+        Computes the derivative of the log rms
+        with respect to the mass
+        at the requested redshift and mass points.
+
+        Parameters
+        ----------
+        z: numpy.ndarray
+            Redshift points.
+        M: numpy.ndarray
+            Mass points in h^{-1} Msun.
+
+        Returns
+        -------
+        dlns_dlnM: numpy.ndarray
+            dlns_dlnM[i,j], where i is the redshift axis and j the mass axis.
+        """
+        return dsigma2_dlnM / (2 * sigma**2)
+
+    def dlns_dlnM(self, z, M):
         r"""Derivative of the logarithmic rms.
 
         Computes the derivative of the log rms
@@ -366,13 +387,20 @@ class HaloStatistics:
         k = self.k  # h/Mpc
         R = self.radius_M(M)  # Mpc/h
         W, dWdx = self.window(k, R)
-        dsigma2_dR = np.pi**-2 * simps(
-            k.reshape(1, 1, len(k)) ** 3
-            * self.matter_power_spectrum(z, k).reshape(len(z), 1, len(k))
-            * W.reshape(1, len(R), len(k))
-            * dWdx.reshape(1, len(R), len(k)),
-            x=k,
-            axis=-1,
+        dsigma2_dlnR = (
+            R
+            * np.pi**-2
+            * simps(
+                k.reshape(1, 1, len(k)) ** 3
+                * self.matter_power_spectrum(z, k).reshape(len(z), 1, len(k))
+                * W.reshape(1, len(R), len(k))
+                * dWdx.reshape(1, len(R), len(k)),
+                x=k,
+                axis=-1,
+            )
         )
 
-        return R / (2 * self.sigma_z_M(z, M) ** 2) * dsigma2_dR
+        sigma = self.sigma_z_M(z, M)
+        dsigma2_dlnM = dsigma2_dlnR / 3
+
+        return self._dlns_dlnM(sigma, dsigma2_dlnM)
