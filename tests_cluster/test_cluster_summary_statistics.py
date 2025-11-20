@@ -210,6 +210,35 @@ def get_values():
     t0 = time.time()
     print("---------------------------")
     print(f"tot like  :  {time.time()-t1:.4f} seconds")
+
+    # Max relative difference
+    print()
+    print("Max relative differences to the reference values:")
+    print_diff(
+        "nc",
+        cluster_counts,
+        benchmark_values.cluster_counts,
+    )
+    print_diff(
+        "dsig",
+        deltasigma_mean_values[0:2],
+        benchmark_values.deltasigma,
+    )
+    print_diff(
+        "xi",
+        cluster_clustering[0:2],
+        benchmark_values.cluster_clustering,
+    )
+    print_diff(
+        "nc_cov",
+        cov_cluster_counts[1:2],
+        benchmark_values.cov_cluster_counts,
+    )
+    print_diff(
+        "xi_cov",
+        cov_cluster_clustering[1, 1, 1:3, 1:3, 10:20, 10:20],
+        benchmark_values.cov_cluster_clustering,
+    )
     return (
         cluster_counts,
         deltasigma_mean_values,
@@ -217,6 +246,11 @@ def get_values():
         cov_cluster_counts,
         cov_cluster_clustering,
     )
+
+
+def print_diff(name, value_test, value_ref, min_comparison_value=0):
+    _msk = abs(value_ref) > min_comparison_value
+    print(f"  {name:6} : {abs(value_test[_msk]/value_ref[_msk]-1).max():.2e}")
 
 
 def test_clustersummmarystatitistics():
