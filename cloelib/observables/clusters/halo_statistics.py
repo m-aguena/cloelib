@@ -341,7 +341,7 @@ class HaloStatistics:
         nu_z_M: numpy.ndarray
             nu_z_M[i,j], where i is the redshift axis and j the mass axis.
         """
-        return self.nu_deltac_sigma(self.delta_c(z), self.sigma_z_M(z, M))
+        return self.delta_c(z)[:, np.newaxis] / self.sigma_z_M(z, M)
 
     def dlns_dlnM(self, z, M, pre_computed_sigma=None):
         r"""Derivative of the logarithmic rms.
