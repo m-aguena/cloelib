@@ -132,7 +132,7 @@ class TinkerHMFBias:
         """
         # compute inputs
         sigma = self.halo_statistics.sigma_z_M(z, M)
-        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M, pre_computed_sigma=sigma)
         Omega_m = self.halo_statistics._Omega_m(z)
 
         return self.halo_statistics.dn_dm_precomp_input(
