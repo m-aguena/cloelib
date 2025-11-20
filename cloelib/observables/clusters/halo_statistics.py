@@ -347,8 +347,8 @@ class HaloStatistics:
     def _dlns_dlnM(self, sigma, dsigma2_dlnM):
         r"""Derivative of the logarithmic rms.
 
-        Computes the derivative of the log rms
-        with respect to the mass
+        Computes the derivative of the ln rms
+        with respect to the ln of mass
         at the requested redshift and mass points.
 
         Parameters
@@ -369,8 +369,8 @@ class HaloStatistics:
     def dlns_dlnM(self, z, M):
         r"""Derivative of the logarithmic rms.
 
-        Computes the derivative of the log rms
-        with respect to the radius
+        Computes the derivative of the ln of rms
+        with respect to the ln the mass
         at the requested redshift and mass points.
 
         Parameters
