@@ -17,7 +17,7 @@ class CastroHMFBias:
         r"""Returns the Background class instance"""
         return self.halo_statistics.perturbations.background
 
-    def f_sigma_nu(self, nu, dlnsigmadlnM, Omega_m):
+    def f_sigma_nu(self, sigma, dlnsigmadlnM, Omega_m):
         r"""
         Computation of the multiplicity function.
 
@@ -26,8 +26,8 @@ class CastroHMFBias:
 
         Parameters
         ----------
-        nu: numpy.ndarray
-            Critical overdensity over the rms, delta_c/sigma.
+        sigma: numpy.ndarray
+            Standard deviation of perturbations.
         dlnsigmadlnM: numpy.ndarray
             Mass points in h^{-1} Msun
             Derivative of the log rms with respect to the mass.
@@ -50,14 +50,16 @@ class CastroHMFBias:
         q2 = -0.2804
         qz = 0.0251
 
+        # Compute main quantities
+        _delta_c = self.halo_statistics.delta_c_Om(Omega_m)
+        nu = self.halo_statistics.nu_deltac_sigma(_delta_c, sigma)
         dlnsigmadlnR = 3 * dlnsigmadlnM
-        Ommz = Omega_m[:, np.newaxis]
 
         aR = a1 + a2 * (dlnsigmadlnR + 0.6125) ** 2.0
-        a = aR * Ommz**az
+        a = aR * Omega_m[:, np.newaxis] ** az
         p = p1 + p2 * (dlnsigmadlnR + 0.5)
         qR = q1 + q2 * (dlnsigmadlnR + 0.5)
-        q = qR * Ommz**qz
+        q = qR * Omega_m[:, np.newaxis] ** qz
         A = 1.0 / (
             2.0 ** (-0.5 - p + q / 2.0)
             / np.sqrt(np.pi)
@@ -72,7 +74,7 @@ class CastroHMFBias:
             * (nu * np.sqrt(a)) ** (q - 1.0)
         ) * nu
 
-    def bias_nu(self, nu, dlnsigmadlnM, Omega_m):
+    def bias_sigma(self, sigma, dlnsigmadlnM, Omega_m):
         r"""
         Computation of the halo bias.
 
@@ -81,8 +83,8 @@ class CastroHMFBias:
 
         Parameters
         ----------
-        nu: numpy.ndarray
-            Critical overdensity over the rms, delta_c/sigma.
+        sigma: numpy.ndarray
+            Standard deviation of perturbations.
         dlnsigmadlnM: numpy.ndarray
             Mass points in h^{-1} Msun
             Derivative of the log rms with respect to the mass.
@@ -94,9 +96,11 @@ class CastroHMFBias:
         bias: numpy.ndarray
             bias[i,j], where i is the redshift axis and j the mass axis
         """
+        # Compute main quantities
+        delta_c = self.halo_statistics.delta_c_Om(Omega_m)
+        nu = self.halo_statistics.nu_deltac_sigma(delta_c, sigma)
         dlnsigmadlnR = 3 * dlnsigmadlnM
-        fsigmanu = self.f_sigma_nu(nu, dlnsigmadlnM, Omega_m)
-        Ommz = Omega_m[:, np.newaxis]
+        fsigmanu = self.f_sigma_nu(sigma, dlnsigmadlnM, Omega_m)
         S8 = self.halo_statistics.sigma8 * np.sqrt(
             self.halo_statistics._Omega_m(0.0) / 0.3
         )
@@ -108,8 +112,8 @@ class CastroHMFBias:
 
         # parameters
         A0, a1, b1, b2, c1 = 1.150, 0.0929, 0.256, 0.173, -0.0372
-        b_pbs = 1 - 1 / self.halo_statistics.delta_c_Om(Ommz) * dlnfsigmanu_dlnnu
-        f0 = 1 + a1 * Ommz
+        b_pbs = 1 - 1 / delta_c[:, np.newaxis] * dlnfsigmanu_dlnnu
+        f0 = 1 + a1 * Omega_m[:, np.newaxis]
         f1 = 1 + b1 * dlnsigmadlnR + b2 * dlnsigmadlnR**2
         f2 = 1 + c1 * S8
 
@@ -149,12 +153,12 @@ class CastroHMFBias:
             M = np.append(M, M[-1] * np.arange(2, 6))
 
         # compute inputs
-        nu = self.halo_statistics.nu_z_M(z, M)
+        sigma = self.halo_statistics.sigma_z_M(z, M)
         dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
         Omega_m = self.halo_statistics._Omega_m(z)
 
         # bias
-        bias = self.bias_nu(nu, dlnsigmadlnM, Omega_m)
+        bias = self.bias_sigma(sigma, dlnsigmadlnM, Omega_m)
 
         # original mass array size
         if lenM_orig < len(M):
@@ -181,19 +185,11 @@ class CastroHMFBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        rho_mean_0 = self.halo_statistics._Omega_m(0) * derived_cosmology.rho_crit(
-            self.background, 0.0
-        )
-        rho_mean_0 /= self.background.h**2.0
-
         # compute inputs
+        sigma = self.halo_statistics.sigma_z_M(z, M)
         dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
-        nu = self.halo_statistics.nu_z_M(z, M)
-        Ommz = self.halo_statistics._Omega_m(z)
+        Omega_m = self.halo_statistics._Omega_m(z)
 
-        return (
-            -rho_mean_0
-            / M**2.0
-            * self.f_sigma_nu(nu, dlnsigmadlnM, Ommz)
-            * dlnsigmadlnM
+        return self.halo_statistics.dn_dm_precomp_input(
+            M, self.f_sigma_nu(sigma, dlnsigmadlnM, Omega_m), dlnsigmadlnM
         )

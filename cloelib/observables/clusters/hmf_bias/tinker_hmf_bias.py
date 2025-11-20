@@ -37,7 +37,7 @@ class TinkerHMFBias:
         """
         raise NotImplementedError
 
-    def bias_nu(self, nu, dlnsigmadlnM, Omega_m, Delta):
+    def bias_sigma(self, sigma, dlnsigmadlnM, Omega_m, Delta):
         r"""
         Computation of the halo bias.
 
@@ -46,8 +46,8 @@ class TinkerHMFBias:
 
         Parameters
         ----------
-        nu: numpy.ndarray
-            Critical overdensity over the rms, delta_c/sigma.
+        sigma: numpy.ndarray
+            Standard deviation of perturbations.
         dlnsigmadlnM: numpy.ndarray
             Mass points in h^{-1} Msun
             Derivative of the log rms with respect to the mass.
@@ -59,7 +59,9 @@ class TinkerHMFBias:
         bias: numpy.ndarray
             bias[i,j], where i is the redshift axis and j the mass axis
         """
+        # Compute main quantities
         delta_c = self.halo_statistics.delta_c_Om(Omega_m)
+        nu = self.halo_statistics.nu_deltac_sigma(delta_c, sigma)
 
         # parameters
         p = [1.0, 0.24, 0.44, 0.88, 0.183, 1.5, 0.019, 0.107, 0.19, 2.4]
@@ -100,14 +102,14 @@ class TinkerHMFBias:
             bias[i,j], where i is the redshift axis and j the mass axis
         """
         # compute inputs
+        sigma = self.halo_statistics.sigma_z_M(z, M)
         dlnsigmadlnM = None  # not used - self.halo_statistics.dlns_dlnM(z, M)
-        nu = self.halo_statistics.nu_z_M(z, M)
         Omega_m = self.halo_statistics.background.Omega_m(z)
         Delta = self.halo_statistics.get_Delta_crit(z) / self.halo_statistics._Omega_m(
             z
         )
 
-        return self.bias_nu(nu, dlnsigmadlnM, Omega_m, Delta)
+        return self.bias_sigma(sigma, dlnsigmadlnM, Omega_m, Delta)
 
     def dn_dm(self, z, M):
         r"""Derivative of the number density.
@@ -128,18 +130,11 @@ class TinkerHMFBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
+        # compute inputs
+        sigma = self.halo_statistics.sigma_z_M(z, M)
         dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
-        rho_mean_0 = self.halo_statistics._Omega_m(0) * derived_cosmology.rho_crit(
-            self.background, 0.0
-        )
-        rho_mean_0 /= self.background.h**2.0
+        Omega_m = self.halo_statistics._Omega_m(z)
 
-        nu = self.halo_statistics.nu_z_M(z, M)
-        Ommz = self.halo_statistics._Omega_m(z)
-
-        return (
-            -rho_mean_0
-            / M**2.0
-            * self.f_sigma_nu(nu, dlnsigmadlnM, Ommz)
-            * dlnsigmadlnM
+        return self.halo_statistics.dn_dm_precomp_input(
+            M, self.f_sigma_nu(sigma, dlnsigmadlnM, Omega_m), dlnsigmadlnM
         )
