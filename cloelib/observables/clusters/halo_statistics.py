@@ -206,30 +206,6 @@ class HaloStatistics:
         )
         return (M / rho_m_0 * (3.0 / (4.0 * np.pi))) ** (1 / 3.0)
 
-    def delta_c_Om(self, Omega_m):
-        r"""Critical overdensity.
-
-        Computes the critical overdensity at a given redshift
-        following an approximation from Kitayama & Suto (1999).
-
-        Parameters
-        ----------
-        Omega_m: numpy.ndarray
-            Matter content in the Univese.
-
-        Returns
-        -------
-        delta_c:  float or numpy.ndarray
-            Value of the critical overdensity a given redshift.
-        """
-
-        return (
-            3.0
-            / 20.0
-            * (12.0 * np.pi) ** (2.0 / 3.0)
-            * (1.0 + 0.012299 * np.log10(Omega_m))
-        )
-
     def delta_c(self, z):
         r"""Critical overdensity.
 
@@ -360,35 +336,13 @@ class HaloStatistics:
         nu_z_M: numpy.ndarray
             nu_z_M[i,j], where i is the redshift axis and j the mass axis.
         """
-        return self.delta_c(z)[:, np.newaxis] / self.sigma_z_M(z, M)
-
-    def _dlns_dlnM(self, sigma, dsigma2_dlnM):
-        r"""Derivative of the logarithmic rms.
-
-        Computes the derivative of the ln rms
-        with respect to the ln of mass
-        at the requested redshift and mass points.
-
-        Parameters
-        ----------
-        sigma: numpy.ndarray
-            Standard deviation of perturbations.
-        dsigma2_dlnM: numpy.ndarray
-            Derivative of the square of thestandard deviation of perturbations
-            by the natural logarithm of the mass.
-
-        Returns
-        -------
-        dlns_dlnM: numpy.ndarray
-            dlns_dlnM[i,j], where i is the redshift axis and j the mass axis.
-        """
-        return dsigma2_dlnM / (2 * sigma**2)
+        return self.nu_deltac_sigma(self.delta_c(z), self.sigma_z_M(z, M))
 
     def dlns_dlnM(self, z, M):
         r"""Derivative of the logarithmic rms.
 
-        Computes the derivative of the ln of rms
-        with respect to the ln the mass
+        Computes the derivative of the ln rms
+        with respect to the ln of mass
         at the requested redshift and mass points.
 
         Parameters
@@ -400,7 +354,7 @@ class HaloStatistics:
 
         Returns
         -------
-        dlns_dlnR: numpy.ndarray
+        dlns_dlnM: numpy.ndarray
             dlns_dlnM[i,j], where i is the redshift axis and j the mass axis.
         """
         k = self.k  # h/Mpc
@@ -418,8 +372,57 @@ class HaloStatistics:
                 axis=-1,
             )
         )
-
-        sigma = self.sigma_z_M(z, M)
         dsigma2_dlnM = dsigma2_dlnR / 3
 
-        return self._dlns_dlnM(sigma, dsigma2_dlnM)
+        sigma = self.sigma_z_M(z, M)
+
+        return dsigma2_dlnM / (2 * sigma**2)
+
+    #----------------------------------
+    # Functions with precomputed values
+    #----------------------------------
+
+    def nu_deltac_sigma(self, z, sigma):
+        r"""Peak height.
+
+        Computes the critical overdensity over the rms,
+        delta_c/sigma, at a given redshift and mass.
+
+        Parameters
+        ----------
+        z: numpy.ndarray
+            Redshift points.
+        sigma: numpy.ndarray
+            Standard deviation of perturbations.
+
+        Returns
+        -------
+        nu_z_M: numpy.ndarray
+            nu_z_M[i,j], where i is the redshift axis and j the mass axis.
+        """
+        return delta_c[:, np.newaxis] / sigma
+
+    def delta_c_Om(self, Omega_m):
+        r"""Critical overdensity.
+
+        Computes the critical overdensity at a given redshift
+        following an approximation from Kitayama & Suto (1999).
+
+        Parameters
+        ----------
+        Omega_m: numpy.ndarray
+            Matter content in the Univese.
+
+        Returns
+        -------
+        delta_c:  float or numpy.ndarray
+            Value of the critical overdensity a given redshift.
+        """
+
+        return (
+            3.0
+            / 20.0
+            * (12.0 * np.pi) ** (2.0 / 3.0)
+            * (1.0 + 0.012299 * np.log10(Omega_m))
+        )
+
