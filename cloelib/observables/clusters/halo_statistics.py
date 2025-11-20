@@ -206,6 +206,30 @@ class HaloStatistics:
         )
         return (M / rho_m_0 * (3.0 / (4.0 * np.pi))) ** (1 / 3.0)
 
+    def delta_c_Om(self, Omega_m):
+        r"""Critical overdensity.
+
+        Computes the critical overdensity at a given redshift
+        following an approximation from Kitayama & Suto (1999).
+
+        Parameters
+        ----------
+        Omega_m: numpy.ndarray
+            Matter content in the Univese.
+
+        Returns
+        -------
+        delta_c:  float or numpy.ndarray
+            Value of the critical overdensity a given redshift.
+        """
+
+        return (
+            3.0
+            / 20.0
+            * (12.0 * np.pi) ** (2.0 / 3.0)
+            * (1.0 + 0.012299 * np.log10(Omega_m))
+        )
+
     def delta_c(self, z):
         r"""Critical overdensity.
 
@@ -222,13 +246,7 @@ class HaloStatistics:
         delta_c:  float or numpy.ndarray
             Value of the critical overdensity a given redshift.
         """
-
-        return (
-            3.0
-            / 20.0
-            * (12.0 * np.pi) ** (2.0 / 3.0)
-            * (1.0 + 0.012299 * np.log10(self.background.Omega_m(z)))
-        )
+        return self.delta_c_Om(self.background.Omega_m(z))
 
     def get_Delta_crit(self, z):
         r"""Critical overdensity factor.
