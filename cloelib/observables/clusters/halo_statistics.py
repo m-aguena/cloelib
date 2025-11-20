@@ -353,10 +353,11 @@ class HaloStatistics:
 
         Parameters
         ----------
-        z: numpy.ndarray
-            Redshift points.
-        M: numpy.ndarray
-            Mass points in h^{-1} Msun.
+        sigma: numpy.ndarray
+            Standard deviation of perturbations.
+        dsigma2_dlnM: numpy.ndarray
+            Derivative of the square of thestandard deviation of perturbations
+            by the natural logarithm of the mass.
 
         Returns
         -------
@@ -382,7 +383,7 @@ class HaloStatistics:
         Returns
         -------
         dlns_dlnR: numpy.ndarray
-            dlns_dlnR[i,j], where i is the redshift axis and j the mass axis.
+            dlns_dlnM[i,j], where i is the redshift axis and j the mass axis.
         """
         k = self.k  # h/Mpc
         R = self.radius_M(M)  # Mpc/h
