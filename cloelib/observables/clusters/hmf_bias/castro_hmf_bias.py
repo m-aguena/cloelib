@@ -31,6 +31,10 @@ class CastroHMFBias:
         dlnsigmadlnM: numpy.ndarray
             Mass points in h^{-1} Msun
             Derivative of the log rms with respect to the mass.
+        Omega_m: numpy.ndarray
+            Matter content of the universe computed at the same redshifts
+            as nu, dlnsigmadlnM.
+
 
         Returns
         -------
@@ -68,6 +72,52 @@ class CastroHMFBias:
             * (nu * np.sqrt(a)) ** (q - 1.0)
         ) * nu
 
+    def bias_nu(self, nu, dlnsigmadlnM, Omega_m):
+        r"""
+        Computation of the halo bias.
+
+        Computes the Castro et al. (2024) halo bias
+        at the requested redshift and mass points.
+
+        Parameters
+        ----------
+        nu: numpy.ndarray
+            Critical overdensity over the rms, delta_c/sigma.
+        dlnsigmadlnM: numpy.ndarray
+            Mass points in h^{-1} Msun
+            Derivative of the log rms with respect to the mass.
+        Omega_m: numpy.ndarray
+            Matter content in the Univese.
+
+        Returns
+        -------
+        bias: numpy.ndarray
+            bias[i,j], where i is the redshift axis and j the mass axis
+        """
+        dlnsigmadlnR = 3 * dlnsigmadlnM
+        fsigmanu = self.f_sigma_nu(nu, dlnsigmadlnM, Omega_m)
+        Ommz = Omega_m[:, np.newaxis]
+        S8 = self.halo_statistics.sigma8 * np.sqrt(
+            self.halo_statistics._Omega_m(0.0) / 0.3
+        )
+
+        dlnfsigmanu_dlnnu = np.zeros(fsigmanu.shape)
+        for i in range(len(Omega_m)):
+            fsigmanu_int = interpolate.splrep(np.log(nu[i]), np.log(fsigmanu[i]), s=0)
+            dlnfsigmanu_dlnnu[i] = interpolate.splev(np.log(nu[i]), fsigmanu_int, der=1)
+
+        # parameters
+        A0, a1, b1, b2, c1 = 1.150, 0.0929, 0.256, 0.173, -0.0372
+        b_pbs = 1 - 1 / self.halo_statistics.delta_c_Om(Ommz) * dlnfsigmanu_dlnnu
+        f0 = 1 + a1 * Ommz
+        f1 = 1 + b1 * dlnsigmadlnR + b2 * dlnsigmadlnR**2
+        f2 = 1 + c1 * S8
+
+        # bias
+        bias = A0 * f0 * f1 * f2 * b_pbs
+
+        return bias
+
     def bias(self, z, M):
         r"""
         Computation of the halo bias.
@@ -98,29 +148,13 @@ class CastroHMFBias:
         if lenM_orig < 4:
             M = np.append(M, M[-1] * np.arange(2, 6))
 
-        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
-        dlnsigmadlnR = 3 * dlnsigmadlnM
-        Ommz = self.halo_statistics._Omega_m(z)[:, np.newaxis]
-        S8 = self.halo_statistics.sigma8 * np.sqrt(
-            self.halo_statistics._Omega_m(0.0) / 0.3
-        )
-
+        # compute inputs
         nu = self.halo_statistics.nu_z_M(z, M)
-        nufnu = self.f_sigma_nu(nu, dlnsigmadlnM, Ommz[:, 0])
-        dlnnufnu_dlnnu = np.zeros(nufnu.shape)
-        for i in range(len(z)):
-            nufnu_int = interpolate.splrep(np.log(nu[i]), np.log(nufnu[i]), s=0)
-            dlnnufnu_dlnnu[i] = interpolate.splev(np.log(nu[i]), nufnu_int, der=1)
-
-        # parameters
-        A0, a1, b1, b2, c1 = 1.150, 0.0929, 0.256, 0.173, -0.0372
-        b_pbs = 1 - 1 / self.halo_statistics.delta_c(z)[:, np.newaxis] * dlnnufnu_dlnnu
-        f0 = 1 + a1 * Ommz
-        f1 = 1 + b1 * dlnsigmadlnR + b2 * dlnsigmadlnR**2
-        f2 = 1 + c1 * S8
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
+        Omega_m = self.halo_statistics._Omega_m(z)
 
         # bias
-        bias = A0 * f0 * f1 * f2 * b_pbs
+        bias = self.bias_nu(nu, dlnsigmadlnM, Omega_m)
 
         # original mass array size
         if lenM_orig < len(M):
@@ -147,12 +181,13 @@ class CastroHMFBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
         rho_mean_0 = self.halo_statistics._Omega_m(0) * derived_cosmology.rho_crit(
             self.background, 0.0
         )
         rho_mean_0 /= self.background.h**2.0
 
+        # compute inputs
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
         nu = self.halo_statistics.nu_z_M(z, M)
         Ommz = self.halo_statistics._Omega_m(z)
 
