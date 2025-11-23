@@ -74,9 +74,6 @@ class ClusterStatisticsModeling:
         self.halo_statistics = self.hmfbias.halo_statistics
         self.selectionfunction = selectionfunction
 
-        # internal values
-        self.area = area
-
         # integration tables
         self.kernel_tables = {
             "k": integ_k_arr,  # k array
@@ -93,7 +90,7 @@ class ClusterStatisticsModeling:
                 integ_ztrue_arr,
                 hubble_units=True,
             )
-            * self.area
+            * area
             * (np.pi**2.0 / 180.0**2.0),
             # hmf at the center of observed redshift bins
             "dn/dM(ztrue,M)": self.hmfbias.dn_dm(integ_ztrue_arr, integ_mass_arr),
