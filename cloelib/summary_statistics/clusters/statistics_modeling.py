@@ -50,7 +50,7 @@ class ClusterStatisticsModeling:
         area: float = 10313,
     ):
         """
-        Initializes the cluster counts
+        Initialize the cluster statistics
 
         Parameters
         ----------
@@ -67,7 +67,7 @@ class ClusterStatisticsModeling:
         integ_ztrue_arr : np.ndarray
             Values of true redshift to be used in integrations, stored in kernel_tables
         area : float
-            Area of the survey in deg2.
+            Effective area of the survey in deg2.
         """
         # observable objects
         self.hmfbias = hmfbias
@@ -111,7 +111,8 @@ class ClusterStatisticsModeling:
     def compute_binned_redshift_obs_probability(
         self, z_obs_bins, lambda_obs_bins, z_tab_sig
     ):
-        """Computes volume element in redshift and richness bins.
+        """Compute the probability of observed redsfhit bin P(z_obs_bin|ztrue, lambda_obs_bin)
+        with true redshifts being the values in self.kernel_tables.
 
         Parameters
         ----------
@@ -125,9 +126,9 @@ class ClusterStatisticsModeling:
         Returns
         -------
         prob_lambda_obs_bins : numpy.ndarray
-            Probability of observed richness bin P(lambda_obs_bin|M, ztrue)
-            with masses and redshifts being the values in self.kernel_tables.
-            Dimentions: (lobs_bin, ztrue, M)
+            Probability of observed redsfhit bin P(z_obs_bin|ztrue, lambda_obs_bin)
+            with true redshifts being the values in self.kernel_tables.
+            Dimentions: (z_obs_bins, lambda_obs_bins, ztrue).
         """
 
         z_obs_bins_size = len(z_obs_bins) - 1
@@ -156,7 +157,7 @@ class ClusterStatisticsModeling:
         return prob_z_obs
 
     def compute_binned_lambda_obs_probability(self, lambda_obs_bins, l_m_tab_sig):
-        """Computes the probability of observed richness bin P(lobs_bin|M, ztrue)
+        """Compute the probability of observed richness bin P(lambda_obs_bin|M, ztrue)
         with masses and redshifts being the values in self.kernel_tables.
 
         Parameters
@@ -170,9 +171,9 @@ class ClusterStatisticsModeling:
         Returns
         -------
         prob_lambda_obs_bins : numpy.ndarray
-            Probability of observed richness bin P(lobs_bin|M, ztrue)
+            Probability of observed richness bin P(lambda_obs_bin|M, ztrue)
             with masses and redshifts being the values in self.kernel_tables.
-            Dimentions: (lobs_bin, ztrue, M)
+            Dimentions: (lambda_obs_bins, ztrue, M).
         """
 
         # if external_richness_selection_function == 'CG_ESF' :
@@ -216,7 +217,7 @@ class ClusterStatisticsModeling:
     # ---------------------
 
     def integrate_in_k(self, kernel):
-        """Integrates the kernel in k.
+        """Integrate the kernel in k.
 
         Parameters
         ----------
@@ -240,7 +241,7 @@ class ClusterStatisticsModeling:
         return simps(kernel, x=self.kernel_tables["k"])
 
     def integrate_in_k_space(self, kernel):
-        """Integrates the kernel in k space with a k^2/2pi kernel.
+        """Integrate the kernel in k space with a k^2/2pi kernel.
 
         Parameters
         ----------
@@ -257,7 +258,7 @@ class ClusterStatisticsModeling:
         return self.integrate_in_k(kernel * self.kernel_tables["dk"])
 
     def integrate_in_mass(self, kernel, prob_lambda_obs_bins):
-        """Integrates in mass with HMF each binned kernel.
+        """Integrate over mass convolving with the halo mass function.
 
         Parameters
         ----------
@@ -267,7 +268,7 @@ class ClusterStatisticsModeling:
         prob_lambda_obs_bins : numpy.ndarray
             Probability of observed richness bin P(lambda_obs_bin|M, ztrue)
             with masses and redshifts being the values in self.kernel_tables.
-            Dimentions: (lobs_bin, ztrue, M)
+            Dimentions: (lambda_obs_bin, ztrue, M)
 
         Returns
         -------
@@ -290,7 +291,7 @@ class ClusterStatisticsModeling:
             self.kernel_tables["dn/dM(ztrue,M)"], axis=(0, *extra_axes)
         )
 
-        # integral of P(lambda_obs_bins|M, z)*b(z)*dn/dM on mass : (lambda_obs_bins, z)
+        # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (lambda_obs_bins, z)
         integrated_kernel = simps(
             _kernel * _hmf * _prob_lambda_obs_bins,
             x=self.kernel_tables["M"],
@@ -299,7 +300,7 @@ class ClusterStatisticsModeling:
         return integrated_kernel
 
     def integrate_in_true_redshift(self, kernel, prob_z_obs):
-        """Integrates in true volume dv/dz(ztrue) a kernel binned in observed richness,
+        """Integrate in true volume dv/dz(ztrue) a kernel binned in observed richness,
         in each observed redsfhit bin.
 
         Parameters
