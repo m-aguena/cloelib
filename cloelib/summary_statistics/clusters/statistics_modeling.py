@@ -222,7 +222,7 @@ class ClusterStatisticsModeling:
         ----------
         kernel : numpy.ndarray
             Quantity to be integrated in k space. Can be multidimensional, but
-            the the last dimension must be of size (k) from self.kernel_tables.
+            the last dimension must be of size (k) from self.kernel_tables.
 
         Returns
         -------
@@ -246,7 +246,7 @@ class ClusterStatisticsModeling:
         ----------
         kernel : numpy.ndarray
             Quantity to be integrated in k space. Can be multidimensional, but
-            the the last dimension must be of size (k) from self.kernel_tables.
+            the last dimension must be of size (k) from self.kernel_tables.
 
         Returns
         -------
