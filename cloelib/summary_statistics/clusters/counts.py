@@ -95,7 +95,7 @@ class ClusterCounts:
             Contains :
 
                 * prob_lambda_obs_bins (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, ztrue) for masses and redshifts in table
-                * prob_z_obs (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * prob_z_obs_bins (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
         """
 
         ############################################
@@ -108,7 +108,7 @@ class ClusterCounts:
             )
         )
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
-        prob_z_obs = (
+        prob_z_obs_bins = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
@@ -119,7 +119,7 @@ class ClusterCounts:
             self.cluster_statitstics_modeling.integrate_in_mass(
                 np.ones((1, 1)), prob_lambda_obs_bins
             ),
-            prob_z_obs,
+            prob_z_obs_bins,
         )
 
         if not return_intermediate_products:
@@ -127,7 +127,7 @@ class ClusterCounts:
 
         return cluster_counts, {
             "prob_lambda_obs_bins": prob_lambda_obs_bins,
-            "prob_z_obs": prob_z_obs,
+            "prob_z_obs_bins": prob_z_obs_bins,
         }
 
     # -------------------
@@ -179,7 +179,9 @@ class ClusterCounts:
             spatial_cov[: (ind_z + 1), ind_z] = spatial_cov[ind_z, : (ind_z + 1)]
         return spatial_cov
 
-    def compute_cov(self, z_obs_bins, cluster_counts, prob_lambda_obs_bins, prob_z_obs):
+    def compute_cov(
+        self, z_obs_bins, cluster_counts, prob_lambda_obs_bins, prob_z_obs_bins
+    ):
         """Computes theoretical covariance for cluster counts, including shot noise and sample covariance
 
         Parameters
@@ -192,7 +194,7 @@ class ClusterCounts:
             Probability of observed richness bin P(lobs_bin|M, ztrue),
             with masses and redshifts being the values in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_integration_products output of compute_binned_counts.
-        prob_z_obs : numpy.ndarray
+        prob_z_obs_bins : numpy.ndarray
             Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
             given a observed richness bin and a true redshift.
             Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
@@ -216,7 +218,7 @@ class ClusterCounts:
                 self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
                 prob_lambda_obs_bins,
             ),
-            prob_z_obs,
+            prob_z_obs_bins,
         )
 
         ####################

@@ -77,7 +77,7 @@ class ClusterWeakLensing:
         ############################################
 
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
-        prob_z_obs = (
+        prob_z_obs_bins = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
@@ -94,7 +94,7 @@ class ClusterWeakLensing:
             self.cluster_statitstics_modeling.integrate_in_mass(
                 np.ones((1, 1)), prob_lambda_obs_bins
             ),
-            prob_z_obs,
+            prob_z_obs_bins,
         )
 
         ########################
@@ -136,7 +136,7 @@ class ClusterWeakLensing:
         deltasigma_mean_values = (
             self.cluster_statitstics_modeling.integrate_in_true_redshift(
                 deltasigma_lambda_obs_bins,
-                prob_z_obs * inv_sig_crit_eff[:, np.newaxis, :],
+                prob_z_obs_bins * inv_sig_crit_eff[:, np.newaxis, :],
             )
         ) / cluster_counts[:, :, np.newaxis]
         return deltasigma_mean_values

@@ -114,6 +114,9 @@ class ClusterStatisticsModeling:
         """Compute the probability of observed redsfhit bin P(z_obs_bin|ztrue, lambda_obs_bin)
         with true redshifts being the values in self.kernel_tables.
 
+        ..math:
+            P(\Delta z^{\rm obs}|\lambda^{\rm obs}, z^{\rm true}) = \int_{\Delta z^{\rm obs}}dz^{\rm obs} P(z^{\rm obs}|\lambda^{\rm obs}, z^{\rm true})
+
         Parameters
         ----------
         z_obs_bins : numpy.ndarray
@@ -125,7 +128,7 @@ class ClusterStatisticsModeling:
 
         Returns
         -------
-        prob_lambda_obs_bins : numpy.ndarray
+        prob_z_obs_bins : numpy.ndarray
             Probability of observed redsfhit bin P(z_obs_bin|ztrue, lambda_obs_bin)
             with true redshifts being the values in self.kernel_tables.
             Dimentions: (z_obs_bins, lambda_obs_bins, ztrue).
@@ -143,22 +146,25 @@ class ClusterStatisticsModeling:
         _ztrue = self.kernel_tables["ztrue"][np.newaxis, np.newaxis, :]
 
         # outputs
-        prob_z_obs = np.zeros(
+        prob_z_obs_bins = np.zeros(
             (z_obs_bins_size, lambda_obs_bins_size, self.kernel_tables["ztrue"].size)
         )
         for ind_z in range(z_obs_bins_size):
-            prob_z_obs[ind_z] = simps(
+            prob_z_obs_bins[ind_z] = simps(
                 self.selectionfunction.P_zobs_z(
                     _z_obs_tabs[:, ind_z], _lambda_obs, _ztrue
                 ),
                 x=z_obs_tabs[:, ind_z],
                 axis=0,
             )
-        return prob_z_obs
+        return prob_z_obs_bins
 
     def compute_binned_lambda_obs_probability(self, lambda_obs_bins, l_m_tab_sig):
-        """Compute the probability of observed richness bin P(lambda_obs_bin|M, ztrue)
-        with masses and redshifts being the values in self.kernel_tables.
+        r"""Compute the probability of observed richness bin P(lambda_obs_bin|M, ztrue)
+        with masses and redshifts being the values in self.kernel_tables:
+
+        ..math:
+            P(\Delta\lambda^{\rm obs}|M, z^{\rm true}) = \int_{\Delta\lambda^{\rm obs}}d\lambda^{\rm obs} P(\lambda^{\rm obs}|M, z^{\rm true})
 
         Parameters
         ----------
@@ -299,7 +305,7 @@ class ClusterStatisticsModeling:
         )
         return integrated_kernel
 
-    def integrate_in_true_redshift(self, kernel, prob_z_obs):
+    def integrate_in_true_redshift(self, kernel, prob_z_obs_bins):
         """Integrate in true volume dv/dz(ztrue) a kernel binned in observed richness,
         in each observed redsfhit bin.
 
@@ -309,7 +315,7 @@ class ClusterStatisticsModeling:
             Kernel binned in observed richness to be integrated in true redshift, and
             convoluted with observed redshift bins. Must be dimension
             (lambda_obs, ztrue, ...) with (ztrue) from self.kernel_tables.
-        prob_z_obs : numpy.ndarray
+        prob_z_obs_bins : numpy.ndarray
             Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
             given a observed richness bin and a true redshift.
             Dimentions: (z_obs, lambda_obs, ztrue, ...) with (ztrue) in kernel_tables.
@@ -318,16 +324,16 @@ class ClusterStatisticsModeling:
         -------
         integrated_kernel : numpy.ndarray
             Quantity integrated in true redshift for each observed bin.
-            Dimension (z_obs, lambda_obs).
+            Dimension (z_obs, lambda_obs, ...).
         """
         # Add z_obs_bins dimension to kernel
         _kernel = kernel[np.newaxis, ...]
 
-        # to make prob_z_obs, dvdz same shape as kernel
+        # to make prob_z_obs_bins, dvdz same shape as kernel
         extra_axes = tuple(range(3, 3 + len(_kernel.shape[3:])))
 
-        # reshape prob_z_obs
-        _prob_z_obs = np.expand_dims(prob_z_obs, axis=extra_axes)
+        # reshape prob_z_obs_bins
+        _prob_z_obs_bins = np.expand_dims(prob_z_obs_bins, axis=extra_axes)
 
         # reshape dvdz
         _dvdz = np.expand_dims(
@@ -336,7 +342,7 @@ class ClusterStatisticsModeling:
 
         # output : (z_obs, lambda_obs_bins)
         integrated_kernel = simps(
-            _kernel * _dvdz * _prob_z_obs,
+            _kernel * _dvdz * _prob_z_obs_bins,
             x=self.kernel_tables["ztrue"],
             axis=2,
         )

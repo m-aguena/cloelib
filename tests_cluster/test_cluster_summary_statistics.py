@@ -179,7 +179,7 @@ def get_values():
         zed_obs_nc_bins,
         cluster_counts,
         counts_intermediate_integration_products["prob_lambda_obs_bins"],
-        counts_intermediate_integration_products["prob_z_obs"],
+        counts_intermediate_integration_products["prob_z_obs_bins"],
     )
     print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
@@ -203,7 +203,7 @@ def get_values():
         clustering_intermediate_integration_products["pk_mean_values"],
         clustering_intermediate_integration_products["covariance_window"],
         clustering_intermediate_integration_products["volume_obs_shell"],
-        clustering_intermediate_integration_products["prob_z_obs"],
+        clustering_intermediate_integration_products["prob_z_obs_bins"],
         clustering_intermediate_integration_products["cluster_counts"],
     )
     print(f"xi_cov    :  {time.time()-t0:.4f} seconds")

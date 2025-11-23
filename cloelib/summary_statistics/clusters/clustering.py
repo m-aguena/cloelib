@@ -50,7 +50,7 @@ class ClusterClustering:
     def _compute_pk_ir_resummation_unnormalized(
         self,
         lambda_obs_mid,
-        prob_z_obs,
+        prob_z_obs_bins,
         prob_lambda_obs_bins_mass_integrated,
         hbias_lambda_obs_bins_mass_integrated,
     ):
@@ -98,7 +98,7 @@ class ClusterClustering:
             self.cluster_statitstics_modeling.integrate_in_true_redshift(
                 np.sqrt(pk_halo)
                 * prob_lambda_obs_bins_mass_integrated[:, :, np.newaxis],
-                prob_z_obs,
+                prob_z_obs_bins,
             )
         )
 
@@ -139,7 +139,7 @@ class ClusterClustering:
                 * pk_mean_values (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
                 * covariance_window (numpy.ndarray) : Cluster count covariance window (z_obs, lambda_obs, k).
                 * volume_obs_shell (numpy.ndarray) : Spherical shell volume (z_obs, radius).
-                * prob_z_obs (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * prob_z_obs_bins (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
                 * cluster_counts (numpy.ndarray) :  Number counts in redshift and richness bins
         """
 
@@ -148,7 +148,7 @@ class ClusterClustering:
         ############################################
 
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
-        prob_z_obs = (
+        prob_z_obs_bins = (
             self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
                 z_obs_bins, lambda_obs_bins, self.z_tab_sig
             )
@@ -174,7 +174,7 @@ class ClusterClustering:
         )
         # cluster counts : (z_obs, lambda_obs)
         cluster_counts = self.cluster_statitstics_modeling.integrate_in_true_redshift(
-            prob_lambda_obs_bins_mass_integrated, prob_z_obs
+            prob_lambda_obs_bins_mass_integrated, prob_z_obs_bins
         )
 
         ################################################
@@ -185,7 +185,7 @@ class ClusterClustering:
         _lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
         pk_mean_values = self._compute_pk_ir_resummation_unnormalized(
             _lambda_obs_mid,
-            prob_z_obs,
+            prob_z_obs_bins,
             prob_lambda_obs_bins_mass_integrated,
             hbias_lambda_obs_bins_mass_integrated,
         ) / (
@@ -224,7 +224,7 @@ class ClusterClustering:
             "covariance_window": covariance_window,
             "volume_obs_shell": volume_obs_shell,
             "cluster_counts": cluster_counts,
-            "prob_z_obs": prob_z_obs,
+            "prob_z_obs_bins": prob_z_obs_bins,
         }
         return cluster_clustering, intermediate_integration_products
 
@@ -237,7 +237,7 @@ class ClusterClustering:
         pk_mean_values,
         covariance_window,
         volume_obs_shell,
-        prob_z_obs,
+        prob_z_obs_bins,
         cluster_counts,
     ):
         """Computes clustering covariance.
@@ -254,7 +254,7 @@ class ClusterClustering:
         volume_obs_shell : numpy.ndarray
             Spherical shell volume (z_obs, radius).
             Is in the intermediate_integration_products output of compute_binned_clustering.
-        prob_z_obs : numpy.ndarray
+        prob_z_obs_bins : numpy.ndarray
             Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
             given a observed richness bin and a true redshift.
             Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
@@ -277,7 +277,7 @@ class ClusterClustering:
         # Compute observed volume in each redshift bin : (z_obs, lambda_obs)
         volume_mean_values = (
             self.cluster_statitstics_modeling.integrate_in_true_redshift(
-                np.ones((1, 1)), prob_z_obs
+                np.ones((1, 1)), prob_z_obs_bins
             )
         )
         # Compute output shot-noise terms : (z_obs, lambda_obs, lambda_obs)
