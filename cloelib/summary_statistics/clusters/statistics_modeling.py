@@ -28,15 +28,15 @@ class ClusterStatisticsModeling:
     kernel_tables : dict
         Dictionary with tables that will be used for integrations. Contains :
 
-            * k (np.ndarray) : Values of k to be used in integrations
-            * M (np.ndarray) : Values of mass to be used in integrations
-            * lambda_true (np.ndarray) : Values of true richness to be used in integrations
-            * ztrue (np.ndarray) : Values of true redshift to be used in integrations
-            * Pltrue(ztrue,M,lambda_true) (np.ndarray) : Values for P(lambda_true|M, ztrue)
-            * dv/dz(ztrue) (np.ndarray) : Values for volume element at each redshift
-            * dn/dM(ztrue,M) (np.ndarray) : Values for the halo mass function dn/dmdz
-            * bias(ztrue,M) (np.ndarray) : Values for the halo bias halo_bias
-            * dk (np.ndarray) : Kernel k^2/2*pi^2 to be used in k integrations
+            * k (numpy.ndarray) : Values of k to be used in integrations
+            * M (numpy.ndarray) : Values of mass to be used in integrations
+            * lambda_true (numpy.ndarray) : Values of true richness to be used in integrations
+            * ztrue (numpy.ndarray) : Values of true redshift to be used in integrations
+            * Pltrue(ztrue,M,lambda_true) (numpy.ndarray) : Values for P(lambda_true|M, ztrue)
+            * dv/dz(ztrue) (numpy.ndarray) : Values for volume element at each redshift
+            * dn/dM(ztrue,M) (numpy.ndarray) : Values for the halo mass function dn/dmdz
+            * bias(ztrue,M) (numpy.ndarray) : Values for the halo bias halo_bias
+            * dk (numpy.ndarray) : Kernel k^2/2*pi^2 to be used in k integrations
     """
 
     def __init__(
@@ -58,13 +58,13 @@ class ClusterStatisticsModeling:
             Halo mass function and bias object
         selectionfunction : SelectionFunction
             Selection function object
-        integ_k_arr : np.ndarray
+        integ_k_arr : numpy.ndarray
             Values of k to be used in integrations, stored in kernel_tables
-        integ_mass_arr : np.ndarray
+        integ_mass_arr : numpy.ndarray
             Values of mass to be used in integrations, stored in kernel_tables
-        integ_lambda_true_arr : np.ndarray
+        integ_lambda_true_arr : numpy.ndarray
             Values of true richness to be used in integrations, stored in kernel_tables
-        integ_ztrue_arr : np.ndarray
+        integ_ztrue_arr : numpy.ndarray
             Values of true redshift to be used in integrations, stored in kernel_tables
         area : float
             Effective area of the survey in deg2.
