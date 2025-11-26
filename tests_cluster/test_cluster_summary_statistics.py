@@ -103,6 +103,8 @@ def get_values():
 
     z_obs_nc_edges = np.linspace(0.2, 1.8, 9)
     lambda_obs_nc_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
+    z_obs_profile_edges = np.linspace(0.2, 1.8, 9)
+    lambda_obs_profile_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
     radius_profile_edges = np.linspace(5.0, 100.0, 11)
     lambda_obs_clustering_edges = np.array([20, 30, 500])
     radius_clustering_edges = np.geomspace(20.0, 130.0, 31)
@@ -184,8 +186,8 @@ def get_values():
     print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
     deltasigma_mean_values = cluster_wl_statistics.get_DeltaSigma(
-        z_obs_edges=z_obs_nc_edges,
-        lambda_obs_edges=lambda_obs_nc_edges,
+        z_obs_edges=z_obs_profile_edges,
+        lambda_obs_edges=lambda_obs_profile_edges,
         radius_edges=radius_profile_edges,
     )
     print(f"dsig      :  {time.time()-t0:.4f} seconds")
