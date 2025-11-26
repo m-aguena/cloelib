@@ -137,8 +137,8 @@ class ClusterClustering:
             Contains :
 
                 * pk_mean_values (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
-                * covariance_window (numpy.ndarray) : Cluster count covariance window (z_obs, lambda_obs, k).
-                * volume_obs_shell (numpy.ndarray) : Spherical shell volume (z_obs, radius).
+                * radial_shell_window (numpy.ndarray) : Cluster count covariance window (z_obs, lambda_obs, k).
+                * radial_shell_volume (numpy.ndarray) : Spherical shell volume (z_obs, radius).
                 * prob_z_obs_bins (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
                 * cluster_counts (numpy.ndarray) :  Number counts in redshift and richness bins
         """
@@ -195,16 +195,16 @@ class ClusterClustering:
 
         # Spherical shell window : (z_obs, radius, k) and
         # volume of the shell : (z_obs, radius) in each z_obs_bin
-        # volume_obs_shell is used only by covariance
+        # radial_shell_volume is used only by covariance
         _z_obs_mid = 0.5 * (z_obs_bins[1:] + z_obs_bins[:-1])
-        covariance_window, volume_obs_shell = self.clustering.WF_ra(
+        radial_shell_window, radial_shell_volume = self.clustering.WF_ra(
             _z_obs_mid, radius_bins
         )
 
         # compute 2point correlation function : (z_obs, lambda_obs, lambda_obs, radius)
         _cluster_clustering_buf = (
             self.cluster_statitstics_modeling.integrate_in_k_space(
-                covariance_window[:, np.newaxis, np.newaxis, :, :]
+                radial_shell_window[:, np.newaxis, np.newaxis, :, :]
                 * pk_mean_values[:, :, :, np.newaxis, :]
             )
         )
@@ -221,8 +221,8 @@ class ClusterClustering:
 
         intermediate_integration_products = {
             "pk_mean_values": pk_mean_values,
-            "covariance_window": covariance_window,
-            "volume_obs_shell": volume_obs_shell,
+            "radial_shell_window": radial_shell_window,
+            "radial_shell_volume": radial_shell_volume,
             "cluster_counts": cluster_counts,
             "prob_z_obs_bins": prob_z_obs_bins,
         }
@@ -235,8 +235,8 @@ class ClusterClustering:
     def compute_cov(
         self,
         pk_mean_values,
-        covariance_window,
-        volume_obs_shell,
+        radial_shell_window,
+        radial_shell_volume,
         prob_z_obs_bins,
         cluster_counts,
     ):
@@ -247,11 +247,11 @@ class ClusterClustering:
         pk_mean_values : numpy.ndarray
             Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
             Is in the intermediate_integration_products output of compute_binned_clustering.
-        covariance_window : numpy.ndarray
+        radial_shell_window : numpy.ndarray
             Cluster count covariance window (z_obs, lambda_obs, k),
             with (k) in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_integration_products output of compute_binned_clustering.
-        volume_obs_shell : numpy.ndarray
+        radial_shell_volume : numpy.ndarray
             Spherical shell volume (z_obs, radius).
             Is in the intermediate_integration_products output of compute_binned_clustering.
         prob_z_obs_bins : numpy.ndarray
@@ -268,7 +268,7 @@ class ClusterClustering:
             Covariance of the two point correlation function in richness, redshift and radial bins
         """
         z_obs_bins_size, lambda_obs_bins_size = cluster_counts.shape
-        _, radius_bins_size = volume_obs_shell.shape
+        _, radius_bins_size = radial_shell_volume.shape
 
         ########################################
         # Cluster statistics modeling quantities
@@ -365,14 +365,14 @@ class ClusterClustering:
                         ind_radius,
                     ] = (
                         self.cluster_statitstics_modeling.integrate_in_k_space(
-                            covariance_window[:, ind_radius, :]
+                            radial_shell_window[:, ind_radius, :]
                             * beta_pk_mean_values[:, ind_lambda_i, ind_lambda_j, :],
                         )
                         * (1 + gamma[:, ind_lambda_i])
                         * vol_over_cluster_counts[:, ind_lambda_i, ind_lambda_i]
                         * (1 + gamma[:, ind_lambda_j])
                         * vol_over_cluster_counts[:, ind_lambda_j, ind_lambda_j]
-                        / volume_obs_shell[:, ind_radius]
+                        / radial_shell_volume[:, ind_radius]
                     )
 
                 for ind_lambda_k in lambda_bin_loop:
@@ -391,8 +391,8 @@ class ClusterClustering:
                             :,
                             :,
                         ] = self.cluster_statitstics_modeling.integrate_in_k(
-                            covariance_window[:, np.newaxis, :, :]
-                            * covariance_window[:, :, np.newaxis, :]
+                            radial_shell_window[:, np.newaxis, :, :]
+                            * radial_shell_window[:, :, np.newaxis, :]
                             * avol_bpk_mean_values[
                                 :, ind_lambda_i, ind_lambda_k, np.newaxis, np.newaxis, :
                             ]

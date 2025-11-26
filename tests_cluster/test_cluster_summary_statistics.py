@@ -201,8 +201,8 @@ def get_values():
     t0 = time.time()
     cov_cluster_clustering = cluster_clustering_statistics.compute_cov(
         clustering_intermediate_integration_products["pk_mean_values"],
-        clustering_intermediate_integration_products["covariance_window"],
-        clustering_intermediate_integration_products["volume_obs_shell"],
+        clustering_intermediate_integration_products["radial_shell_window"],
+        clustering_intermediate_integration_products["radial_shell_volume"],
         clustering_intermediate_integration_products["prob_z_obs_bins"],
         clustering_intermediate_integration_products["cluster_counts"],
     )
