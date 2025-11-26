@@ -168,22 +168,22 @@ def get_values():
     # Compute values
 
     cluster_counts, counts_intermediate_integration_products = (
-        cluster_counts_statistics.compute_binned_counts(
+        cluster_counts_statistics.get_NC(
             z_obs_bins=zed_obs_nc_bins,
             lambda_obs_bins=lambda_obs_nc_bins,
         )
     )
     print(f"nc        :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
-    cov_cluster_counts = cluster_counts_statistics.compute_cov(
+    cov_cluster_counts = cluster_counts_statistics.get_NC_covariance(
         zed_obs_nc_bins,
         cluster_counts,
-        counts_intermediate_integration_products["prob_lambda_obs_bins"],
-        counts_intermediate_integration_products["prob_z_obs_bins"],
+        counts_intermediate_integration_products["window_lambda_obs"],
+        counts_intermediate_integration_products["window_z_obs"],
     )
     print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
-    deltasigma_mean_values = cluster_wl_statistics.compute_binned_deltasigma(
+    deltasigma_mean_values = cluster_wl_statistics.get_DeltaSigma(
         z_obs_bins=zed_obs_nc_bins,
         lambda_obs_bins=lambda_obs_nc_bins,
         radius_bins=radius_profile_bins,
@@ -191,7 +191,7 @@ def get_values():
     print(f"dsig      :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
     cluster_clustering, clustering_intermediate_integration_products = (
-        cluster_clustering_statistics.compute_binned_clustering(
+        cluster_clustering_statistics.get_xi(
             lambda_obs_bins=lambda_obs_clustering_bins,
             radius_bins=radius_clustering_bins,
             z_obs_bins=zed_obs_clustering_bins,
@@ -199,11 +199,11 @@ def get_values():
     )
     print(f"xi        :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
-    cov_cluster_clustering = cluster_clustering_statistics.compute_cov(
+    cov_cluster_clustering = cluster_clustering_statistics.get_xi_covariance(
         clustering_intermediate_integration_products["pk_mean_values"],
         clustering_intermediate_integration_products["radial_shell_window"],
         clustering_intermediate_integration_products["radial_shell_volume"],
-        clustering_intermediate_integration_products["prob_z_obs_bins"],
+        clustering_intermediate_integration_products["window_z_obs"],
         clustering_intermediate_integration_products["cluster_counts"],
     )
     print(f"xi_cov    :  {time.time()-t0:.4f} seconds")

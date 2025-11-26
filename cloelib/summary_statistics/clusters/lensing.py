@@ -53,7 +53,7 @@ class ClusterWeakLensing:
         self.l_m_tab_sig = [31, 31, 31, 51]
         self.z_tab_sig = 31
 
-    def compute_binned_deltasigma(self, z_obs_bins, lambda_obs_bins, radius_bins):
+    def get_DeltaSigma(self, z_obs_bins, lambda_obs_bins, radius_bins):
         """Compute excess surface density.
 
         Parameters
@@ -77,24 +77,20 @@ class ClusterWeakLensing:
         ############################################
 
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
-        prob_z_obs_bins = (
-            self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
-                z_obs_bins, lambda_obs_bins, self.z_tab_sig
-            )
+        window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
+            z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
         # P(lambda_obs_bins|M, z) : (lambda_obs, M, ztrue)
-        prob_lambda_obs_bins = (
-            self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
-                lambda_obs_bins, self.l_m_tab_sig
-            )
+        window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
+            lambda_obs_bins, self.l_m_tab_sig
         )
         # cluster counts : (z_obs, lambda_obs)
-        cluster_counts = self.cluster_statitstics_modeling.integrate_in_true_redshift(
+        cluster_counts = self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
             # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (lambda_obs, ztrue)
-            self.cluster_statitstics_modeling.integrate_in_mass(
-                np.ones((1, 1)), prob_lambda_obs_bins
+            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
+                np.ones((1, 1)), window_lambda_obs
             ),
-            prob_z_obs_bins,
+            window_z_obs,
         )
 
         ########################
@@ -104,7 +100,7 @@ class ClusterWeakLensing:
         # mass/richness part
 
         # excess surface mass density : (ztrue, M, radius)
-        deltasigma = self.profile.excess_surface_mass_density(
+        excess_surface_mass_density = self.profile.excess_surface_mass_density(
             radius_bins[:-1],
             self.cluster_statitstics_modeling.kernel_tables["ztrue"],
             self.cluster_statitstics_modeling.kernel_tables["M"],
@@ -112,8 +108,8 @@ class ClusterWeakLensing:
         )
         # excess surface mass density in a richness bin, integrated on mass w HMF : (lambda_obs, ztrue, M, radius)
         deltasigma_lambda_obs_bins = (
-            self.cluster_statitstics_modeling.integrate_in_mass(
-                deltasigma, prob_lambda_obs_bins
+            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
+                excess_surface_mass_density, window_lambda_obs
             )
         )
 
@@ -134,9 +130,9 @@ class ClusterWeakLensing:
 
         # output : (z_obs, lambda_obs, radius)
         deltasigma_mean_values = (
-            self.cluster_statitstics_modeling.integrate_in_true_redshift(
+            self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
                 deltasigma_lambda_obs_bins,
-                prob_z_obs_bins * inv_sig_crit_eff[:, np.newaxis, :],
+                window_z_obs * inv_sig_crit_eff[:, np.newaxis, :],
             )
         ) / cluster_counts[:, :, np.newaxis]
         return deltasigma_mean_values

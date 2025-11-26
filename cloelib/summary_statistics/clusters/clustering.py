@@ -50,9 +50,9 @@ class ClusterClustering:
     def _compute_pk_ir_resummation_unnormalized(
         self,
         lambda_obs_mid,
-        prob_z_obs_bins,
-        prob_lambda_obs_bins_mass_integrated,
-        hbias_lambda_obs_bins_mass_integrated,
+        window_z_obs,
+        window_lambda_obs_mass_integrated,
+        halo_bias_mass_integrated,
     ):
         """Computes Pk IR resummation.
 
@@ -81,9 +81,9 @@ class ClusterClustering:
         ).transpose(1, 0, 2, 3)
 
         # compute effective halo bias, with shape (lambda_obs, ztrue, 1)
-        b_eff = (
-            hbias_lambda_obs_bins_mass_integrated / prob_lambda_obs_bins_mass_integrated
-        )[:, :, np.newaxis]
+        b_eff = (halo_bias_mass_integrated / window_lambda_obs_mass_integrated)[
+            :, :, np.newaxis
+        ]
 
         # corrected power specrum (lambda_obs, ztrue, k)
         pk_halo = (
@@ -95,10 +95,9 @@ class ClusterClustering:
 
         # average square of power spectrum in redshift and richness bins (z_obs, lambda_obs, k)
         sqrt_pk_mean_values = (
-            self.cluster_statitstics_modeling.integrate_in_true_redshift(
-                np.sqrt(pk_halo)
-                * prob_lambda_obs_bins_mass_integrated[:, :, np.newaxis],
-                prob_z_obs_bins,
+            self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
+                np.sqrt(pk_halo) * window_lambda_obs_mass_integrated[:, :, np.newaxis],
+                window_z_obs,
             )
         )
 
@@ -109,7 +108,7 @@ class ClusterClustering:
         )
         return pk_mean_values
 
-    def compute_binned_clustering(
+    def get_xi(
         self,
         z_obs_bins,
         lambda_obs_bins,
@@ -139,7 +138,7 @@ class ClusterClustering:
                 * pk_mean_values (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
                 * radial_shell_window (numpy.ndarray) : Cluster count covariance window (z_obs, lambda_obs, k).
                 * radial_shell_volume (numpy.ndarray) : Spherical shell volume (z_obs, radius).
-                * prob_z_obs_bins (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * window_z_obs (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
                 * cluster_counts (numpy.ndarray) :  Number counts in redshift and richness bins
         """
 
@@ -148,33 +147,31 @@ class ClusterClustering:
         ############################################
 
         # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
-        prob_z_obs_bins = (
-            self.cluster_statitstics_modeling.compute_binned_redshift_obs_probability(
-                z_obs_bins, lambda_obs_bins, self.z_tab_sig
-            )
+        window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
+            z_obs_bins, lambda_obs_bins, self.z_tab_sig
         )
         # P(lambda_obs_bins|M, z) : (lambda_obs_bins, M, ztrue)
-        _prob_lambda_obs_bins = (
-            self.cluster_statitstics_modeling.compute_binned_lambda_obs_probability(
-                lambda_obs_bins, self.l_m_tab_sig
-            )
+        _window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
+            lambda_obs_bins, self.l_m_tab_sig
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (lambda_obs, ztrue)
-        prob_lambda_obs_bins_mass_integrated = (
-            self.cluster_statitstics_modeling.integrate_in_mass(
-                np.ones((1, 1)), _prob_lambda_obs_bins
+        window_lambda_obs_mass_integrated = (
+            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
+                np.ones((1, 1)), _window_lambda_obs
             )
         )
         # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (lambda_obs, ztrue)
-        hbias_lambda_obs_bins_mass_integrated = (
-            self.cluster_statitstics_modeling.integrate_in_mass(
+        halo_bias_mass_integrated = (
+            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
-                _prob_lambda_obs_bins,
+                _window_lambda_obs,
             )
         )
         # cluster counts : (z_obs, lambda_obs)
-        cluster_counts = self.cluster_statitstics_modeling.integrate_in_true_redshift(
-            prob_lambda_obs_bins_mass_integrated, prob_z_obs_bins
+        cluster_counts = (
+            self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
+                window_lambda_obs_mass_integrated, window_z_obs
+            )
         )
 
         ################################################
@@ -185,9 +182,9 @@ class ClusterClustering:
         _lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
         pk_mean_values = self._compute_pk_ir_resummation_unnormalized(
             _lambda_obs_mid,
-            prob_z_obs_bins,
-            prob_lambda_obs_bins_mass_integrated,
-            hbias_lambda_obs_bins_mass_integrated,
+            window_z_obs,
+            window_lambda_obs_mass_integrated,
+            halo_bias_mass_integrated,
         ) / (
             cluster_counts[:, np.newaxis, :, np.newaxis]
             * cluster_counts[:, :, np.newaxis, np.newaxis]
@@ -203,7 +200,7 @@ class ClusterClustering:
 
         # compute 2point correlation function : (z_obs, lambda_obs, lambda_obs, radius)
         _cluster_clustering_buf = (
-            self.cluster_statitstics_modeling.integrate_in_k_space(
+            self.cluster_statitstics_modeling.integrate_probe_function_in_dk(
                 radial_shell_window[:, np.newaxis, np.newaxis, :, :]
                 * pk_mean_values[:, :, :, np.newaxis, :]
             )
@@ -224,7 +221,7 @@ class ClusterClustering:
             "radial_shell_window": radial_shell_window,
             "radial_shell_volume": radial_shell_volume,
             "cluster_counts": cluster_counts,
-            "prob_z_obs_bins": prob_z_obs_bins,
+            "window_z_obs": window_z_obs,
         }
         return cluster_clustering, intermediate_integration_products
 
@@ -232,12 +229,12 @@ class ClusterClustering:
     # clustering covariance
     # ----------------------
 
-    def compute_cov(
+    def get_xi_covariance(
         self,
         pk_mean_values,
         radial_shell_window,
         radial_shell_volume,
-        prob_z_obs_bins,
+        window_z_obs,
         cluster_counts,
     ):
         """Computes clustering covariance.
@@ -246,19 +243,19 @@ class ClusterClustering:
         ----------
         pk_mean_values : numpy.ndarray
             Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
-            Is in the intermediate_integration_products output of compute_binned_clustering.
+            Is in the intermediate_integration_products output of get_xi.
         radial_shell_window : numpy.ndarray
             Cluster count covariance window (z_obs, lambda_obs, k),
             with (k) in cluster_statitstics_modeling.kernel_tables.
-            Is in the intermediate_integration_products output of compute_binned_clustering.
+            Is in the intermediate_integration_products output of get_xi.
         radial_shell_volume : numpy.ndarray
             Spherical shell volume (z_obs, radius).
-            Is in the intermediate_integration_products output of compute_binned_clustering.
-        prob_z_obs_bins : numpy.ndarray
+            Is in the intermediate_integration_products output of get_xi.
+        window_z_obs : numpy.ndarray
             Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
             given a observed richness bin and a true redshift.
             Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
-            Is in the intermediate_integration_products output of compute_binned_clustering.
+            Is in the intermediate_integration_products output of get_xi.
         cluster_counts : numpy.ndarray
             Number counts in redshift and richness bins
 
@@ -276,8 +273,8 @@ class ClusterClustering:
 
         # Compute observed volume in each redshift bin : (z_obs, lambda_obs)
         volume_mean_values = (
-            self.cluster_statitstics_modeling.integrate_in_true_redshift(
-                np.ones((1, 1)), prob_z_obs_bins
+            self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
+                np.ones((1, 1)), window_z_obs
             )
         )
         # Compute output shot-noise terms : (z_obs, lambda_obs, lambda_obs)
@@ -364,7 +361,7 @@ class ClusterClustering:
                         ind_radius,
                         ind_radius,
                     ] = (
-                        self.cluster_statitstics_modeling.integrate_in_k_space(
+                        self.cluster_statitstics_modeling.integrate_probe_function_in_dk(
                             radial_shell_window[:, ind_radius, :]
                             * beta_pk_mean_values[:, ind_lambda_i, ind_lambda_j, :],
                         )
@@ -378,8 +375,8 @@ class ClusterClustering:
                 for ind_lambda_k in lambda_bin_loop:
                     for ind_lambda_h in lambda_bin_loop:
 
-                        # somehow using integrate_in_k is much faster then
-                        # integrate_in_k_space here, to be investigated
+                        # somehow using integrate_probe_function_in_k is much faster then
+                        # integrate_probe_function_in_dk here, to be investigated
 
                         # gaussian term
                         _cov_gaussian[
@@ -390,7 +387,7 @@ class ClusterClustering:
                             ind_lambda_h,
                             :,
                             :,
-                        ] = self.cluster_statitstics_modeling.integrate_in_k(
+                        ] = self.cluster_statitstics_modeling.integrate_probe_function_in_k(
                             radial_shell_window[:, np.newaxis, :, :]
                             * radial_shell_window[:, :, np.newaxis, :]
                             * avol_bpk_mean_values[
