@@ -101,12 +101,12 @@ def get_values():
 
     # Integration bins
 
-    zed_obs_nc_bins = np.linspace(0.2, 1.8, 9)
-    lambda_obs_nc_bins = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
-    radius_profile_bins = np.linspace(5.0, 100.0, 11)
-    lambda_obs_clustering_bins = np.array([20, 30, 500])
-    radius_clustering_bins = np.geomspace(20.0, 130.0, 31)
-    zed_obs_clustering_bins = np.arange(0.2, 1.81, 0.4)
+    z_obs_nc_edges = np.linspace(0.2, 1.8, 9)
+    lambda_obs_nc_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
+    radius_profile_edges = np.linspace(5.0, 100.0, 11)
+    lambda_obs_clustering_edges = np.array([20, 30, 500])
+    radius_clustering_edges = np.geomspace(20.0, 130.0, 31)
+    zed_obs_clustering_edges = np.arange(0.2, 1.81, 0.4)
 
     # Istanciate objects
 
@@ -120,7 +120,7 @@ def get_values():
         )
     )
     covariance = HaloCovariance(
-        perturbations, area=area, nbins_zob=len(zed_obs_nc_bins), k=integ_k_arr
+        perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
     profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
     haloClustering = HaloClustering(
@@ -169,14 +169,14 @@ def get_values():
 
     cluster_counts, counts_intermediate_integration_products = (
         cluster_counts_statistics.get_NC(
-            z_obs_bins=zed_obs_nc_bins,
-            lambda_obs_bins=lambda_obs_nc_bins,
+            z_obs_edges=z_obs_nc_edges,
+            lambda_obs_edges=lambda_obs_nc_edges,
         )
     )
     print(f"nc        :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
     cov_cluster_counts = cluster_counts_statistics.get_NC_covariance(
-        zed_obs_nc_bins,
+        z_obs_nc_edges,
         cluster_counts,
         counts_intermediate_integration_products["window_lambda_obs"],
         counts_intermediate_integration_products["window_z_obs"],
@@ -184,17 +184,17 @@ def get_values():
     print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
     deltasigma_mean_values = cluster_wl_statistics.get_DeltaSigma(
-        z_obs_bins=zed_obs_nc_bins,
-        lambda_obs_bins=lambda_obs_nc_bins,
-        radius_bins=radius_profile_bins,
+        z_obs_edges=z_obs_nc_edges,
+        lambda_obs_edges=lambda_obs_nc_edges,
+        radius_edges=radius_profile_edges,
     )
     print(f"dsig      :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
     cluster_clustering, clustering_intermediate_integration_products = (
         cluster_clustering_statistics.get_xi(
-            lambda_obs_bins=lambda_obs_clustering_bins,
-            radius_bins=radius_clustering_bins,
-            z_obs_bins=zed_obs_clustering_bins,
+            lambda_obs_edges=lambda_obs_clustering_edges,
+            radius_edges=radius_clustering_edges,
+            z_obs_edges=zed_obs_clustering_edges,
         )
     )
     print(f"xi        :  {time.time()-t0:.4f} seconds")

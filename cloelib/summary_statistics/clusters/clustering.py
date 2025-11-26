@@ -58,8 +58,8 @@ class ClusterClustering:
 
         Parameters
         ----------
-        lambda_obs_bins : numpy.ndarray
-            Richness bins for the integration.
+        lambda_obs_edges : numpy.ndarray
+            Edges of richness bins for the integration.
 
         Returns
         -------
@@ -110,21 +110,21 @@ class ClusterClustering:
 
     def get_xi(
         self,
-        z_obs_bins,
-        lambda_obs_bins,
-        radius_bins,
+        z_obs_edges,
+        lambda_obs_edges,
+        radius_edges,
         return_intermediate_products=True,
     ):
         """Computes binned quantities (clustering+aux)
 
         Parameters
         ----------
-        z_obs_bins : numpy.ndarray
-            Redshift bins for the integration.
-        lambda_obs_bins : numpy.ndarray
-            Richness bins for the integration.
-        radius_obs_bins : numpy.ndarray
-            Radial bins for the profile.
+        z_obs_edges : numpy.ndarray
+            Edges of redshift bins for the integration.
+        lambda_obs_edges : numpy.ndarray
+            Edges of richness bins for the integration.
+        radius_edges : numpy.ndarray
+            Edges of radial bins for the clustering.
 
         Returns
         -------
@@ -138,7 +138,7 @@ class ClusterClustering:
                 * pk_mean_values (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
                 * radial_shell_window (numpy.ndarray) : Cluster count covariance window (z_obs, lambda_obs, k).
                 * radial_shell_volume (numpy.ndarray) : Spherical shell volume (z_obs, radius).
-                * window_z_obs (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * window_z_obs (numpy.ndarray) : Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins.
                 * cluster_counts (numpy.ndarray) :  Number counts in redshift and richness bins
         """
 
@@ -146,21 +146,21 @@ class ClusterClustering:
         # Get cluster statistics modeling quantities
         ############################################
 
-        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
+        # integral of P(z_obs|lambda_obs, z) on z_obs bins : (z_obs, lambda_obs, ztrue)
         window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
-            z_obs_bins, lambda_obs_bins, self.z_tab_sig
+            z_obs_edges, lambda_obs_edges, self.z_tab_sig
         )
-        # P(lambda_obs_bins|M, z) : (lambda_obs_bins, M, ztrue)
+        # integral of P(lambda_obs|M, z) on lambda_obs bins : (lambda_obs_edges, M, ztrue)
         _window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
-            lambda_obs_bins, self.l_m_tab_sig
+            lambda_obs_edges, self.l_m_tab_sig
         )
-        # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (lambda_obs, ztrue)
+        # integral of P(lambda_obs|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs, ztrue)
         window_lambda_obs_mass_integrated = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 np.ones((1, 1)), _window_lambda_obs
             )
         )
-        # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (lambda_obs, ztrue)
+        # integral of P(lambda_obs|M, z)*dn/dM*bias on lambda_obs bins and mass : (lambda_obs, ztrue)
         halo_bias_mass_integrated = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
@@ -179,7 +179,7 @@ class ClusterClustering:
         ################################################
 
         # matter power spectrum + IR resummation : (z_obs, lambda_obs, lambda_obs, k)
-        _lambda_obs_mid = 0.5 * (lambda_obs_bins[1:] + lambda_obs_bins[:-1])
+        _lambda_obs_mid = 0.5 * (lambda_obs_edges[1:] + lambda_obs_edges[:-1])
         pk_mean_values = self._compute_pk_ir_resummation_unnormalized(
             _lambda_obs_mid,
             window_z_obs,
@@ -193,9 +193,9 @@ class ClusterClustering:
         # Spherical shell window : (z_obs, radius, k) and
         # volume of the shell : (z_obs, radius) in each z_obs_bin
         # radial_shell_volume is used only by covariance
-        _z_obs_mid = 0.5 * (z_obs_bins[1:] + z_obs_bins[:-1])
+        _z_obs_mid = 0.5 * (z_obs_edges[1:] + z_obs_edges[:-1])
         radial_shell_window, radial_shell_volume = self.clustering.WF_ra(
-            _z_obs_mid, radius_bins
+            _z_obs_mid, radius_edges
         )
 
         # compute 2point correlation function : (z_obs, lambda_obs, lambda_obs, radius)
@@ -208,7 +208,7 @@ class ClusterClustering:
 
         # xi(lambda_obs_i, lambda_obs_j) = xi(lambda_obs_j, lambda_obs_i) so we reshape
         # and keep only one of them, with a (z_obs, lambda_obs, radius) output
-        triangle_indexes = np.triu_indices(len(lambda_obs_bins) - 1)
+        triangle_indexes = np.triu_indices(len(lambda_obs_edges) - 1)
         cluster_clustering = _cluster_clustering_buf[
             :, triangle_indexes[0], triangle_indexes[1], :
         ]
@@ -252,8 +252,7 @@ class ClusterClustering:
             Spherical shell volume (z_obs, radius).
             Is in the intermediate_integration_products output of get_xi.
         window_z_obs : numpy.ndarray
-            Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
-            given a observed richness bin and a true redshift.
+            Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins.
             Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_integration_products output of get_xi.
         cluster_counts : numpy.ndarray
@@ -264,8 +263,8 @@ class ClusterClustering:
         cov_cluster_clustering : numpy.ndarray
             Covariance of the two point correlation function in richness, redshift and radial bins
         """
-        z_obs_bins_size, lambda_obs_bins_size = cluster_counts.shape
-        _, radius_bins_size = radial_shell_volume.shape
+        z_obs_edges_size, lambda_obs_edges_size = cluster_counts.shape
+        _, radius_edges_size = radial_shell_volume.shape
 
         ########################################
         # Cluster statistics modeling quantities
@@ -281,7 +280,7 @@ class ClusterClustering:
         vol_over_cluster_counts = (
             volume_mean_values[:, :, np.newaxis]
             / cluster_counts[:, :, np.newaxis]
-            * np.identity(lambda_obs_bins_size)[np.newaxis, :, :]
+            * np.identity(lambda_obs_edges_size)[np.newaxis, :, :]
         )
 
         #############################
@@ -294,19 +293,19 @@ class ClusterClustering:
         #    non-poissonian shot-noise and high-order terms ref values are
         #    alpha=0, beta=1, gamma=0 (see Euclid Collaboration : Fumagalli et
         #    al. 2022)
-        alpha = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
-        beta = np.ones((z_obs_bins_size, lambda_obs_bins_size))
-        gamma = np.zeros((z_obs_bins_size, lambda_obs_bins_size))
+        alpha = np.zeros((z_obs_edges_size, lambda_obs_edges_size))
+        beta = np.ones((z_obs_edges_size, lambda_obs_edges_size))
+        gamma = np.zeros((z_obs_edges_size, lambda_obs_edges_size))
 
         # Combine alpha, beta with pk, vol and reshape to be used
         # in cov_g, cov_ng integral
-        # shape (z_obs_bins, lambda_obs, lambda_obs, k)
+        # shape (z_obs_edges, lambda_obs, lambda_obs, k)
         beta_pk_mean_values = (
             beta[:, :, np.newaxis, np.newaxis]
             * beta[:, np.newaxis, :, np.newaxis]
             * pk_mean_values
         )
-        # shape (z_obs_bins, lambda_obs, lambda_obs, k)
+        # shape (z_obs_edges, lambda_obs, lambda_obs, k)
         avol_bpk_mean_values = (
             # reshape alpha to be (z_obs, lambda_obs, lambda_obs)
             (1 + alpha)[:, :, np.newaxis, np.newaxis]
@@ -320,31 +319,31 @@ class ClusterClustering:
         ####################
 
         # define cluster clustering bin numbers for loops
-        z_bin_loop = range(z_obs_bins_size)
-        lambda_bin_loop = range(lambda_obs_bins_size)
-        rad_bin_loop = range(radius_bins_size)
+        z_bin_loop = range(z_obs_edges_size)
+        lambda_bin_loop = range(lambda_obs_edges_size)
+        rad_bin_loop = range(radius_edges_size)
 
         # cov_g, cov_ng are TWO TERMS OF EQ. 73
         _cov_gaussian = np.zeros(
             (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                radius_bins_size,
-                radius_bins_size,
+                z_obs_edges_size,
+                lambda_obs_edges_size,
+                lambda_obs_edges_size,
+                lambda_obs_edges_size,
+                lambda_obs_edges_size,
+                radius_edges_size,
+                radius_edges_size,
             )
         )
         _cov_nongaussian = np.zeros(
             (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                lambda_obs_bins_size,
-                radius_bins_size,
-                radius_bins_size,
+                z_obs_edges_size,
+                lambda_obs_edges_size,
+                lambda_obs_edges_size,
+                lambda_obs_edges_size,
+                lambda_obs_edges_size,
+                radius_edges_size,
+                radius_edges_size,
             )
         )
 
@@ -400,7 +399,7 @@ class ClusterClustering:
                         )
 
         # Compute the covariance : (z_obs, lambda_obs,  lambda_obs, lambda_obs, lambda_obs, radius, radius)
-        _cov_clustering_4_lambda_obs_bins = (
+        _cov_clustering_4_lambda_obs_edges = (
             (_cov_gaussian + _cov_nongaussian)
             + (_cov_gaussian + _cov_nongaussian).transpose(
                 0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_clustering bins
@@ -412,13 +411,13 @@ class ClusterClustering:
         # cov_xi(lambda_obs_i, lambda_obs_j, lambda_obs_k, lambda_obs_l) =
         # cov_xi(lambda_obs_j, lambda_obs_i, lambda_obs_l, lambda_obs_k)
         # so reshape and keep only two of them
-        triangle_indexes = np.triu_indices(lambda_obs_bins_size)
+        triangle_indexes = np.triu_indices(lambda_obs_edges_size)
         # simplify first pair
-        _cov_clustering_3_lambda_obs_bins = _cov_clustering_4_lambda_obs_bins[
+        _cov_clustering_3_lambda_obs_edges = _cov_clustering_4_lambda_obs_edges[
             :, triangle_indexes[0], triangle_indexes[1], :, :, :, :
         ]
         # simplify second pair
-        _cov_clustering_2_lambda_obs_bins = _cov_clustering_3_lambda_obs_bins[
+        _cov_clustering_2_lambda_obs_edges = _cov_clustering_3_lambda_obs_edges[
             :, :, triangle_indexes[0], triangle_indexes[1], :, :
         ]
 
@@ -427,9 +426,9 @@ class ClusterClustering:
         # make it (z_obs, z_obs, lambda_obs, lambda_obs, radius, radius),
         # being diagonal in (z_obs, z_obs)
         cov_cluster_clustering = (
-            np.identity(z_obs_bins_size)[
+            np.identity(z_obs_edges_size)[
                 :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis
             ]
-            * _cov_clustering_2_lambda_obs_bins
+            * _cov_clustering_2_lambda_obs_edges
         )
         return cov_cluster_clustering

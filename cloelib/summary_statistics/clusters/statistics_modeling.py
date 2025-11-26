@@ -105,46 +105,45 @@ class ClusterStatisticsModeling:
     # cluster statistics functions
     # ----------------------------
 
-    def window_z_observed(self, z_obs_bins, lambda_obs_bins, z_tab_sig):
-        """Compute the probability of observed redsfhit bin P(z_obs_bin|ztrue, lambda_obs_bin)
-        with true redshifts being the values in self.kernel_tables.
+    def window_z_observed(self, z_obs_edges, lambda_obs_edges, z_tab_sig):
+        r"""Compute the window function of each observed redshift bin, given by:
 
         ..math:
-            P(\Delta z^{\rm obs}|\lambda^{\rm obs}, z^{\rm true}) = \int_{\Delta z^{\rm obs}}dz^{\rm obs} P(z^{\rm obs}|\lambda^{\rm obs}, z^{\rm true})
+            W_{\Delta z^{\rm obs}}(\lambda^{\rm obs}, z^{\rm true}) = \int_{\Delta z^{\rm obs}}dz^{\rm obs} P(z^{\rm obs}|\lambda^{\rm obs}, z^{\rm true})
 
         Parameters
         ----------
-        z_obs_bins : numpy.ndarray
-            Redshift bins for the integration.
-        lambda_obs_bins : numpy.ndarray
-            Richness bins for the integration.
+        z_obs_edges : numpy.ndarray
+            Edges of redshift bins for the integration.
+        lambda_obs_edges : numpy.ndarray
+            Edges of richness bins for the integration.
         z_tab_sig : int, None
             Number of points to be used for z_obs integration.
 
         Returns
         -------
         window_z_obs : numpy.ndarray
-            Probability of observed redsfhit bin P(z_obs_bin|ztrue, lambda_obs_bin)
-            with true redshifts being the values in self.kernel_tables.
-            Dimentions: (z_obs_bins, lambda_obs_bins, ztrue).
+            Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins,
+            where (ztrue) are the values in self.kernel_tables.
+            Dimentions: (z_obs_edges, lambda_obs_edges, ztrue).
         """
 
-        z_obs_bins_size = len(z_obs_bins) - 1
-        lambda_obs_bins_size = len(lambda_obs_bins) - 1
+        z_obs_edges_size = len(z_obs_edges) - 1
+        lambda_obs_edges_size = len(lambda_obs_edges) - 1
 
         # for z_obs integration
-        z_obs_tabs = np.linspace(z_obs_bins[:-1], z_obs_bins[1:], z_tab_sig)
+        z_obs_tabs = np.linspace(z_obs_edges[:-1], z_obs_edges[1:], z_tab_sig)
 
         # reshape for multiplication
         _z_obs_tabs = z_obs_tabs[:, :, np.newaxis]
-        _lambda_obs = lambda_obs_bins[np.newaxis, :-1, np.newaxis]
+        _lambda_obs = lambda_obs_edges[np.newaxis, :-1, np.newaxis]
         _ztrue = self.kernel_tables["ztrue"][np.newaxis, np.newaxis, :]
 
-        # outputs
+        # Window function
         window_z_obs = np.zeros(
-            (z_obs_bins_size, lambda_obs_bins_size, self.kernel_tables["ztrue"].size)
+            (z_obs_edges_size, lambda_obs_edges_size, self.kernel_tables["ztrue"].size)
         )
-        for ind_z in range(z_obs_bins_size):
+        for ind_z in range(z_obs_edges_size):
             window_z_obs[ind_z] = simps(
                 self.selectionfunction.P_zobs_z(
                     _z_obs_tabs[:, ind_z], _lambda_obs, _ztrue
@@ -154,45 +153,44 @@ class ClusterStatisticsModeling:
             )
         return window_z_obs
 
-    def window_richness_observed(self, lambda_obs_bins, l_m_tab_sig):
-        r"""Compute the probability of observed richness bin P(lambda_obs_bin|M, ztrue)
-        with masses and redshifts being the values in self.kernel_tables:
+    def window_richness_observed(self, lambda_obs_edges, l_m_tab_sig):
+        r"""Compute the window function of each observed richness bin, given by:
 
         ..math:
-            P(\Delta\lambda^{\rm obs}|M, z^{\rm true}) = \int_{\Delta\lambda^{\rm obs}}d\lambda^{\rm obs} P(\lambda^{\rm obs}|M, z^{\rm true})
+            W_{\Delta\lambda^{\rm obs}}(M, z^{\rm true}) = \int_{\Delta\lambda^{\rm obs}}d\lambda^{\rm obs} P(\lambda^{\rm obs}|M, z^{\rm true})
 
         Parameters
         ----------
-        lambda_obs_bins : numpy.ndarray
-            Richness bins for the integration.
+        lambda_obs_edges : numpy.ndarray
+            Edges of richness bins for the integration.
         l_m_tab_sig : List, None
             Number of points to be used for the lambda_obs integration
-            in each lambda_obs bin. Must be same size of lambda_obs_bins.
+            in each lambda_obs bin. Must be same size of lambda_obs_edges.
 
         Returns
         -------
         window_lambda_obs : numpy.ndarray
-            Probability of observed richness bin P(lambda_obs_bin|M, ztrue)
-            with masses and redshifts being the values in self.kernel_tables.
-            Dimentions: (lambda_obs_bins, ztrue, M).
+            Integral of P(lambda_obs|M, ztrue) in lambda_obs bins,
+            where (M, ztrue) are the values in self.kernel_tables.
+            Dimentions: (lambda_obs_edges, ztrue, M).
         """
 
         # if external_richness_selection_function == 'CG_ESF' :
         #     window_lambda_obs  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
 
-        lambda_obs_bins_size = len(lambda_obs_bins) - 1
+        lambda_obs_edges_size = len(lambda_obs_edges) - 1
         window_lambda_obs = np.zeros(
             (
-                lambda_obs_bins_size,
+                lambda_obs_edges_size,
                 self.kernel_tables["ztrue"].size,
                 self.kernel_tables["M"].size,
             )
         )
-        for ind_lambda in range(lambda_obs_bins_size):
-            # P(lambda_obs_bin|lambda_true, z)
+        for ind_lambda in range(lambda_obs_edges_size):
+            # integrate P(lambda_obs|lambda_true, z) in lambda_obs
             l_tab = np.geomspace(
-                lambda_obs_bins[ind_lambda],
-                lambda_obs_bins[ind_lambda + 1],
+                lambda_obs_edges[ind_lambda],
+                lambda_obs_edges[ind_lambda + 1],
                 l_m_tab_sig[ind_lambda],
             )
             _integration_P_lbdobs_lbd = simps(
@@ -204,7 +202,7 @@ class ClusterStatisticsModeling:
                 x=l_tab,
                 axis=-1,
             )
-            # P(lambda_obs_bin|M, z)
+            # Window function
             window_lambda_obs[ind_lambda] = simps(
                 self.kernel_tables["PDF_mass_richness_scaling"]
                 * _integration_P_lbdobs_lbd[:, np.newaxis, :],
@@ -264,12 +262,12 @@ class ClusterStatisticsModeling:
         Parameters
         ----------
         probe_function : numpy.ndarray
-            Kernel to be integrated in mass and convoluted with observed richness bins,
-            must be dimension (ztrue, M, ...) with (ztrue, M) from self.kernel_tables.
+            Kernel to be integrated in mass and convoluted with observed richness bins.
+            Must be dimension (ztrue, M, ...) with (ztrue, M) from self.kernel_tables.
         window_lambda_obs : numpy.ndarray
-            Probability of observed richness bin P(lambda_obs_bin|M, ztrue)
-            with masses and redshifts being the values in self.kernel_tables.
-            Dimentions: (lambda_obs_bin, ztrue, M)
+            Integral of P(lambda_obs|M, ztrue) in lambda_obs bins,
+            where (M, ztrue) are the values in self.kernel_tables.
+            Dimentions: (lambda_obs, ztrue, M)
 
         Returns
         -------
@@ -278,7 +276,7 @@ class ClusterStatisticsModeling:
             with observed richness bins. Dimension (lambda_obs, ztrue, ...),
             with (ztrue) from self.kernel_tables.
         """
-        # Add lambda_obs_bins dimension to probe_function
+        # Add lambda_obs_edges dimension to probe_function
         _probe_function = probe_function[np.newaxis, ...]
 
         # to make window_lambda_obs, hmf same shape as probe_function
@@ -292,7 +290,7 @@ class ClusterStatisticsModeling:
             self.kernel_tables["dn/dM(ztrue,M)"], axis=(0, *extra_axes)
         )
 
-        # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (lambda_obs_bins, z)
+        # integral of P(lambda_obs|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs_edges, z)
         integrated_probe_function = simps(
             _probe_function * _hmf * _window_lambda_obs,
             x=self.kernel_tables["M"],
@@ -301,8 +299,8 @@ class ClusterStatisticsModeling:
         return integrated_probe_function
 
     def integrate_probe_function_in_redshift(self, probe_function, window_z_obs):
-        """Integrate in true volume dv/dz(ztrue) a probe_function binned in observed richness,
-        in each observed redsfhit bin.
+        """Integrate in true volume dv/dz(ztrue) a probe_function that has been
+        binned in observed richness, in each observed redsfhit bin.
 
         Parameters
         ----------
@@ -311,8 +309,8 @@ class ClusterStatisticsModeling:
             convoluted with observed redshift bins. Must be dimension
             (lambda_obs, ztrue, ...) with (ztrue) from self.kernel_tables.
         window_z_obs : numpy.ndarray
-            Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
-            given a observed richness bin and a true redshift.
+            Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins,
+            where (ztrue) are the values in self.kernel_tables.
             Dimentions: (z_obs, lambda_obs, ztrue, ...) with (ztrue) in kernel_tables.
 
         Returns
@@ -321,7 +319,7 @@ class ClusterStatisticsModeling:
             Quantity integrated in true redshift for each observed bin.
             Dimension (z_obs, lambda_obs, ...).
         """
-        # Add z_obs_bins dimension to probe_function
+        # Add z_obs_edges dimension to probe_function
         _probe_function = probe_function[np.newaxis, ...]
 
         # to make window_z_obs, dvdz same shape as probe_function
@@ -335,7 +333,7 @@ class ClusterStatisticsModeling:
             self.kernel_tables["dv/dz(ztrue)"], axis=(0, 1, *extra_axes)
         )
 
-        # output : (z_obs, lambda_obs_bins)
+        # output : (z_obs, lambda_obs_edges)
         integrated_probe_function = simps(
             _probe_function * _dvdz * _window_z_obs,
             x=self.kernel_tables["ztrue"],

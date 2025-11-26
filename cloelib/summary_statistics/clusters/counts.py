@@ -26,7 +26,7 @@ class ClusterCounts:
     ----------
     l_m_tab_sig : list
         Number of points to be used for the lambda_obs integration
-        in each lambda_obs bin. Must be same size of lambda_obs_bins.
+        in each lambda_obs bin. Must be same size of lambda_obs_edges.
     z_tab_sig : int
         Number of points to be used for z_obs integration.
     """
@@ -69,18 +69,18 @@ class ClusterCounts:
 
     def get_NC(
         self,
-        z_obs_bins,
-        lambda_obs_bins,
+        z_obs_edges,
+        lambda_obs_edges,
         return_intermediate_products=True,
     ):
         """Computes binned quantities (counts+aux).
 
         Parameters
         ----------
-        z_obs_bins : numpy.ndarray
-            Redshift bins for the integration.
-        lambda_obs_bins : numpy.ndarray
-            Richness bins for the integration.
+        z_obs_edges : numpy.ndarray
+            Edges of redshift bins for the integration.
+        lambda_obs_edges : numpy.ndarray
+            Edges of richness bins for the integration.
         return_intermediate_products : bool
             If true, also returns `intermediate_integration_products`, a dictionary
             with the intermediate products computed.
@@ -94,24 +94,24 @@ class ClusterCounts:
             Returned only when `return_intermediate_products` is true.
             Contains :
 
-                * window_lambda_obs (numpy.ndarray) : Probability of observed richness bin P(lobs_bin|M, ztrue) for masses and redshifts in table
-                * window_z_obs (numpy.ndarray) : Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue) given a observed richness bin and a true redshift.
+                * window_lambda_obs (numpy.ndarray) : Integral of P(lamda_obs|M, ztrue) in lambda_obs bins.
+                * window_z_obs (numpy.ndarray) : Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins.
         """
 
         ############################################
         # Get cluster statistics modeling quantities
         ############################################
-        # P(lambda_obs_bins|M, z) : (lambda_obs, M, ztrue)
+        # integral of P(lambda_obs|M, z) on lambda_obs bins : (lambda_obs, M, ztrue)
         window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
-            lambda_obs_bins, self.l_m_tab_sig
+            lambda_obs_edges, self.l_m_tab_sig
         )
-        # P(z_obs_bin|lambda_obs, ztrue) : (z_obs, lambda_obs, ztrue)
+        # integral of P(z_obs|lambda_obs, z) on z_obs bins : (z_obs, lambda_obs, ztrue)
         window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
-            z_obs_bins, lambda_obs_bins, self.z_tab_sig
+            z_obs_edges, lambda_obs_edges, self.z_tab_sig
         )
         # cluster counts : (z_obs, lambda_obs)
         cluster_counts = self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-            # integral of P(lambda_obs_bins|M, z)*dn/dM on mass : (lambda_obs, ztrue)
+            # integral of P(lambda_obs|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs, ztrue)
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 np.ones((1, 1)), window_lambda_obs
             ),
@@ -130,13 +130,13 @@ class ClusterCounts:
     # cluster counts cov
     # -------------------
 
-    def _compute_spatial_cov(self, z_obs_bins):
+    def _compute_spatial_cov(self, z_obs_edges):
         """Computes only spatial part of the covariance.
 
         Parameters
         ----------
-        z_obs_bins : numpy.ndarray
-            Redshift bins for the integration.
+        z_obs_edges : numpy.ndarray
+            Edges of redshift bins for the integration.
 
         Returns
         -------
@@ -144,8 +144,8 @@ class ClusterCounts:
             Spatial part of the covariance
         """
 
-        z_obs_bins_size = len(z_obs_bins) - 1
-        z_mid = 0.5 * (z_obs_bins[1:] + z_obs_bins[:-1])
+        z_obs_edges_size = len(z_obs_edges) - 1
+        z_mid = 0.5 * (z_obs_edges[1:] + z_obs_edges[:-1])
 
         # power spectrum at the center of observed redshift bins (z_obs, k)
         pk = self.cluster_statitstics_modeling.halo_statistics.matter_power_spectrum(
@@ -160,10 +160,10 @@ class ClusterCounts:
         KL = self.covariance.Kl_coeff()
 
         # compute spatial covariance (z_obs, z_obs)
-        spatial_cov = np.zeros((z_obs_bins_size, z_obs_bins_size))
-        for ind_z in range(z_obs_bins_size):
+        spatial_cov = np.zeros((z_obs_edges_size, z_obs_edges_size))
+        for ind_z in range(z_obs_edges_size):
             z_tab = np.linspace(
-                z_obs_bins[ind_z], z_obs_bins[ind_z + 1], self.z_tab_sig
+                z_obs_edges[ind_z], z_obs_edges[ind_z + 1], self.z_tab_sig
             )
             spatial_cov[ind_z, : (ind_z + 1)] = (
                 self.cluster_statitstics_modeling.integrate_probe_function_in_dk(
@@ -176,23 +176,22 @@ class ClusterCounts:
         return spatial_cov
 
     def get_NC_covariance(
-        self, z_obs_bins, cluster_counts, window_lambda_obs, window_z_obs
+        self, z_obs_edges, cluster_counts, window_lambda_obs, window_z_obs
     ):
         """Computes theoretical covariance for cluster counts, including shot noise and sample covariance
 
         Parameters
         ----------
-        z_obs_bins : numpy.ndarray
-            Redshift bins for the integration.
+        z_obs_edges : numpy.ndarray
+            Edges of redshift bins for the integration.
         cluster_counts : numpy.ndarray
             Number counts in redshift and richness bins
         window_lambda_obs : numpy.ndarray
-            Probability of observed richness bin P(lobs_bin|M, ztrue),
-            with masses and redshifts being the values in cluster_statitstics_modeling.kernel_tables.
+            Integral of P(lamda_obs|M, ztrue) in lambda_obs bins.
+            Dimentions: (lambda_obs, ztrue, M) with (ztrue, M) in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_integration_products output of get_NC.
         window_z_obs : numpy.ndarray
-            Probability of observed redshift bin P(z_obs_bin|lambda_obs, ztrue)
-            given a observed richness bin and a true redshift.
+            Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins.
             Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
             Is in the intermediate_integration_products output of get_NC.
 
@@ -206,10 +205,10 @@ class ClusterCounts:
         # Get cluster statistics modeling quantities
         ############################################
 
-        # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (lambda_obs, ztrue)
+        # integral of P(lambda_obs|M, z)*dn/dM*bias on lambda_obs bins and mass : (lambda_obs, ztrue)
         # cluster integrated bias : (z_obs, lambda_obs)
         halo_bias_mean_values = self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-            # integral of P(lambda_obs_bins|M, z)*dn/dM*bias on mass : (lambda_obs, ztrue)
+            # integral of P(lambda_obs|M, z)*dn/dM*bias on lambda_obs bins and mass : (lambda_obs, ztrue)
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
                 window_lambda_obs,
@@ -222,7 +221,7 @@ class ClusterCounts:
         ####################
 
         # spatial component of covariance (z_obs, z_obs)
-        spatial_cov = self._compute_spatial_cov(z_obs_bins)
+        spatial_cov = self._compute_spatial_cov(z_obs_edges)
 
         # shot noise (z_obs, z_obs, lambda_obs, lambda_obs)
         _shot_noise = (
