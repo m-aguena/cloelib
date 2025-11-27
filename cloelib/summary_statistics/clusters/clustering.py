@@ -47,7 +47,7 @@ class ClusterClustering:
         self.l_m_tab_sig = [31, 51]
         self.z_tab_sig = 31
 
-    def _compute_pk_ir_resummation_unnormalized(
+    def _compute_RSD_corrected_power_spectrum(
         self,
         lambda_obs_mid,
         window_z_obs,
@@ -180,7 +180,7 @@ class ClusterClustering:
 
         # matter power spectrum + IR resummation : (z_obs, lambda_obs, lambda_obs, k)
         _lambda_obs_mid = 0.5 * (lambda_obs_edges[1:] + lambda_obs_edges[:-1])
-        pk_mean_values = self._compute_pk_ir_resummation_unnormalized(
+        pk_mean_values = self._compute_RSD_corrected_power_spectrum(
             _lambda_obs_mid,
             window_z_obs,
             window_lambda_obs_mass_integrated,
