@@ -25,7 +25,7 @@ class ClusterStatisticsModeling:
 
     Attributes
     ----------
-    kernel_tables : dict
+    tabulated_integrands : dict
         Dictionary with tables that will be used for integrations. Contains :
 
             * k (numpy.ndarray) : Values of k to be used in integrations
@@ -59,13 +59,13 @@ class ClusterStatisticsModeling:
         selectionfunction : SelectionFunction
             Selection function object
         integ_k_arr : numpy.ndarray
-            Values of k to be used in integrations, stored in kernel_tables
+            Values of k to be used in integrations, stored in tabulated_integrands
         integ_mass_arr : numpy.ndarray
-            Values of mass to be used in integrations, stored in kernel_tables
+            Values of mass to be used in integrations, stored in tabulated_integrands
         integ_lambda_true_arr : numpy.ndarray
-            Values of true richness to be used in integrations, stored in kernel_tables
+            Values of true richness to be used in integrations, stored in tabulated_integrands
         integ_ztrue_arr : numpy.ndarray
-            Values of true redshift to be used in integrations, stored in kernel_tables
+            Values of true redshift to be used in integrations, stored in tabulated_integrands
         area : float
             Effective area of the survey in deg2.
         """
@@ -75,7 +75,7 @@ class ClusterStatisticsModeling:
         self.selectionfunction = selectionfunction
 
         # integration tables
-        self.kernel_tables = {
+        self.tabulated_integrands = {
             "k": integ_k_arr,  # k array
             "M": integ_mass_arr,  # mass array in Msun h^-1
             "lambda_true": integ_lambda_true_arr,  # true richness array
@@ -124,7 +124,7 @@ class ClusterStatisticsModeling:
         -------
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins,
-            where (ztrue) are the values in self.kernel_tables.
+            where (ztrue) are the values in self.tabulated_integrands.
             Dimentions: (z_obs_edges, lambda_obs_edges, ztrue).
         """
 
@@ -137,11 +137,15 @@ class ClusterStatisticsModeling:
         # reshape for multiplication
         _z_obs_tabs = z_obs_tabs[:, :, np.newaxis]
         _lambda_obs = lambda_obs_edges[np.newaxis, :-1, np.newaxis]
-        _ztrue = self.kernel_tables["ztrue"][np.newaxis, np.newaxis, :]
+        _ztrue = self.tabulated_integrands["ztrue"][np.newaxis, np.newaxis, :]
 
         # Window function
         window_z_obs = np.zeros(
-            (z_obs_edges_size, lambda_obs_edges_size, self.kernel_tables["ztrue"].size)
+            (
+                z_obs_edges_size,
+                lambda_obs_edges_size,
+                self.tabulated_integrands["ztrue"].size,
+            )
         )
         for ind_z in range(z_obs_edges_size):
             window_z_obs[ind_z] = simps(
@@ -171,19 +175,19 @@ class ClusterStatisticsModeling:
         -------
         window_lambda_obs : numpy.ndarray
             Integral of P(lambda_obs|M, ztrue) in lambda_obs bins,
-            where (M, ztrue) are the values in self.kernel_tables.
+            where (M, ztrue) are the values in self.tabulated_integrands.
             Dimentions: (lambda_obs_edges, ztrue, M).
         """
 
         # if external_richness_selection_function == 'CG_ESF' :
-        #     window_lambda_obs  = self.int_Plobltr_Dlob[lambda_bin](self.kernel_tables["ztrue"], self.kernel_tables["lambda_true"]).T
+        #     window_lambda_obs  = self.int_Plobltr_Dlob[lambda_bin](self.tabulated_integrands["ztrue"], self.tabulated_integrands["lambda_true"]).T
 
         lambda_obs_edges_size = len(lambda_obs_edges) - 1
         window_lambda_obs = np.zeros(
             (
                 lambda_obs_edges_size,
-                self.kernel_tables["ztrue"].size,
-                self.kernel_tables["M"].size,
+                self.tabulated_integrands["ztrue"].size,
+                self.tabulated_integrands["M"].size,
             )
         )
         for ind_lambda in range(lambda_obs_edges_size):
@@ -195,8 +199,8 @@ class ClusterStatisticsModeling:
             )
             _integration_P_lbdobs_lbd = simps(
                 self.selectionfunction.P_lbdobs_lbd(
-                    self.kernel_tables["ztrue"],
-                    self.kernel_tables["lambda_true"],
+                    self.tabulated_integrands["ztrue"],
+                    self.tabulated_integrands["lambda_true"],
                     l_tab,
                 ),
                 x=l_tab,
@@ -204,9 +208,9 @@ class ClusterStatisticsModeling:
             )
             # Window function
             window_lambda_obs[ind_lambda] = simps(
-                self.kernel_tables["PDF_mass_richness_scaling"]
+                self.tabulated_integrands["PDF_mass_richness_scaling"]
                 * _integration_P_lbdobs_lbd[:, np.newaxis, :],
-                x=self.kernel_tables["lambda_true"],
+                x=self.tabulated_integrands["lambda_true"],
                 axis=-1,
             )
         return window_lambda_obs
@@ -222,7 +226,7 @@ class ClusterStatisticsModeling:
         ----------
         kernel : numpy.ndarray
             Quantity to be integrated in k space. Can be multidimensional, but
-            the last dimension must be of size (k) from self.kernel_tables.
+            the last dimension must be of size (k) from self.tabulated_integrands.
 
         Returns
         -------
@@ -237,7 +241,7 @@ class ClusterStatisticsModeling:
             computation, somehow it is faster than using integrate_probe_function_in_k_space,
             to be investigated.
         """
-        return simps(kernel, x=self.kernel_tables["k"])
+        return simps(kernel, x=self.tabulated_integrands["k"])
 
     def integrate_probe_function_in_dk(self, kernel):
         """Integrate the kernel in k space with a k^2/2pi kernel.
@@ -246,7 +250,7 @@ class ClusterStatisticsModeling:
         ----------
         kernel : numpy.ndarray
             Quantity to be integrated in k space. Can be multidimensional, but
-            the last dimension must be of size (k) from self.kernel_tables.
+            the last dimension must be of size (k) from self.tabulated_integrands.
 
         Returns
         -------
@@ -254,7 +258,9 @@ class ClusterStatisticsModeling:
             Quantity integrated in k space, dimension same as input
             minus the last one.
         """
-        return self.integrate_probe_function_in_k(kernel * self.kernel_tables["dk"])
+        return self.integrate_probe_function_in_k(
+            kernel * self.tabulated_integrands["dk"]
+        )
 
     def integrate_probe_function_in_mass(self, probe_function, window_lambda_obs):
         """Integrate over mass convolving with the halo mass function.
@@ -263,10 +269,10 @@ class ClusterStatisticsModeling:
         ----------
         probe_function : numpy.ndarray
             Kernel to be integrated in mass and convoluted with observed richness bins.
-            Must be dimension (ztrue, M, ...) with (ztrue, M) from self.kernel_tables.
+            Must be dimension (ztrue, M, ...) with (ztrue, M) from self.tabulated_integrands.
         window_lambda_obs : numpy.ndarray
             Integral of P(lambda_obs|M, ztrue) in lambda_obs bins,
-            where (M, ztrue) are the values in self.kernel_tables.
+            where (M, ztrue) are the values in self.tabulated_integrands.
             Dimentions: (lambda_obs, ztrue, M)
 
         Returns
@@ -274,7 +280,7 @@ class ClusterStatisticsModeling:
         integrated_probe_function : numpy.ndarray
             Quantity integrated in mass with the halo mass function and convoluted
             with observed richness bins. Dimension (lambda_obs, ztrue, ...),
-            with (ztrue) from self.kernel_tables.
+            with (ztrue) from self.tabulated_integrands.
         """
         # Add lambda_obs_edges dimension to probe_function
         _probe_function = probe_function[np.newaxis, ...]
@@ -287,13 +293,13 @@ class ClusterStatisticsModeling:
 
         # reshape HMF
         _hmf = np.expand_dims(
-            self.kernel_tables["dn/dM(ztrue,M)"], axis=(0, *extra_axes)
+            self.tabulated_integrands["dn/dM(ztrue,M)"], axis=(0, *extra_axes)
         )
 
         # integral of P(lambda_obs|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs_edges, z)
         integrated_probe_function = simps(
             _probe_function * _hmf * _window_lambda_obs,
-            x=self.kernel_tables["M"],
+            x=self.tabulated_integrands["M"],
             axis=2,
         )
         return integrated_probe_function
@@ -307,11 +313,11 @@ class ClusterStatisticsModeling:
         probe_function : numpy.ndarray
             Kernel binned in observed richness to be integrated in true redshift, and
             convoluted with observed redshift bins. Must be dimension
-            (lambda_obs, ztrue, ...) with (ztrue) from self.kernel_tables.
+            (lambda_obs, ztrue, ...) with (ztrue) from self.tabulated_integrands.
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins,
-            where (ztrue) are the values in self.kernel_tables.
-            Dimentions: (z_obs, lambda_obs, ztrue, ...) with (ztrue) in kernel_tables.
+            where (ztrue) are the values in self.tabulated_integrands.
+            Dimentions: (z_obs, lambda_obs, ztrue, ...) with (ztrue) in tabulated_integrands.
 
         Returns
         -------
@@ -330,13 +336,13 @@ class ClusterStatisticsModeling:
 
         # reshape dvdz
         _dvdz = np.expand_dims(
-            self.kernel_tables["dv/dz(ztrue)"], axis=(0, 1, *extra_axes)
+            self.tabulated_integrands["dv/dz(ztrue)"], axis=(0, 1, *extra_axes)
         )
 
         # output : (z_obs, lambda_obs_edges)
         integrated_probe_function = simps(
             _probe_function * _dvdz * _window_z_obs,
-            x=self.kernel_tables["ztrue"],
+            x=self.tabulated_integrands["ztrue"],
             axis=2,
         )
         return integrated_probe_function

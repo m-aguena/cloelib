@@ -149,7 +149,7 @@ class ClusterCounts:
 
         # power spectrum at the center of observed redshift bins (z_obs, k)
         pk = self.cluster_statitstics_modeling.halo_statistics.matter_power_spectrum(
-            z_mid, self.cluster_statitstics_modeling.kernel_tables["k"]
+            z_mid, self.cluster_statitstics_modeling.tabulated_integrands["k"]
         )
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
@@ -188,11 +188,11 @@ class ClusterCounts:
             Number counts in redshift and richness bins
         window_lambda_obs : numpy.ndarray
             Integral of P(lamda_obs|M, ztrue) in lambda_obs bins.
-            Dimentions: (lambda_obs, ztrue, M) with (ztrue, M) in cluster_statitstics_modeling.kernel_tables.
+            Dimentions: (lambda_obs, ztrue, M) with (ztrue, M) in cluster_statitstics_modeling.tabulated_integrands.
             Is in the intermediate_integration_products output of get_NC.
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins.
-            Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
+            Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.tabulated_integrands.
             Is in the intermediate_integration_products output of get_NC.
 
         Returns
@@ -210,7 +210,7 @@ class ClusterCounts:
         halo_bias_mean_values = self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
             # integral of P(lambda_obs|M, z)*dn/dM*bias on lambda_obs bins and mass : (lambda_obs, ztrue)
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-                self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
+                self.cluster_statitstics_modeling.tabulated_integrands["bias(ztrue,M)"],
                 window_lambda_obs,
             ),
             window_z_obs,

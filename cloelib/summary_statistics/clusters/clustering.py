@@ -73,7 +73,7 @@ class ClusterClustering:
         photoz_corr0, photoz_corr1, photoz_corr2 = np.array(
             [
                 self.clustering.photoz_rsd_correction(
-                    self.cluster_statitstics_modeling.kernel_tables["ztrue"],
+                    self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
                     _lambda_obs,
                 )
                 for _lambda_obs in lambda_obs_mid
@@ -90,8 +90,8 @@ class ClusterClustering:
         pk_halo = (
             b_eff**2 * photoz_corr0 + b_eff * photoz_corr1 + photoz_corr2
         ) * self.cluster_statitstics_modeling.halo_statistics.matter_power_spectrum(
-            self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-            self.cluster_statitstics_modeling.kernel_tables["k"],
+            self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
+            self.cluster_statitstics_modeling.tabulated_integrands["k"],
         )
 
         # average square of power spectrum in redshift and richness bins (z_obs, lambda_obs, k)
@@ -164,7 +164,7 @@ class ClusterClustering:
         # integral of P(lambda_obs|M, z)*dn/dM*bias on lambda_obs bins and mass : (lambda_obs, ztrue)
         halo_bias_in_window_lambda_obs_mass_integrated = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-                self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
+                self.cluster_statitstics_modeling.tabulated_integrands["bias(ztrue,M)"],
                 _window_lambda_obs,
             )
         )
@@ -247,14 +247,14 @@ class ClusterClustering:
             Is in the intermediate_integration_products output of get_xi.
         radial_shell_window : numpy.ndarray
             Cluster count covariance window (z_obs, lambda_obs, k),
-            with (k) in cluster_statitstics_modeling.kernel_tables.
+            with (k) in cluster_statitstics_modeling.tabulated_integrands.
             Is in the intermediate_integration_products output of get_xi.
         radial_shell_volume : numpy.ndarray
             Spherical shell volume (z_obs, radius).
             Is in the intermediate_integration_products output of get_xi.
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins.
-            Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.kernel_tables.
+            Dimentions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.tabulated_integrands.
             Is in the intermediate_integration_products output of get_xi.
         cluster_counts : numpy.ndarray
             Number counts in redshift and richness bins
@@ -396,7 +396,9 @@ class ClusterClustering:
                             * avol_bpk_mean_values[
                                 :, ind_lambda_j, ind_lambda_h, np.newaxis, np.newaxis, :
                             ]
-                            * self.cluster_statitstics_modeling.kernel_tables["dk"],
+                            * self.cluster_statitstics_modeling.tabulated_integrands[
+                                "dk"
+                            ],
                         )
 
         # Compute the covariance : (z_obs, lambda_obs,  lambda_obs, lambda_obs, lambda_obs, radius, radius)

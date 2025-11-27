@@ -102,8 +102,8 @@ class ClusterWeakLensing:
         # excess surface mass density : (ztrue, M, radius)
         excess_surface_mass_density = self.profile.excess_surface_mass_density(
             radius_edges[:-1],
-            self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-            self.cluster_statitstics_modeling.kernel_tables["M"],
+            self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
+            self.cluster_statitstics_modeling.tabulated_integrands["M"],
             self.halo_concentration,
         )
         # excess surface mass density in a richness bin, integrated on mass w HMF : (lambda_obs, ztrue, radius)
@@ -116,23 +116,26 @@ class ClusterWeakLensing:
         # redshift part
 
         # Effective inverse critical surface mass density : (z_obs, ztrue)
-        inv_sig_crit_eff = np.zeros(
+        effective_inverse_critical_surface_mass_density = np.zeros(
             (
                 z_obs_edges_size,
-                self.cluster_statitstics_modeling.kernel_tables["ztrue"].size,
+                self.cluster_statitstics_modeling.tabulated_integrands["ztrue"].size,
             )
         )
         for ind_z in range(z_obs_edges_size):
-            inv_sig_crit_eff[ind_z] = self.profile.m_sig_crit_m1(
-                self.cluster_statitstics_modeling.kernel_tables["ztrue"],
-                ind_z,
+            effective_inverse_critical_surface_mass_density[ind_z] = (
+                self.profile.m_sig_crit_m1(
+                    self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
+                    ind_z,
+                )
             )
 
         # output : (z_obs, lambda_obs, radius)
         deltasigma_mean_values = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
                 excess_surface_density_in_window_lambda_obs_mass_integrated,
-                window_z_obs * inv_sig_crit_eff[:, np.newaxis, :],
+                window_z_obs
+                * effective_inverse_critical_surface_mass_density[:, np.newaxis, :],
             )
         ) / cluster_counts[:, :, np.newaxis]
         return deltasigma_mean_values
