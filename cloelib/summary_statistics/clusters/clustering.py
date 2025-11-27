@@ -52,7 +52,7 @@ class ClusterClustering:
         lambda_obs_mid,
         window_z_obs,
         window_lambda_obs_mass_integrated,
-        halo_bias_mass_integrated,
+        halo_bias_in_window_lambda_obs_mass_integrated,
     ):
         """Computes Pk IR resummation.
 
@@ -81,9 +81,10 @@ class ClusterClustering:
         ).transpose(1, 0, 2, 3)
 
         # compute effective halo bias, with shape (lambda_obs, ztrue, 1)
-        b_eff = (halo_bias_mass_integrated / window_lambda_obs_mass_integrated)[
-            :, :, np.newaxis
-        ]
+        b_eff = (
+            halo_bias_in_window_lambda_obs_mass_integrated
+            / window_lambda_obs_mass_integrated
+        )[:, :, np.newaxis]
 
         # corrected power specrum (lambda_obs, ztrue, k)
         pk_halo = (
@@ -161,7 +162,7 @@ class ClusterClustering:
             )
         )
         # integral of P(lambda_obs|M, z)*dn/dM*bias on lambda_obs bins and mass : (lambda_obs, ztrue)
-        halo_bias_mass_integrated = (
+        halo_bias_in_window_lambda_obs_mass_integrated = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 self.cluster_statitstics_modeling.kernel_tables["bias(ztrue,M)"],
                 _window_lambda_obs,
@@ -184,7 +185,7 @@ class ClusterClustering:
             _lambda_obs_mid,
             window_z_obs,
             window_lambda_obs_mass_integrated,
-            halo_bias_mass_integrated,
+            halo_bias_in_window_lambda_obs_mass_integrated,
         ) / (
             cluster_counts[:, np.newaxis, :, np.newaxis]
             * cluster_counts[:, :, np.newaxis, np.newaxis]

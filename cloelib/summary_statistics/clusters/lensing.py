@@ -106,8 +106,8 @@ class ClusterWeakLensing:
             self.cluster_statitstics_modeling.kernel_tables["M"],
             self.halo_concentration,
         )
-        # excess surface mass density in a richness bin, integrated on mass w HMF : (lambda_obs, ztrue, M, radius)
-        deltasigma_lambda_obs_edges = (
+        # excess surface mass density in a richness bin, integrated on mass w HMF : (lambda_obs, ztrue, radius)
+        excess_surface_density_in_window_lambda_obs_mass_integrated = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 excess_surface_mass_density, window_lambda_obs
             )
@@ -131,7 +131,7 @@ class ClusterWeakLensing:
         # output : (z_obs, lambda_obs, radius)
         deltasigma_mean_values = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-                deltasigma_lambda_obs_edges,
+                excess_surface_density_in_window_lambda_obs_mass_integrated,
                 window_z_obs * inv_sig_crit_eff[:, np.newaxis, :],
             )
         ) / cluster_counts[:, :, np.newaxis]
