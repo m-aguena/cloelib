@@ -10,11 +10,6 @@ class TinkerHMFBias:
 
         self.halo_statistics = halo_statistics
 
-    @property
-    def background(self):
-        r"""Returns the Background class instance"""
-        return self.halo_statistics.perturbations.background
-
     def f_sigma_nu(self, sigma, dlnsigmadlnM, delta_c, Omega_m):
         r"""
         Computation of the multiplicity function.

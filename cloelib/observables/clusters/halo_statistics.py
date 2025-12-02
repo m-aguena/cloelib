@@ -425,7 +425,7 @@ class HaloStatistics:
 
     def _dn_dm_precomp_input(self, M, fsigmanu, dlnsigmadlnM):
         r"""Derivative of the number density with pre-computed
-        sigma, dsigma, Omega_m.
+        sigma, dsigma.
 
         Computes the derivative of the number density
         at the requested redshift and mass points.
