@@ -99,6 +99,4 @@ class TinkerHMFBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        return self.halo_statistics._dn_dm_precomp_fsigmanu(
-            z, M, self.f_sigma_nu(z, M)
-        )
+        return self.halo_statistics._dn_dm_precomp_fsigmanu(z, M, self.f_sigma_nu(z, M))
