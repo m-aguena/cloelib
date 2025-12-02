@@ -10,7 +10,7 @@ class TinkerHMFBias:
 
         self.halo_statistics = halo_statistics
 
-    def f_sigma_nu(self, sigma, dlnsigmadlnM, delta_c, Omega_m):
+    def f_sigma_nu(self, z, M):
         r"""
         Computation of the multiplicity function.
 
@@ -19,16 +19,10 @@ class TinkerHMFBias:
 
         Parameters
         ----------
-        nu: numpy.ndarray
-            Critical overdensity over the rms, delta_c/sigma.
-        dlnsigmadlnM: numpy.ndarray
-            Mass points in h^{-1} Msun
-            Derivative of the log rms with respect to the mass.
-        delta_c: numpy.ndarray
-            Critical overdensity.
-        Omega_m: numpy.ndarray
-            Matter content of the universe computed at the same redshifts
-            as nu, dlnsigmadlnM.
+        z: numpy.ndarray
+            Redshift points.
+        M: numpy.ndarray
+            Mass points in h^{-1} Msun.
 
         Returns
         -------
@@ -36,52 +30,6 @@ class TinkerHMFBias:
             f_sigma_nu[i,j], where i is the redshift axis and j the mass axis
         """
         raise NotImplementedError
-
-    def bias_nu(self, nu, dlnsigmadlnM, delta_c, Omega_m, Delta):
-        r"""
-        Computation of the halo bias.
-
-        Computes the Castro et al. (2024) halo bias
-        at the requested redshift and mass points.
-
-        Parameters
-        ----------
-        nu: numpy.ndarray
-            Critical overdensity over the rms, delta_c/sigma.
-        dlnsigmadlnM: numpy.ndarray
-            Mass points in h^{-1} Msun
-            Derivative of the log rms with respect to the mass.
-        delta_c: numpy.ndarray
-            Critical overdensity.
-        Omega_m: numpy.ndarray
-            Matter content of the universe computed at the same redshifts
-            as nu, dlnsigmadlnM.
-        Delta: numpy.ndarray
-            Overdensity of mass definition.
-
-        Returns
-        -------
-        bias: numpy.ndarray
-            bias[i,j], where i is the redshift axis and j the mass axis
-        """
-        # parameters
-        p = [1.0, 0.24, 0.44, 0.88, 0.183, 1.5, 0.019, 0.107, 0.19, 2.4]
-        y = np.log10(Delta)
-        A_par = p[0] + p[1] * y * np.e ** (-((4.0 / y) ** 4))
-        a_par = p[2] * y - p[3]
-        B_par = p[4]
-        b_par = p[5]
-        C_par = p[6] + p[7] * y + p[8] * np.e ** (-((4.0 / y) ** 4))
-        c_par = p[9]
-
-        # bias
-        _nu = nu.T
-        return (
-            1.0
-            - A_par * _nu**a_par / (_nu**a_par + delta_c**a_par)
-            + B_par * _nu**b_par
-            + C_par * _nu**c_par
-        ).T
 
     def bias(self, z, M):
         r"""
@@ -103,15 +51,34 @@ class TinkerHMFBias:
             bias[i,j], where i is the redshift axis and j the mass axis
         """
         # compute inputs
-        Omega_m = self.halo_statistics._Omega_m(z)
         delta_c = self.halo_statistics.delta_c(z)
-        dlnsigmadlnM = None  # not used - self.halo_statistics.dlns_dlnM(z, M)
         nu = delta_c[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
         Delta = self.halo_statistics.get_Delta_crit(z) / self.halo_statistics._Omega_m(
             z
         )
 
-        return self.bias_nu(nu, dlnsigmadlnM, delta_c, Omega_m, Delta)
+        ###################
+        # Bias computations
+        ###################
+
+        # parameters
+        p = [1.0, 0.24, 0.44, 0.88, 0.183, 1.5, 0.019, 0.107, 0.19, 2.4]
+        y = np.log10(Delta)
+        A_par = p[0] + p[1] * y * np.e ** (-((4.0 / y) ** 4))
+        a_par = p[2] * y - p[3]
+        B_par = p[4]
+        b_par = p[5]
+        C_par = p[6] + p[7] * y + p[8] * np.e ** (-((4.0 / y) ** 4))
+        c_par = p[9]
+
+        # bias
+        _nu = nu.T
+        return (
+            1.0
+            - A_par * _nu**a_par / (_nu**a_par + delta_c**a_par)
+            + B_par * _nu**b_par
+            + C_par * _nu**c_par
+        ).T
 
     def dn_dm(self, z, M):
         r"""Derivative of the number density.
@@ -132,12 +99,6 @@ class TinkerHMFBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        # compute inputs
-        Omega_m = self.halo_statistics._Omega_m(z)
-        delta_c = self.halo_statistics.delta_c(z)
-        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
-        nu = delta_c[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
-
-        return self.halo_statistics._dn_dm_precomp_input(
-            M, self.f_sigma_nu(nu, dlnsigmadlnM, delta_c, Omega_m), dlnsigmadlnM
+        return self.halo_statistics._dn_dm_precomp_fsigmanu(
+            z, M, self.f_sigma_nu(z, M)
         )

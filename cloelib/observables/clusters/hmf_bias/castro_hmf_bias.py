@@ -12,7 +12,7 @@ class CastroHMFBias:
 
         self.halo_statistics = halo_statistics
 
-    def f_sigma_nu(self, nu, dlnsigmadlnM, delta_c, Omega_m):
+    def f_sigma_nu(self, z, M):
         r"""
         Computation of the multiplicity function.
 
@@ -21,22 +21,25 @@ class CastroHMFBias:
 
         Parameters
         ----------
-        nu: numpy.ndarray
-            Critical overdensity over the rms, delta_c/sigma.
-        dlnsigmadlnM: numpy.ndarray
-            Mass points in h^{-1} Msun
-            Derivative of the log rms with respect to the mass.
-        delta_c: numpy.ndarray
-            Critical overdensity.
-        Omega_m: numpy.ndarray
-            Matter content of the universe computed at the same redshifts
-            as nu, dlnsigmadlnM.
+        z: numpy.ndarray
+            Redshift points.
+        M: numpy.ndarray
+            Mass points in h^{-1} Msun.
 
         Returns
         -------
         f_sigma_nu: numpy.ndarray
             f_sigma_nu[i,j], where i is the redshift axis and j the mass axis
         """
+        # compute inputs
+        Omega_m = self.halo_statistics._Omega_m(z)
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
+        nu = self.halo_statistics.delta_c(z)[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
+
+        ##################
+        # HMF computations
+        ##################
+
         a1 = 0.7962
         a2 = 0.1449
         az = -0.0658
@@ -68,54 +71,6 @@ class CastroHMFBias:
             * (nu * np.sqrt(a)) ** (q - 1.0)
         ) * nu
 
-    def bias_nu(self, nu, dlnsigmadlnM, delta_c, Omega_m):
-        r"""
-        Computation of the halo bias.
-
-        Computes the Castro et al. (2024) halo bias
-        at the requested redshift and mass points.
-
-        Parameters
-        ----------
-        nu: numpy.ndarray
-            Critical overdensity over the rms, delta_c/sigma.
-        dlnsigmadlnM: numpy.ndarray
-            Mass points in h^{-1} Msun
-            Derivative of the log rms with respect to the mass.
-        delta_c: numpy.ndarray
-            Critical overdensity.
-        Omega_m: numpy.ndarray
-            Matter content of the universe computed at the same redshifts
-            as nu, dlnsigmadlnM.
-
-        Returns
-        -------
-        bias: numpy.ndarray
-            bias[i,j], where i is the redshift axis and j the mass axis
-        """
-        # Compute main quantities
-        dlnsigmadlnR = 3 * dlnsigmadlnM
-        fsigmanu = self.f_sigma_nu(nu, dlnsigmadlnM, delta_c, Omega_m)
-        S8 = self.halo_statistics.sigma8 * np.sqrt(
-            self.halo_statistics._Omega_m(0.0) / 0.3
-        )
-
-        dlnfsigmanu_dlnnu = np.zeros(fsigmanu.shape)
-        for i in range(len(Omega_m)):
-            fsigmanu_int = interpolate.splrep(np.log(nu[i]), np.log(fsigmanu[i]), s=0)
-            dlnfsigmanu_dlnnu[i] = interpolate.splev(np.log(nu[i]), fsigmanu_int, der=1)
-
-        # parameters
-        A0, a1, b1, b2, c1 = 1.150, 0.0929, 0.256, 0.173, -0.0372
-        b_pbs = 1 - 1 / delta_c[:, np.newaxis] * dlnfsigmanu_dlnnu
-        f0 = 1 + a1 * Omega_m[:, np.newaxis]
-        f1 = 1 + b1 * dlnsigmadlnR + b2 * dlnsigmadlnR**2
-        f2 = 1 + c1 * S8
-
-        # bias
-        bias = A0 * f0 * f1 * f2 * b_pbs
-
-        return bias
 
     def bias(self, z, M):
         r"""
@@ -140,6 +95,7 @@ class CastroHMFBias:
         -------
         If the mass array has less than 4 entries, this causes problem with the derivative
         """
+        # Format mass shape
         if not hasattr(M, "__len__"):
             M = [M]
         M = np.asarray(M)
@@ -153,8 +109,31 @@ class CastroHMFBias:
         dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
         nu = delta_c[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
 
+        ###################
+        # Bias computations
+        ###################
+
+        # Compute main quantities
+        dlnsigmadlnR = 3 * dlnsigmadlnM
+        fsigmanu = self.f_sigma_nu(z, M)
+        S8 = self.halo_statistics.sigma8 * np.sqrt(
+            self.halo_statistics._Omega_m(0.0) / 0.3
+        )
+
+        dlnfsigmanu_dlnnu = np.zeros(fsigmanu.shape)
+        for i in range(len(Omega_m)):
+            fsigmanu_int = interpolate.splrep(np.log(nu[i]), np.log(fsigmanu[i]), s=0)
+            dlnfsigmanu_dlnnu[i] = interpolate.splev(np.log(nu[i]), fsigmanu_int, der=1)
+
+        # parameters
+        A0, a1, b1, b2, c1 = 1.150, 0.0929, 0.256, 0.173, -0.0372
+        b_pbs = 1 - 1 / delta_c[:, np.newaxis] * dlnfsigmanu_dlnnu
+        f0 = 1 + a1 * Omega_m[:, np.newaxis]
+        f1 = 1 + b1 * dlnsigmadlnR + b2 * dlnsigmadlnR**2
+        f2 = 1 + c1 * S8
+
         # bias
-        bias = self.bias_nu(nu, dlnsigmadlnM, delta_c, Omega_m)
+        bias = A0 * f0 * f1 * f2 * b_pbs
 
         # original mass array size
         if lenM_orig < len(M):
@@ -181,12 +160,6 @@ class CastroHMFBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        # compute inputs
-        Omega_m = self.halo_statistics._Omega_m(z)
-        delta_c = self.halo_statistics.delta_c(z)
-        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
-        nu = delta_c[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
-
-        return self.halo_statistics._dn_dm_precomp_input(
-            M, self.f_sigma_nu(nu, dlnsigmadlnM, delta_c, Omega_m), dlnsigmadlnM
+        return self.halo_statistics._dn_dm_precomp_fsigmanu(
+            z, M, self.f_sigma_nu(z, M)
         )
