@@ -423,7 +423,7 @@ class HaloStatistics:
     # Functions with precomputed values
     # ----------------------------------
 
-    def _dn_dm_precomp_fsigmanu(self, z, M, fsigmanu):
+    def dn_dm_fsigmanu(self, z, M, fsigmanu):
         r"""Derivative of the number density with pre-computed
         halo mass function.
 
