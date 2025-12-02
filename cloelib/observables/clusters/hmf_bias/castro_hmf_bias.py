@@ -155,9 +155,8 @@ class CastroHMFBias:
         # compute inputs
         Omega_m = self.halo_statistics._Omega_m(z)
         delta_c = self.halo_statistics.delta_c(z)
-        _sigma = self.halo_statistics.sigma_z_M(z, M)
-        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M, pre_computed_sigma=_sigma)
-        nu = delta_c[:, np.newaxis] / _sigma
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
+        nu = delta_c[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
 
         # bias
         bias = self.bias_nu(nu, dlnsigmadlnM, delta_c, Omega_m)
@@ -190,10 +189,9 @@ class CastroHMFBias:
         # compute inputs
         Omega_m = self.halo_statistics._Omega_m(z)
         delta_c = self.halo_statistics.delta_c(z)
-        _sigma = self.halo_statistics.sigma_z_M(z, M)
-        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M, pre_computed_sigma=_sigma)
-        nu = delta_c[:, np.newaxis] / _sigma
+        dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
+        nu = delta_c[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
 
-        return self.halo_statistics.dn_dm_precomp_input(
+        return self.halo_statistics._dn_dm_precomp_input(
             M, self.f_sigma_nu(nu, dlnsigmadlnM, delta_c, Omega_m), dlnsigmadlnM
         )
