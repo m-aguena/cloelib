@@ -52,7 +52,7 @@ class TinkerHMFBias:
         """
         # compute inputs
         delta_c = self.halo_statistics.delta_c(z)
-        nu = delta_c[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
+        nu = self.halo_statistics.nu_z_M(z, M)
         Delta = self.halo_statistics.get_Delta_crit(z) / self.halo_statistics._Omega_m(
             z
         )

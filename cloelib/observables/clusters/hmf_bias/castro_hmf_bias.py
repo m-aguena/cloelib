@@ -34,9 +34,7 @@ class CastroHMFBias:
         # compute inputs
         Omega_m = self.halo_statistics._Omega_m(z)
         dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
-        nu = self.halo_statistics.delta_c(z)[
-            :, np.newaxis
-        ] / self.halo_statistics.sigma_z_M(z, M)
+        nu = self.halo_statistics.nu_z_M(z, M)
 
         ##################
         # HMF computations
@@ -108,7 +106,7 @@ class CastroHMFBias:
         Omega_m = self.halo_statistics._Omega_m(z)
         delta_c = self.halo_statistics.delta_c(z)
         dlnsigmadlnM = self.halo_statistics.dlns_dlnM(z, M)
-        nu = delta_c[:, np.newaxis] / self.halo_statistics.sigma_z_M(z, M)
+        nu = self.halo_statistics.nu_z_M(z, M)
 
         ###################
         # Bias computations
