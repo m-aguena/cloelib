@@ -61,12 +61,18 @@ jobs:
       # Get current version
       - name: Check out the code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # fetch all history
+          fetch-tags: true  # IMPORTANT: fetch tags too
       - name: Get version from current branch
         id: current_version
         run: |
           CURRENT_VERSION="$(grep -oP '__version__ = "\K[^"]+' cloelib/observables/clusters/__init__.py)"
           echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
           echo "my branch is ${{ github.ref }}"
+          CLOE_ORG_TAG="$(git describe --tags --abbrev=0)"
+          echo "cloe-org tag: $CLOE_ORG_TAG"
+          echo "CLOE_ORG_TAG=$CLOE_ORG_TAG" >> $GITHUB_ENV
       # Get cluster_structure version
       - name: Checkout the cluster_structure branch to get its version
         uses: actions/checkout@v4
@@ -132,8 +138,6 @@ jobs:
       # Add version number to PR title
       - name : Make new title for PR
         run: |
-          CLOE_ORG_TAG="$(git describe --tags --abbrev=0)"
-          echo "cloe-org tag: $CLOE_ORG_TAG"
           NEW_TITLE="${NEW_TITLE} [version:$CURRENT_VERSION] (cloe-org:$CURRENT_VERSION)"
           echo "New title: $NEW_TITLE"
           echo "NEW_TITLE=$NEW_TITLE" >> $GITHUB_ENV
