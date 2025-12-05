@@ -83,10 +83,9 @@ class HaloStatistics:
         if any(reference_table[key] is None for key in "Mz"):
             return False
         for name, test_val in (("M", M), ("z", z)):
-            if hasattr(test_val, "__len__"):
-                if (reference_table[name] != test_val).any():
-                    return False
-            elif reference_table[name] != test_val:
+            if len(reference_table[name]) != len(test_val):
+                return False
+            elif (reference_table[name] != test_val).any():
                 return False
         return True
 
