@@ -143,7 +143,7 @@ class ClusterWeakLensing:
         return wl_profile_mean_values
 
     def get_DeltaSigma_profile(self, z_obs_edges, lambda_obs_edges, radius_edges):
-        """Compute excess surface density.
+        """Compute excess surface density profile.
 
         Parameters
         ----------
@@ -168,7 +168,7 @@ class ClusterWeakLensing:
         )
 
     def get_gt_profile(self, z_obs_edges, lambda_obs_edges, radius_edges):
-        """Compute reduced shear.
+        """Compute reduced shear profile.
 
         Parameters
         ----------
