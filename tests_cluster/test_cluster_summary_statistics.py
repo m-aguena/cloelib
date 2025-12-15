@@ -185,7 +185,7 @@ def get_values():
     )
     print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
-    gt_mean_values = cluster_wl_statistics.get_gt(
+    gt_mean_values = cluster_wl_statistics.get_gt_profile(
         z_obs_edges=z_obs_profile_edges,
         lambda_obs_edges=lambda_obs_profile_edges,
         radius_edges=radius_profile_edges,
