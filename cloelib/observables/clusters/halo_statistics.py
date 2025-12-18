@@ -626,16 +626,6 @@ class HaloStatistics:
 
         return self.nzsnorM[zbin] * simps(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
 
-    def _check_profile_shape(self, z, M, R, profile):
-        expected_shape = (
-            np.atleast_1d(z).size,
-            np.atleast_1d(M).size,
-            np.atleast_1d(R).size,
-        )
-        assert (
-            profile.shape == expected_shape
-        ), f"Expected shape {expected_shape}, got {profile.shape}"
-
     def _surface_mass_density_args(self, R, z, M, radius_units="Mpc/h"):
         r"""
         Prepare arguments for _model_surface_mass_density_profile and

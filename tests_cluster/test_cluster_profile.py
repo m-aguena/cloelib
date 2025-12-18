@@ -6,7 +6,7 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.observables.clusters.hmf_bias import CastroHMFBias
-from cloelib.observables.clusters.profile import ProfileBMO, ProfileNFW
+from cloelib.observables.clusters.mass_profile import BMOMassProfile, NFWMassProfile
 
 
 def _get_halo_statistics():
@@ -52,10 +52,9 @@ def test_array_shapes():
     print("# Profiles ")
     _prof_kwargs = dict(
         two_halo="None",
-        trunc_fact=3.0,
     )
 
-    profile_nfw = ProfileNFW(_get_halo_statistics(), **_prof_kwargs)
+    profile_nfw = NFWMassProfile(_get_halo_statistics(), **_prof_kwargs)
 
     R_test = np.linspace(0.01, 1.0, 9)
     z_test = np.linspace(0.01, 0.5, 4)
@@ -137,13 +136,9 @@ def test_profiles():
 
     # Profiles
     print("# Profiles ")
-    _prof_kwargs = dict(
-        two_halo="None",
-        trunc_fact=3.0,
-    )
 
     print("  NFW")
-    profile_nfw = ProfileNFW(_get_halo_statistics(), **_prof_kwargs)
+    profile_nfw = NFWMassProfile(_get_halo_statistics(), two_halo="None")
     _reference_vals = {
         # All validation values have to be updated with extarnal values
         "sigma_crit": {
@@ -200,5 +195,10 @@ def test_profiles():
             },
         }
     )
-    profile_bmo = ProfileBMO(_get_halo_statistics(), **_prof_kwargs)
+
+    _prof_kwargs = dict(
+        two_halo="None",
+        trunc_fact=3.0,
+    )
+    profile_bmo = BMOMassProfile(_get_halo_statistics(), **_prof_kwargs)
     _test_profile(profile_bmo, _reference_vals)
