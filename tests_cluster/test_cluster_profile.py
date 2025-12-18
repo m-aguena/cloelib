@@ -42,6 +42,7 @@ def _get_halo_statistics():
         alpha_nz=0.4,
     )
 
+
 def _get_castro():
     return CastroHMFBias(_get_halo_statistics())
 
@@ -80,10 +81,7 @@ def test_array_shapes():
             profile_nfw.two_halo = two_halo
 
             assert profile_nfw.surface_mass_density(**_kwargs).shape == out_shape
-            assert (
-                profile_nfw.excess_surface_mass_density(**_kwargs).shape
-                == out_shape
-            )
+            assert profile_nfw.excess_surface_mass_density(**_kwargs).shape == out_shape
 
         _kwargs.pop("halo_bias")
         _kwargs.pop("c")

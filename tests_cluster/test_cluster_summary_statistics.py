@@ -101,7 +101,7 @@ def get_values():
     # Istanciate objects
 
     selectionFunction = SelectionFunction(**_sel_pars)
-    HS=HaloStatistics(
+    HS = HaloStatistics(
         perturbations,
         z_Pk=integ_ztrue_arr,
         k=integ_k_arr,
