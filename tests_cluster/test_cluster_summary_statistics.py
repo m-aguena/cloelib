@@ -111,18 +111,17 @@ def get_values():
     # Istanciate objects
 
     selectionFunction = SelectionFunction(**_sel_pars)
-    HSCastro = CastroHMFBias(
-        halo_statistics=HaloStatistics(
-            perturbations,
-            z=integ_ztrue_arr,
-            k=integ_k_arr,
-            overdensity_type=overdensity_type,
-        )
+    HS=HaloStatistics(
+        perturbations,
+        z=integ_ztrue_arr,
+        k=integ_k_arr,
+        overdensity_type=overdensity_type,
     )
+    HSCastro = CastroHMFBias(halo_statistics=HS)
     covariance = HaloCovariance(
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
-    profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
+    profileNFW = ProfileNFW(HS, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
     haloClustering = HaloClustering(
         perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
     )

@@ -9,7 +9,6 @@ from scipy.stats import skewnorm
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
-from cloelib.observables.clusters.hmf_bias import HMFBias
 
 
 def _bessel_j2(x):
@@ -20,7 +19,7 @@ def _bessel_j2(x):
 class Profile:
     def __init__(
         self,
-        hmfbias: HMFBias,
+        halo_statistics: HaloStatistics,
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         r_interp: np.ndarray = np.logspace(-10, 2.5, 200),
@@ -31,7 +30,7 @@ class Profile:
         sigma_nz: float = 0.3,
         alpha_nz: float = 0.4,
     ):
-        self.hmfbias = hmfbias
+        self.halo_statistics = halo_statistics
 
         self.k = k
         self.z = z
@@ -60,10 +59,6 @@ class Profile:
             ),
             ext=2,
         )
-
-    @property
-    def halo_statistics(self):
-        return self.hmfbias.halo_statistics
 
     @property
     def perturbations(self):
@@ -256,7 +251,7 @@ class Profile:
         z,
         M,
         c,
-        bias_z=None,
+        halo_bias=None,
         radius_units="Mpc/h",
     ):
         r"""
@@ -275,9 +270,8 @@ class Profile:
             Mass (Msun / h).
         c: float
             Concentration.
-        bias_z: np.ndarray
-            Halo bias used for the 2h term. If None, it is computed internally,
-            else has to be shape (z.size, M.size).
+        halo_bias: np.ndarray (optional)
+            Halo bias used for the 2h term, with shape (z.size, M.size).
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
@@ -288,12 +282,15 @@ class Profile:
             Surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
+        if self.two_halo != "None" and halo_bias is None:
+            raise ValueError("halo_bias must be provided when two_halo != 'None'")
+
         Sigma = self._surface_mass_density_1h(
             R, z, M, c, radius_units=radius_units
         )
 
         if self.two_halo != "None":
-            Sigma_2h = self._surface_mass_density_2h(R, z, M, bias_z, radius_units)
+            Sigma_2h = self._surface_mass_density_2h(R, z, M, halo_bias, radius_units)
             if self.two_halo == "sum":
                 Sigma += Sigma_2h
             elif self.two_halo == "max":
@@ -303,7 +300,7 @@ class Profile:
         return Sigma
 
     def excess_surface_mass_density(
-        self, R, z, M, c, bias_z=None, radius_units="Mpc/h"
+        self, R, z, M, c, halo_bias=None, radius_units="Mpc/h"
     ):
         r"""
         Total excess surface mass density profile.
@@ -321,9 +318,8 @@ class Profile:
             Concentration.
         M: np.ndarray
             Mass (Msun / h).
-        bias_z: np.ndarray
-            Halo bias used for the 2h term. If None, it is computed internally,
-            else has to be shape (z.size, M.size).
+        halo_bias: np.ndarray (optional)
+            Halo bias used for the 2h term, with shape (z.size, M.size).
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
@@ -334,6 +330,9 @@ class Profile:
             Excess surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
+        if self.two_halo != "None" and halo_bias is None:
+            raise ValueError("halo_bias must be provided when two_halo != 'None'")
+
         # centered 1h term
         Sigma_mean = self._model_mean_surface_mass_density_profile(
             *self._surface_mass_density_args(R, z, M, radius_units=radius_units), c
@@ -346,7 +345,7 @@ class Profile:
         # centered 2h term
         if self.two_halo != "None":
             DeltaSigma_2h = self._excess_surface_mass_density_2h(
-                R, z, M, bias_z, radius_units
+                R, z, M, halo_bias, radius_units
             )
             if self.two_halo == "sum":
                 DeltaSigma += DeltaSigma_2h
@@ -500,13 +499,13 @@ class Profile:
         raise NotImplementedError
 
     def _func_mass_density_2h(
-        self, R, z, M, bias_z, bessel_function, radius_units="Mpc/h"
+        self, R, z, M, halo_bias, bessel_function, radius_units="Mpc/h"
     ):
         r"""
         Surface or excess surface 2-halo density profile.
 
         Computes either the cosmological surface or excess surface
-        2-halo density profile at radius R.
+        (depending on the input Bessel function) 2-halo density profile.
 
         Parameters
         ----------
@@ -516,9 +515,8 @@ class Profile:
             Redshift.
         M: np.ndarray
             Mass (Msun / h).
-        bias_z: np.ndarray
-            Halo bias. If None, it is computed internally,
-            else has to be shape (z.size, M.size).
+        halo_bias: np.ndarray
+            Halo bias, with shape (z.size, M.size).
         bessel_function: function
             Bessel function that goes in the integrand with the power spectrum.
             Used to return the surface density or the excess surface density.
@@ -543,9 +541,21 @@ class Profile:
         )[:, np.newaxis, np.newaxis]
 
         # Ensure bias has shape (nz, nM, 1)
-        if bias_z is None:
-            bias_z = self.hmfbias.bias(z, M)
-        bias_z_outshape = np.asarray(bias_z)[:, :, np.newaxis]
+        if halo_bias is None:
+            raise ValueError(
+                "halo_bias must be provided explicitly when computing the 2-halo term."
+            )
+
+        halo_bias = np.asarray(halo_bias)
+        nz = np.atleast_1d(z).size
+        nM = np.atleast_1d(M).size
+        if halo_bias.shape != (nz, nM):
+            raise ValueError(
+                f"halo_bias must have shape (len(z), len(M)) = ({nz}, {nM}), "
+                f"got {halo_bias.shape}"
+            )
+        
+        halo_bias_outshape = halo_bias[:, :, np.newaxis]
 
         # Two point correlation part
 
@@ -575,14 +585,14 @@ class Profile:
 
         # Final strictly 3D calculation
         profile = (
-            1.0e-12 * rho_m_outshape * bias_z_outshape * two_point_corr_outshape
+            1.0e-12 * rho_m_outshape * halo_bias_outshape * two_point_corr_outshape
         ) / (2.0 * np.pi * (1.0 + z_outshape) ** 3.0 * D_A_outshape**2.0)
 
         self._check_profile_shape(z, M, R, profile)
 
         return profile
 
-    def _surface_mass_density_2h(self, R, z, M, bias_z=None, radius_units="Mpc/h"):
+    def _surface_mass_density_2h(self, R, z, M, halo_bias, radius_units="Mpc/h"):
         r"""
         Surface 2-halo density profile.
 
@@ -596,8 +606,8 @@ class Profile:
             Redshift.
         M: np.ndarray
             Mass (Msun / h).
-        bias_z: np.ndarray (optional)
-            Halo bias. If None, it is computed internally.
+        halo_bias: np.ndarray
+            Halo bias, with shape (z.size, M.size).
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
@@ -609,11 +619,11 @@ class Profile:
             Shape: (z.size, M.size, R.size).
         """
         return self._func_mass_density_2h(
-            R, z, M, bias_z, bessel_function=j0, radius_units=radius_units
+            R, z, M, halo_bias, bessel_function=j0, radius_units=radius_units
         )
 
     def _excess_surface_mass_density_2h(
-        self, R, z, M, bias_z=None, radius_units="Mpc/h"
+        self, R, z, M, halo_bias, radius_units="Mpc/h"
     ):
         r"""
         Excess surface 2-halo density profile.
@@ -629,8 +639,8 @@ class Profile:
             Redshift.
         M: np.ndarray
             Mass (Msun / h).
-        bias_z: np.ndarray (optional)
-            Halo bias. If None, it is computed internally.
+        halo_bias: np.ndarray
+            Halo bias, with shape (z.size, M.size).
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
@@ -645,7 +655,7 @@ class Profile:
             R,
             z,
             M,
-            bias_z,
+            halo_bias,
             bessel_function=_bessel_j2,
             radius_units=radius_units,
         )
