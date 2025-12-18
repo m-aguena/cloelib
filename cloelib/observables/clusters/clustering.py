@@ -1,9 +1,10 @@
 # import jax.numpy as np
 import numpy as np
 from scipy.integrate import simpson as simps
-from scipy.special import erf, spherical_jn
+from scipy.special import spherical_jn
 
 from cloelib.cosmology.cosmology import Perturbations
+from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 from ...auxiliary import units
@@ -239,34 +240,10 @@ class HaloClustering:
         corr0, corr1, corr2: np.ndarray, np.ndarray, np.ndarray
             Correction terms to the power spectrum monopole
         """
-
-        # growth rate
-        f_gr = (self._Omega_m(z) ** 0.55)[:, np.newaxis]
-
-        ks = self.k * (
-            self.selectionfunction.scatter_zobs_z(Lambda_obs, z)
-            * (units.SPEED_OF_LIGHT * 1e-3)
-            / self.background.hubble_parameter(z)
-            * (self.background.H0 / 100)
-        ).reshape(len(z), 1)
-
-        erf_ks = erf(ks)
-
-        corr0 = np.sqrt(np.pi) / (2 * ks) * erf_ks
-        corr1 = f_gr / ks**3 * (np.sqrt(np.pi) / 2 * erf_ks - ks * np.exp(-(ks**2)))
-        corr2 = (
-            f_gr**2
-            / ks**5
-            * (
-                3 * np.sqrt(np.pi) / 8 * erf_ks
-                - ks / 4 * (2 * ks**2 + 3) * np.exp(-(ks**2))
-            )
+        return derived_cosmology.photoz_rsd_correction(
+            self.background,
+            z,
+            self.k,
+            self.selectionfunction.scatter_zobs_z(Lambda_obs, z),
+            self.nonu,
         )
-
-        # correct for numerical inaccuracy
-        # note: for jax, use corr1 = corr1.at[idx].set(2 / 3.0)
-        idx = erf_ks < 0.02
-        corr1[idx] = 2 / 3.0
-        corr2[idx] = 1 / 5.0
-
-        return corr0, corr1, corr2

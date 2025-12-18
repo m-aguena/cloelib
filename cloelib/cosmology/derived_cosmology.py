@@ -5,6 +5,7 @@ from cloelib.auxiliary import units
 
 # General imports
 import numpy as np
+from scipy.special import erf
 
 _log10_GRAVITATIONAL_CONSTANT = np.log10(units.GRAVITATIONAL_CONSTANT)
 
@@ -90,8 +91,13 @@ def rdrag_fitting_function(background, neff=3.046):
     )
     return r_d
 
+
 def photoz_rsd_correction(
-    background, zs: np.ndarray, ks: np.ndarray
+    background,
+    zs: np.ndarray,
+    ks: np.ndarray,
+    z_obs_scatter: np.ndarray,
+    nonu: bool,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute the correction that accounts for photo-z uncertainty and RSD (Kaiser effect)
@@ -106,20 +112,26 @@ def photoz_rsd_correction(
         redshift
     z_obs_scatter: numpy.ndarray
         Observed redshift scatter with shape (true z, obs z).
+    nonu: bool
+        Consider neutrinos to compute the growth rate
 
     Returns
     -------
     corr0, corr1, corr2: np.ndarray, np.ndarray, np.ndarray
         Correction terms to the power spectrum monopole
     """
+    if nonu:
+        _Omega_m_func = background.Omega_m_cb
+    else:
+        _Omega_m_func = background.Omega_m
 
     # growth rate
-    f_gr = (self._Omega_m(zs) ** 0.55)[:, np.newaxis]
+    f_gr = (_Omega_m_func(zs) ** 0.55)[:, np.newaxis]
 
     ks_z = ks * (
         z_obs_scatter
         * (units.SPEED_OF_LIGHT * 1e-3)
-        / background.hubble_parameter(z)
+        / background.hubble_parameter(zs)
         * (background.H0 / 100)
     ).reshape(len(zs), 1)
 
