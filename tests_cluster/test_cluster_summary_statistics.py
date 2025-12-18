@@ -126,9 +126,7 @@ def get_values():
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
     profileNFW = ProfileNFW(HSCastro, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
-    haloClustering = HaloClustering(
-        perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
-    )
+    haloClustering = HaloClustering(perturbations, perturbations_fid, k=integ_k_arr)
 
     print(f"init obs  :  {time.time()-t0:.4f} seconds")
     t0 = time.time()

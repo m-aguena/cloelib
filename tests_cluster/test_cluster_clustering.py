@@ -8,7 +8,7 @@ from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
-def _test_clustering(CL, perturbations):
+def _test_clustering(CL, SF, perturbations):
     z_test = np.array([0.0, 1.0])
     r_test = np.array([30.0, 60.0, 90.0])
     lob_test = np.array([50.0])
@@ -56,7 +56,7 @@ def _test_clustering(CL, perturbations):
         CL.background,
         z_test,
         CL.k,
-        CL.selectionfunction.scatter_zobs_z(lob_test, z_test),
+        SF.scatter_zobs_z(lob_test, z_test),
         CL.nonu,
     )
     assert_allclose(corr0[:, [0, -1]], ref_phz_rsd_0, rtol=1e-04)
@@ -115,5 +115,5 @@ def test_clustering():
         sig_z_lambda=0.1,
     )
     SF = SelectionFunction(**_sel_pars)
-    CL = HaloClustering(perturbations, perturbations_fid, SF, nonu=nonu)
-    _test_clustering(CL, perturbations)
+    CL = HaloClustering(perturbations, perturbations_fid, nonu=nonu)
+    _test_clustering(CL, SF, perturbations)

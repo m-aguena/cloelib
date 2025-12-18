@@ -77,7 +77,7 @@ class ClusterClustering:
                     self.clustering.background,
                     self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
                     self.clustering.k,
-                    self.clustering.selectionfunction.scatter_zobs_z(
+                    self.cluster_statitstics_modeling.selectionfunction.scatter_zobs_z(
                         _lambda_obs,
                         self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
                     ),

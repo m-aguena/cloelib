@@ -15,14 +15,12 @@ class HaloClustering:
         self,
         perturbations: Perturbations,
         perturbations_fid: Perturbations,
-        selectionfunction: SelectionFunction,
         k: np.ndarray = np.geomspace(1e-4, 10, 500),
         nonu: bool = False,
     ):
 
         self.background = perturbations.background
         self.background_fid = perturbations_fid.background
-        self.selectionfunction = selectionfunction
         self.nonu = nonu
 
         # wavelength array (integration variable)
