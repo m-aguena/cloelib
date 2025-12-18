@@ -3,7 +3,7 @@ import numpy as np
 from scipy.integrate import simpson as simps
 
 # cloelib imports
-from cloelib.observables.clusters.profile import Profile
+from cloelib.observables.clusters.mass_profile import MassProfile
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -23,7 +23,7 @@ class ClusterWeakLensing:
     def __init__(
         self,
         cluster_statitstics_modeling: ClusterStatisticsModeling,
-        profile: Profile,
+        profile: MassProfile,
         halo_concentration: float,
     ):
         """

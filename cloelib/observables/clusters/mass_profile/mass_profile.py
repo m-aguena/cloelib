@@ -10,6 +10,7 @@ Protocol for the halo mass density profiles.
 
 T = TypeVar("T", bound=Union[jnp.ndarray, np.ndarray])
 
+
 @runtime_checkable
 class MassProfile(Protocol):
     def _f_term(self, x: float) -> float:
@@ -71,7 +72,13 @@ class MassProfile(Protocol):
         ...
 
     def surface_mass_density(
-        self, R: T, z: T, M: T, c: float, halo_bias: str, radius_units: str,
+        self,
+        R: T,
+        z: T,
+        M: T,
+        c: float,
+        halo_bias: str,
+        radius_units: str,
     ):
         r"""
         Total surface mass density profile.
@@ -104,7 +111,13 @@ class MassProfile(Protocol):
         ...
 
     def excess_surface_mass_density(
-        self, R: T, z: T, M: T, c: float, halo_bias: str, radius_units: str,
+        self,
+        R: T,
+        z: T,
+        M: T,
+        c: float,
+        halo_bias: str,
+        radius_units: str,
     ):
         r"""
         Total excess surface mass density profile.

@@ -15,6 +15,7 @@ def _bessel_j2(x):
     """Bessel function j2"""
     return 2.0 / x * j1(x) - j0(x)
 
+
 class HaloStatistics:
     def __init__(
         self,
@@ -762,7 +763,7 @@ class HaloStatistics:
                 f"halo_bias must have shape (len(z), len(M)) = ({nz}, {nM}), "
                 f"got {halo_bias.shape}"
             )
-        
+
         halo_bias_outshape = halo_bias[:, :, np.newaxis]
 
         # Two point correlation part
@@ -828,9 +829,7 @@ class HaloStatistics:
             R, z, M, halo_bias, bessel_function=j0, radius_units=radius_units
         )
 
-    def _excess_surface_mass_density_2h(
-        self, R, z, M, halo_bias, radius_units="Mpc/h"
-    ):
+    def _excess_surface_mass_density_2h(self, R, z, M, halo_bias, radius_units="Mpc/h"):
         r"""
         Excess surface 2-halo density profile.
 

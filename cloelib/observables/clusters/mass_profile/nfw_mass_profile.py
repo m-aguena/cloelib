@@ -2,6 +2,7 @@ import numpy as np
 
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
 
+
 class NFWMassProfile:
 
     def __init__(
@@ -141,7 +142,13 @@ class NFWMassProfile:
         return 4.0 * rho_s * Rs * (G / x**2.0) * 1.0e-12
 
     def surface_mass_density(
-        self, R, z, M, c, halo_bias=None, radius_units="Mpc/h",
+        self,
+        R,
+        z,
+        M,
+        c,
+        halo_bias=None,
+        radius_units="Mpc/h",
     ):
         r"""
         Total surface mass density profile.
@@ -172,7 +179,10 @@ class NFWMassProfile:
             Shape: (z.size, M.size, R.size).
         """
         Sigma = self._surface_mass_density_1h(
-            *self.halo_statistics._surface_mass_density_args(R, z, M, radius_units=radius_units), c
+            *self.halo_statistics._surface_mass_density_args(
+                R, z, M, radius_units=radius_units
+            ),
+            c,
         )
 
         if self.two_halo != "None":
@@ -226,13 +236,15 @@ class NFWMassProfile:
             Excess surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        R_outshape, RDelta, densityThreshold = self.halo_statistics._surface_mass_density_args(R, z, M, radius_units=radius_units)
+        R_outshape, RDelta, densityThreshold = (
+            self.halo_statistics._surface_mass_density_args(
+                R, z, M, radius_units=radius_units
+            )
+        )
         Sigma_mean = self._mean_surface_mass_density_1h(
             R_outshape, RDelta, densityThreshold, c
         )
-        Sigma = self._surface_mass_density_1h(
-            R_outshape, RDelta, densityThreshold, c
-        )
+        Sigma = self._surface_mass_density_1h(R_outshape, RDelta, densityThreshold, c)
         DeltaSigma = Sigma_mean - Sigma
 
         if self.two_halo != "None":

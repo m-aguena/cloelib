@@ -10,7 +10,7 @@ from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.observables.clusters.hmf_bias import CastroHMFBias
-from cloelib.observables.clusters.profile import ProfileNFW
+from cloelib.observables.clusters.mass_profile import NFWMassProfile
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters import (
     ClusterClustering,
@@ -78,11 +78,6 @@ def get_values():
         sig_z_lambda=5.0e-6,
     )
 
-    _prof_pars = dict(
-        two_halo="None",
-        trunc_fact=3.0,
-    )
-
     integ_k_arr = np.geomspace(1e-4, 10, 500)
     integ_mass_arr = np.logspace(12.0, 16.0, 51)
     integ_lambda_true_arr = np.geomspace(5.0, 250.0, 51)
@@ -116,7 +111,7 @@ def get_values():
     covariance = HaloCovariance(
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
-    profileNFW = ProfileNFW(HS, **_prof_pars)
+    profileNFW = NFWMassProfile(HS, two_halo="None")
     haloClustering = HaloClustering(
         perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
     )
