@@ -18,28 +18,8 @@ class Profile:
         self.two_halo = two_halo
         self.trunc_fact = trunc_fact
 
-    @property
-    def perturbations(self):
-        r"""
-        Returns the Perturbations class instance
-        """
-        return self.halo_statistics.perturbations
-
-    @property
-    def background(self):
-        r"""
-        Returns the Background class instance
-        """
-        return self.perturbations.background
-
     def surface_mass_density(
-        self,
-        R,
-        z,
-        M,
-        c,
-        halo_bias=None,
-        radius_units="Mpc/h",
+        self, R, z, M, c, halo_bias=None, radius_units="Mpc/h",
     ):
         r"""
         Total surface mass density profile.

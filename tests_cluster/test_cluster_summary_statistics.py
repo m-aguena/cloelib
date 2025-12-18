@@ -79,13 +79,8 @@ def get_values():
     )
 
     _prof_pars = dict(
-        r_interp=np.logspace(-10, 2.5, 200),
         two_halo="None",
         trunc_fact=3.0,
-        zs_max=2.0,
-        mean_nz=0.4,
-        sigma_nz=0.3,
-        alpha_nz=0.4,
     )
 
     integ_k_arr = np.geomspace(1e-4, 10, 500)
@@ -113,7 +108,7 @@ def get_values():
     selectionFunction = SelectionFunction(**_sel_pars)
     HS=HaloStatistics(
         perturbations,
-        z=integ_ztrue_arr,
+        z_Pk=integ_ztrue_arr,
         k=integ_k_arr,
         overdensity_type=overdensity_type,
     )
@@ -121,7 +116,7 @@ def get_values():
     covariance = HaloCovariance(
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
-    profileNFW = ProfileNFW(HS, k=integ_k_arr, z=integ_ztrue_arr, **_prof_pars)
+    profileNFW = ProfileNFW(HS, **_prof_pars)
     haloClustering = HaloClustering(
         perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
     )
