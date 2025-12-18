@@ -38,7 +38,8 @@ class Profile:
         self.z = z
         self.r_interp = r_interp
 
-        self._validate_two_halo(two_halo)
+        if two_halo not in ("None", "sum", "max"):
+            raise ValueError("Invalid 'two_halo' definition, %s." % two_halo)
         self.two_halo = two_halo
         self.trunc_fact = trunc_fact
 
@@ -57,10 +58,6 @@ class Profile:
         if use_interpolation:
             self.interpolate_angular_diameter_distance()
         self.use_interpolation = use_interpolation
-
-    def _validate_two_halo(self, two_halo):
-        if two_halo not in ("None", "sum", "max"):
-            raise ValueError("Invalid 'two_halo' definition, %s." % two_halo)
 
     @property
     def halo_statistics(self):
@@ -313,9 +310,19 @@ class Profile:
             Surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        return self._surface_mass_density_1h(
-            R, z, M, c, self.two_halo, bias_z, radius_units=radius_units
+        Sigma = self._surface_mass_density_1h(
+            R, z, M, c, radius_units=radius_units
         )
+
+        if self.two_halo != "None":
+            Sigma_2h = self._surface_mass_density_2h(R, z, M, bias_z, radius_units)
+            if self.two_halo == "sum":
+                Sigma += Sigma_2h
+            elif self.two_halo == "max":
+                Sigma = np.maximum(Sigma, Sigma_2h)
+
+        self._check_profile_shape(z, M, R, Sigma)
+        return Sigma
 
     def excess_surface_mass_density(
         self, R, z, M, c, bias_z=None, radius_units="Mpc/h"
@@ -354,7 +361,7 @@ class Profile:
             *self._surface_mass_density_args(R, z, M, radius_units=radius_units), c
         )
         Sigma = self._surface_mass_density_1h(
-            R, z, M, c, two_halo="None", radius_units=radius_units
+            R, z, M, c, radius_units=radius_units
         )
         DeltaSigma = Sigma_mean - Sigma
 
@@ -455,7 +462,7 @@ class Profile:
         raise NotImplementedError
 
     def _surface_mass_density_1h(
-        self, R, z, M, c, two_halo="auto", bias_z=None, radius_units="Mpc/h"
+        self, R, z, M, c, radius_units="Mpc/h"
     ):
         r"""
         Centered surface mass density profile.
@@ -474,9 +481,6 @@ class Profile:
             Concentration.
         two_halo: str
             Application of the 2-halo term, options are "None", "sum", "max".
-        bias_z: np.ndarray
-            Halo bias used for the 2h term. If None, it is computed internally,
-            else has to be shape (z.size, M.size).
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
@@ -487,21 +491,9 @@ class Profile:
             Centered surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        Sigma = self._model_surface_mass_density_profile(
+        return self._model_surface_mass_density_profile(
             *self._surface_mass_density_args(R, z, M, radius_units=radius_units), c
         )
-
-        self._validate_two_halo(two_halo)
-        if two_halo != "None":
-            Sigma_2h = self._surface_mass_density_2h(R, z, M, bias_z, radius_units)
-            if two_halo == "sum":
-                Sigma += Sigma_2h
-            elif two_halo == "max":
-                Sigma = np.maximum(Sigma, Sigma_2h)
-
-        self._check_profile_shape(z, M, R, Sigma)
-
-        return Sigma
 
     def _model_mean_surface_mass_density_profile(self, R, RDelta, Delta, c):
         r"""
