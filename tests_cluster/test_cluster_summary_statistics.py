@@ -153,7 +153,6 @@ def get_values():
     cluster_counts_statistics = ClusterCounts(
         cluster_statitstics_modeling,
         covariance,
-        photoz_rsd_correction=haloClustering.photoz_rsd_correction,
     )
     cluster_wl_statistics = ClusterWeakLensing(
         cluster_statitstics_modeling,

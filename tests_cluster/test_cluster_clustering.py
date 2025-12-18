@@ -2,6 +2,7 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
 
+from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.selection_function import SelectionFunction
@@ -51,7 +52,13 @@ def _test_clustering(CL, perturbations):
         [[1.2568793e-02, 2.4204413e-27], [9.1092102e-02, 1.0905091e-25]]
     )
 
-    corr0, corr1, corr2 = CL.photoz_rsd_correction(z_test, lob_test)
+    corr0, corr1, corr2 = derived_cosmology.photoz_rsd_correction(
+        CL.background,
+        z_test,
+        CL.k,
+        CL.selectionfunction.scatter_zobs_z(lob_test, z_test),
+        CL.nonu,
+    )
     assert_allclose(corr0[:, [0, -1]], ref_phz_rsd_0, rtol=1e-04)
     assert_allclose(corr1[:, [0, -1]], ref_phz_rsd_1, rtol=1e-04)
     assert_allclose(corr2[:, [0, -1]], ref_phz_rsd_2, rtol=1e-04)

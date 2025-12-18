@@ -3,8 +3,8 @@ import numpy as np
 from scipy.integrate import simpson as simps
 from scipy.special import spherical_jn
 
-from cloelib.cosmology.cosmology import Perturbations
 from cloelib.cosmology import derived_cosmology
+from cloelib.cosmology.cosmology import Perturbations
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 from ...auxiliary import units
@@ -221,29 +221,3 @@ class HaloClustering:
         Pk_IR = Pnw + np.e ** (-(k**2) * Sigma2[:, None]) * Pw
 
         return Pk_IR
-
-    def photoz_rsd_correction(
-        self, z: np.ndarray, Lambda_obs: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Compute the correction that accounts for photo-z uncertainty and RSD (Kaiser effect)
-
-        Parameters
-        ----------
-        z:  np.ndarray
-            redshift
-        Lambda_obs: numpy.ndarray
-            Observed richness points.
-
-        Returns
-        -------
-        corr0, corr1, corr2: np.ndarray, np.ndarray, np.ndarray
-            Correction terms to the power spectrum monopole
-        """
-        return derived_cosmology.photoz_rsd_correction(
-            self.background,
-            z,
-            self.k,
-            self.selectionfunction.scatter_zobs_z(Lambda_obs, z),
-            self.nonu,
-        )

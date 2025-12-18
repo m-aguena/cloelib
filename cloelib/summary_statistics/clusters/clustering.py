@@ -3,6 +3,7 @@ import numpy as np
 from scipy.integrate import simpson as simps
 
 # cloelib imports
+from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
@@ -72,9 +73,15 @@ class ClusterClustering:
         # rsd corrections (lambda_obs, ztrue, k)
         photoz_corr0, photoz_corr1, photoz_corr2 = np.array(
             [
-                self.clustering.photoz_rsd_correction(
+                derived_cosmology.photoz_rsd_correction(
+                    self.clustering.background,
                     self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
-                    _lambda_obs,
+                    self.clustering.k,
+                    self.clustering.selectionfunction.scatter_zobs_z(
+                        _lambda_obs,
+                        self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
+                    ),
+                    self.clustering.nonu,
                 )
                 for _lambda_obs in lambda_obs_mid
             ]
