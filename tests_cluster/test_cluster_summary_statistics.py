@@ -81,9 +81,6 @@ def get_values():
     _prof_pars = dict(
         r_interp=np.logspace(-10, 2.5, 200),
         two_halo="None",
-        offcentering=False,
-        rms_off=0.0,
-        f_off=0.0,
         trunc_fact=3.0,
         zs_max=2.0,
         mean_nz=0.4,

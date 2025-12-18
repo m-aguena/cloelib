@@ -17,7 +17,7 @@ class HaloStatistics:
         z=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
         k=np.geomspace(1e-4, 10, 500),
     ):
-        r"""A class computing halo mass function and halo bias.
+        r"""Auxiliary class computing quantities used in halo mass function and halo bias models.
 
         Initialize the class with given perturbations and overdensity definition.
 

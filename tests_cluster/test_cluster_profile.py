@@ -44,9 +44,6 @@ def test_array_shapes():
     print("# Profiles ")
     _prof_kwargs = dict(
         two_halo="None",
-        offcentering=False,
-        rms_off=0.0,
-        f_off=0.0,
         trunc_fact=3.0,
         zs_max=2.0,
         mean_nz=0.4,
@@ -135,9 +132,6 @@ def test_profiles():
     print("# Profiles ")
     _prof_kwargs = dict(
         two_halo="None",
-        offcentering=False,
-        rms_off=0.0,
-        f_off=0.0,
         trunc_fact=3.0,
         zs_max=2.0,
         mean_nz=0.4,

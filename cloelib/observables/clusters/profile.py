@@ -25,9 +25,6 @@ class Profile:
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         r_interp: np.ndarray = np.logspace(-10, 2.5, 200),
         two_halo: str = "None",
-        offcentering: bool = False,
-        rms_off: float = 0.0,
-        f_off: float = 0.0,
         trunc_fact: float = 3.0,
         zs_max: float = 2.0,
         mean_nz: float = 0.4,
@@ -43,11 +40,6 @@ class Profile:
 
         self._validate_two_halo(two_halo)
         self.two_halo = two_halo
-
-        # offcentering
-        self.offcentering = offcentering
-        self.rms_off = rms_off
-        self.f_off = f_off
         self.trunc_fact = trunc_fact
 
         # ???
@@ -321,27 +313,9 @@ class Profile:
             Surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        if self.offcentering and self.rms_off >= 1.0e-4:
-            Sigma_off = np.zeros_like(R)
-
-            ir.Sigma_off(
-                R,
-                self.r_interp,
-                self._surface_mass_density_cen(
-                    self.r_interp, z, M, c, self.two_halo, radius_units=radius_units
-                ),
-                self.rms_off,
-                Sigma_off,
-            )
-
-            Sigma_cen = self._surface_mass_density_cen(
-                R, z, M, c, self.two_halo, radius_units=radius_units
-            )
-            return (1.0 - self.f_off) * Sigma_cen + self.f_off * Sigma_off
-        else:
-            return self._surface_mass_density_cen(
-                R, z, M, c, self.two_halo, bias_z, radius_units=radius_units
-            )
+        return self._surface_mass_density_1h(
+            R, z, M, c, self.two_halo, bias_z, radius_units=radius_units
+        )
 
     def excess_surface_mass_density(
         self, R, z, M, c, bias_z=None, radius_units="Mpc/h"
@@ -379,7 +353,7 @@ class Profile:
         Sigma_mean = self._model_mean_surface_mass_density_profile(
             *self._surface_mass_density_args(R, z, M, radius_units=radius_units), c
         )
-        Sigma = self._surface_mass_density_cen(
+        Sigma = self._surface_mass_density_1h(
             R, z, M, c, two_halo="None", radius_units=radius_units
         )
         DeltaSigma = Sigma_mean - Sigma
@@ -393,34 +367,6 @@ class Profile:
                 DeltaSigma += DeltaSigma_2h
             elif self.two_halo == "max":
                 DeltaSigma = np.maximum(DeltaSigma, DeltaSigma_2h)
-
-        # offcentered terms
-        if self.offcentering and self.rms_off >= 1.0e-4 and self.f_off >= 1.0e-4:
-            # non negligible offcentering
-            R = np.asarray(R)
-            DeltaSigma_off = np.zeros_like(R)
-
-            ir.DeltaSigma_off(
-                R,
-                self.r_interp,
-                self.r_interp,
-                self._surface_mass_density_cen(
-                    self.r_interp,
-                    z,
-                    c,
-                    M,
-                    two_halo=self.two_halo,
-                    radius_units=radius_units,
-                ),
-                self.rms_off,
-                DeltaSigma_off,
-            )
-
-            DeltaSigma = (1.0 - self.f_off) * DeltaSigma + self.f_off * DeltaSigma_off
-
-        elif self.offcentering and self.rms_off < 1.0e-4 and self.f_off >= 1.0:
-            # extreme offcentering
-            DeltaSigma = np.zeros(len(DeltaSigma))
 
         return DeltaSigma
 
@@ -508,7 +454,7 @@ class Profile:
         """
         raise NotImplementedError
 
-    def _surface_mass_density_cen(
+    def _surface_mass_density_1h(
         self, R, z, M, c, two_halo="auto", bias_z=None, radius_units="Mpc/h"
     ):
         r"""
