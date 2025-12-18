@@ -3,14 +3,32 @@ from scipy import interpolate
 from scipy.special import gamma
 
 from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.halo_statistics import HaloStatistics
+from cloelib.cosmology.cosmology import Perturbations
+from cloelib.observables.clusters.hmf_bias.halo_statistics import HaloStatistics
 
 
 class CastroHMFBias:
 
-    def __init__(self, halo_statistics: HaloStatistics):
+    def __init__(
+        self,
+        perturbations: Perturbations,
+        overdensity_type: str = "vir",
+        overdensity: int = 200,
+        nonu: bool = False,
+        use_interpolation: bool = True,
+        z=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
+        k=np.geomspace(1e-4, 10, 500),
+    ):
 
-        self.halo_statistics = halo_statistics
+        self.halo_statistics = HaloStatistics(
+            perturbations=perturbations,
+            overdensity_type=overdensity_type,
+            overdensity=overdensity,
+            nonu=nonu,
+            use_interpolation=use_interpolation,
+            z=z,
+            k=k,
+        )
 
     def f_sigma_nu(self, z, M):
         r"""

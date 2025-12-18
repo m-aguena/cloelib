@@ -8,7 +8,6 @@ from scipy.stats import skewnorm
 
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.halo_statistics import HaloStatistics
 from cloelib.observables.clusters.hmf_bias import HMFBias
 
 
