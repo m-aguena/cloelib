@@ -30,7 +30,6 @@ class Profile:
         mean_nz: float = 0.4,
         sigma_nz: float = 0.3,
         alpha_nz: float = 0.4,
-        use_interpolation: bool = True,
     ):
         self.hmfbias = hmfbias
 
@@ -53,11 +52,14 @@ class Profile:
         self.nzsnorM = np.vectorize(self.n_zs_norM)(self.z)
         self.nzs = self.n_zs(self.z)
 
-        # set interpolation usage
-        self.interp_angular_dist = None
-        if use_interpolation:
-            self.interpolate_angular_diameter_distance()
-        self.use_interpolation = use_interpolation
+        # interpolate functions
+        self.angular_diameter_distance = interpolate.InterpolatedUnivariateSpline(
+            x=np.linspace(self.z.min(), self.z.max() + 1.0e-5, len(self.z)),
+            y=self.background.angular_diameter_distance(
+                np.linspace(self.z.min(), self.z.max() + 1.0e-5, len(self.z))
+            ),
+            ext=2,
+        )
 
     @property
     def halo_statistics(self):
@@ -76,30 +78,6 @@ class Profile:
         Returns the Background class instance
         """
         return self.perturbations.background
-
-    @property
-    def use_interpolation(self):
-        r"""If true, class uses interpolation for matter power spectrum computation."""
-        return self.__use_interpolation
-
-    @use_interpolation.setter
-    def use_interpolation(self, use_interpolation):
-        """If true, makes class uses interpolation for matter power spectrum computation."""
-        if use_interpolation:
-            self.angular_diameter_distance = self.interp_angular_dist
-        else:
-            self.angular_diameter_distance = self.background.angular_diameter_distance
-        self.__use_interpolation = use_interpolation
-
-    def interpolate_angular_diameter_distance(self):
-        r"""Create internal interpolation of angular diameter distance."""
-        self.interp_angular_dist = interpolate.InterpolatedUnivariateSpline(
-            x=np.linspace(self.z.min(), self.z.max() + 1.0e-5, len(self.z)),
-            y=self.background.angular_diameter_distance(
-                np.linspace(self.z.min(), self.z.max() + 1.0e-5, len(self.z))
-            ),
-            ext=2,
-        )
 
     def convert_distance(
         self, distance, units_in, units_out, angular_diameter_distance=None
