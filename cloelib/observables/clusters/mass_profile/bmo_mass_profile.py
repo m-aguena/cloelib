@@ -19,7 +19,7 @@ class BMOMassProfile:
         alpha_nz: float = 0.4,
     ):
         """
-        NFW profile class.
+        BMO profile class.
 
         Parameters
         ----------
