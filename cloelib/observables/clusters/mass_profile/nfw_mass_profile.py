@@ -1,6 +1,7 @@
 import numpy as np
 
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
+from .mass_profile_auxiliary import MassProfileAuxiliary
 
 
 class NFWMassProfile:
@@ -9,12 +10,43 @@ class NFWMassProfile:
         self,
         halo_statistics: HaloStatistics,
         two_halo: str = "None",
+        z=np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
+        zs_max: float = 2.0,
+        mean_nz: float = 0.4,
+        sigma_nz: float = 0.3,
+        alpha_nz: float = 0.4,
     ):
+        """
+        NFW profile class.
 
-        self.halo_statistics = halo_statistics
+        Parameters
+        ----------
+        halo_statistics : HaloStatistics
+            HaloStatistics object.
+        two_halo : str, optional
+            If "sum", the 1-halo and 2-halo profile are summed.
+            If "max", the maximum between them is considered at each point.
+            If "None", the 2-halo is not included. Default is "None".
+        z : array_like, optional
+            Redshift grid for calculations.
+        zs_max : float, optional
+            Maximum source redshift for lensing calculations.
+        mean_nz : float, optional
+            Mean of the source redshift distribution.
+        sigma_nz : float, optional
+            Width of the source redshift distribution.
+        alpha_nz : float, optional
+            Shape parameter of the source redshift distribution.
+        """
+        self.auxiliary = MassProfileAuxiliary(
+            halo_statistics,
+            z=z,
+            zs_max=zs_max,
+            mean_nz=mean_nz,
+            sigma_nz=sigma_nz,
+            alpha_nz=alpha_nz,
+        )
 
-        if two_halo not in ("None", "sum", "max"):
-            raise ValueError("Invalid 'two_halo' definition, %s." % two_halo)
         self.two_halo = two_halo
 
     def _f_term(self, x):
@@ -179,29 +211,18 @@ class NFWMassProfile:
             Shape: (z.size, M.size, R.size).
         """
         Sigma = self._surface_mass_density_1h(
-            *self.halo_statistics._surface_mass_density_args(
+            *self.auxiliary._surface_mass_density_args(
                 R, z, M, radius_units=radius_units
             ),
             c,
         )
 
         if self.two_halo != "None":
-            Sigma_2h = self.halo_statistics._surface_mass_density_2h(
-                R, z, M, halo_bias, radius_units
+            Sigma = self.auxiliary.include_surface_mass_density_2h(
+                Sigma, self.two_halo, R, z, M, halo_bias, radius_units
             )
-            if self.two_halo == "sum":
-                Sigma += Sigma_2h
-            elif self.two_halo == "max":
-                Sigma = np.maximum(Sigma, Sigma_2h)
 
-        expected_shape = (
-            np.atleast_1d(z).size,
-            np.atleast_1d(M).size,
-            np.atleast_1d(R).size,
-        )
-        assert (
-            Sigma.shape == expected_shape
-        ), f"Expected shape {expected_shape}, got {Sigma.shape}"
+        self.auxiliary._check_profile_shape(R, z, M, Sigma)
 
         return Sigma
 
@@ -237,7 +258,7 @@ class NFWMassProfile:
             Shape: (z.size, M.size, R.size).
         """
         R_outshape, RDelta, densityThreshold = (
-            self.halo_statistics._surface_mass_density_args(
+            self.auxiliary._surface_mass_density_args(
                 R, z, M, radius_units=radius_units
             )
         )
@@ -248,12 +269,10 @@ class NFWMassProfile:
         DeltaSigma = Sigma_mean - Sigma
 
         if self.two_halo != "None":
-            DeltaSigma_2h = self.halo_statistics._excess_surface_mass_density_2h(
-                R, z, M, halo_bias, radius_units
+            DeltaSigma = self.auxiliary.include_excess_surface_mass_density_2h(
+                DeltaSigma, self.two_halo, R, z, M, halo_bias, radius_units
             )
-            if self.two_halo == "sum":
-                DeltaSigma += DeltaSigma_2h
-            elif self.two_halo == "max":
-                DeltaSigma = np.maximum(DeltaSigma, DeltaSigma_2h)
+
+        self.auxiliary._check_profile_shape(R, z, M, DeltaSigma)
 
         return DeltaSigma

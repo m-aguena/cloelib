@@ -36,10 +36,6 @@ def _get_halo_statistics():
     return HaloStatistics(
         perturbations,
         overdensity_type="vir",
-        zs_max=2.0,
-        mean_nz=0.4,
-        sigma_nz=0.3,
-        alpha_nz=0.4,
     )
 
 
@@ -53,6 +49,10 @@ def test_array_shapes():
     print("# Profiles ")
     _prof_kwargs = dict(
         two_halo="None",
+        zs_max=2.0,
+        mean_nz=0.4,
+        sigma_nz=0.3,
+        alpha_nz=0.4,
     )
 
     profile_nfw = NFWMassProfile(_get_halo_statistics(), **_prof_kwargs)
@@ -62,6 +62,7 @@ def test_array_shapes():
     M_test = np.linspace(1e14, 5e14, 6)
     c_test = 4.0
     HS = _get_halo_statistics()
+    profile = NFWMassProfile(HS)
 
     _kwargs = {"R": R_test, "z": z_test, "M": M_test}
     out_shape = (z_test.size, M_test.size, R_test.size)
@@ -70,7 +71,7 @@ def test_array_shapes():
         print(radius_units)
         _kwargs["radius_units"] = radius_units
 
-        _r, _z, _m = HS._surface_mass_density_args(**_kwargs)
+        _r, _z, _m = profile.auxiliary._surface_mass_density_args(**_kwargs)
         assert (_r * _z * _m).shape == out_shape
 
         _kwargs["c"] = c_test
@@ -102,12 +103,13 @@ def _test_profile(profile, reference_vals):
 
     print("    sigma_crit")
     assert_allclose(
-        HS.sigma_crit(z_test, z_sources_test)[0], **reference_vals["sigma_crit"]
+        profile.auxiliary.sigma_crit(z_test, z_sources_test)[0],
+        **reference_vals["sigma_crit"],
     )
     print("    n_zs_norM")
-    assert_allclose(HS.n_zs_norM(z_test), **reference_vals["n_zs_norM"])
+    assert_allclose(profile.auxiliary.n_zs_norM(z_test), **reference_vals["n_zs_norM"])
     print("    n_zs")
-    assert_allclose(HS.n_zs(z_test)[0][:5], **reference_vals["n_zs"])
+    assert_allclose(profile.auxiliary.n_zs(z_test)[0][:5], **reference_vals["n_zs"])
     print("    surface_mass_density")
     assert_allclose(
         profile.surface_mass_density(R_test, z_test, M_test, c_test)[:, 0, 0],
@@ -120,12 +122,12 @@ def _test_profile(profile, reference_vals):
     )
     print("    _surface_mass_density_2h")
     assert_allclose(
-        HS._surface_mass_density_2h(R_test, z_test, M_test, halo_bias)[:, 0, 0],
+        profile.auxiliary.surface_mass_density_2h(R_test, z_test, M_test, halo_bias)[:, 0, 0],
         **reference_vals["surface_mass_density_2h"],
     )
     print("    _excess_surface_mass_density_2h")
     assert_allclose(
-        HS._excess_surface_mass_density_2h(R_test, z_test, M_test, halo_bias)[:, 0, 0],
+        profile.auxiliary.excess_surface_mass_density_2h(R_test, z_test, M_test, halo_bias)[:, 0, 0],
         **reference_vals["excess_surface_mass_density_2h"],
     )
 
@@ -136,7 +138,14 @@ def test_profiles():
     print("# Profiles ")
 
     print("  NFW")
-    profile_nfw = NFWMassProfile(_get_halo_statistics(), two_halo="None")
+    _prof_kwargs = dict(
+        two_halo="None",
+        zs_max=2.0,
+        mean_nz=0.4,
+        sigma_nz=0.3,
+        alpha_nz=0.4,
+    )
+    profile_nfw = NFWMassProfile(_get_halo_statistics(), **_prof_kwargs)
     _reference_vals = {
         # All validation values have to be updated with extarnal values
         "sigma_crit": {
@@ -197,6 +206,10 @@ def test_profiles():
     _prof_kwargs = dict(
         two_halo="None",
         trunc_fact=3.0,
+        zs_max=2.0,
+        mean_nz=0.4,
+        sigma_nz=0.3,
+        alpha_nz=0.4,
     )
     profile_bmo = BMOMassProfile(_get_halo_statistics(), **_prof_kwargs)
     _test_profile(profile_bmo, _reference_vals)

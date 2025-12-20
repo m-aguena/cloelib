@@ -2,6 +2,7 @@ import numpy as np
 
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
+from .hmf_bias_auxiliary import HMFBiasAuxiliary
 
 
 class TinkerHMFBias:
@@ -9,6 +10,7 @@ class TinkerHMFBias:
     def __init__(self, halo_statistics: HaloStatistics):
 
         self.halo_statistics = halo_statistics
+        self.auxiliary = self.auxiliary = HMFBiasAuxiliary(halo_statistics)
 
     def f_sigma_nu(self, z, M):
         r"""
@@ -99,4 +101,4 @@ class TinkerHMFBias:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        return self.halo_statistics.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))
+        return self.auxiliary.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))

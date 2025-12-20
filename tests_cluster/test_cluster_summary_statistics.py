@@ -103,7 +103,7 @@ def get_values():
     selectionFunction = SelectionFunction(**_sel_pars)
     HS = HaloStatistics(
         perturbations,
-        z_Pk=integ_ztrue_arr,
+        z=integ_ztrue_arr,
         k=integ_k_arr,
         overdensity_type=overdensity_type,
     )
