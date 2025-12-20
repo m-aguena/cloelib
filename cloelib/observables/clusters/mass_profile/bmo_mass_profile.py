@@ -1,6 +1,7 @@
 import numpy as np
 
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
+
 from .mass_profile_auxiliary import MassProfileAuxiliary
 
 

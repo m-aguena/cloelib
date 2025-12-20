@@ -2,6 +2,7 @@ import numpy as np
 
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_statistics import HaloStatistics
+
 from .hmf_bias_auxiliary import HMFBiasAuxiliary
 
 
