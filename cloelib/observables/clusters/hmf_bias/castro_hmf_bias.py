@@ -13,7 +13,7 @@ class CastroHMFBias:
     def __init__(self, halo_statistics: HaloStatistics):
 
         self.halo_statistics = halo_statistics
-        self.auxiliary = self.auxiliary = HMFBiasAuxiliary(halo_statistics)
+        self.auxiliary = HMFBiasAuxiliary(halo_statistics)
 
     def f_sigma_nu(self, z, M):
         r"""
