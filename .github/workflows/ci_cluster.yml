@@ -62,6 +62,7 @@ jobs:
         pip install camb classy jax
         pip install pyinstrument
         pip install jupyter nbconvert ipykernel
+        pip install matplotlib
     - name: Install the package
       run: |
         pip install .
