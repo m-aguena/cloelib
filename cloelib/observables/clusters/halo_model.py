@@ -7,7 +7,7 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Perturbations
 
 
-class HaloStatistics:
+class HaloModel:
     def __init__(
         self,
         perturbations: Perturbations,
@@ -21,6 +21,8 @@ class HaloStatistics:
         r"""Auxiliary class computing quantities used in galaxy cluster models.
 
         Initialize the class with given perturbations and overdensity definition.
+        If requested, cosmological functions (e.g., the matter power spectrum)
+        are interpolated.
 
         Parameters
         ----------
@@ -40,7 +42,7 @@ class HaloStatistics:
             If `True`, massive neutrinos are excluded from the density parameter
             summation.
         use_interpolation : bool, optional
-            If true, class uses interpolation for matter power spectrum computation.
+            If true, the class interpolates the matter power spectrum.
             A default interpolation is set when class is instanciated with
             use_interpolation=True. For a more customized interpolation, check
             the interpolate_matter_power_spectrum function.

@@ -8,7 +8,7 @@ from scipy.stats import skewnorm
 
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.halo_statistics import HaloStatistics
+from cloelib.observables.clusters.halo_model import HaloModel
 
 
 def _bessel_j2(x):
@@ -19,7 +19,7 @@ def _bessel_j2(x):
 class MassProfileAuxiliary:
     def __init__(
         self,
-        halo_statistics: HaloStatistics,
+        halo_model: HaloModel,
         z=np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         zs_max: float = 2.0,
         mean_nz: float = 0.4,
@@ -32,10 +32,10 @@ class MassProfileAuxiliary:
 
         Parameters
         ----------
-        halo_statistics : HaloStatistics
-            An object from the `HaloStatistics` class.
+        halo_model : HaloModel
+            An object from the `HaloModel` class.
         """
-        self.halo_statistics = halo_statistics
+        self.halo_model = halo_model
 
         # ???
         self.z = z
@@ -60,7 +60,7 @@ class MassProfileAuxiliary:
     @property
     def background(self):
         r"""Returns the Background class instance"""
-        return self.halo_statistics.background
+        return self.halo_model.background
 
     def convert_distance(
         self, distance, units_in, units_out, angular_diameter_distance=None
@@ -276,7 +276,7 @@ class MassProfileAuxiliary:
             Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
         """
         densityThreshold = np.atleast_1d(
-            self.halo_statistics.get_Delta_crit(z)
+            self.halo_model.get_Delta_crit(z)
             * derived_cosmology.rho_crit(self.background, z)
             / self.background.h**2.0
         )[:, np.newaxis, np.newaxis]
@@ -371,7 +371,7 @@ class MassProfileAuxiliary:
 
         ## 1. Power spectrum interpolation
 
-        kl_array = self.halo_statistics.k
+        kl_array = self.halo_model.k
 
         ## 2. Get radial distance in radians
         _theta = self.convert_distance(R, radius_units, "radians", D_A[:, np.newaxis])
@@ -383,7 +383,7 @@ class MassProfileAuxiliary:
         ## 3. Integrand function
         def integrand(kl):
             ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = self.halo_statistics.matter_power_spectrum(z, kl)[:, np.newaxis]
+            Pk_vals = self.halo_model.matter_power_spectrum(z, kl)[:, np.newaxis]
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
 
         ## 4. Integration

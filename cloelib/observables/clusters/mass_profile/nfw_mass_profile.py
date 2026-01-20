@@ -1,6 +1,6 @@
 import numpy as np
 
-from cloelib.observables.clusters.halo_statistics import HaloStatistics
+from cloelib.observables.clusters.halo_model import HaloModel
 
 from .mass_profile_auxiliary import MassProfileAuxiliary
 
@@ -9,7 +9,7 @@ class NFWMassProfile:
 
     def __init__(
         self,
-        halo_statistics: HaloStatistics,
+        halo_model: HaloModel,
         two_halo: str = "None",
         z=np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         zs_max: float = 2.0,
@@ -22,8 +22,8 @@ class NFWMassProfile:
 
         Parameters
         ----------
-        halo_statistics : HaloStatistics
-            HaloStatistics object.
+        halo_model : HaloModel
+            HaloModel object.
         two_halo : str, optional
             If "sum", the 1-halo and 2-halo profile are summed.
             If "max", the maximum between them is considered at each point.
@@ -40,7 +40,7 @@ class NFWMassProfile:
             Shape parameter of the source redshift distribution.
         """
         self.auxiliary = MassProfileAuxiliary(
-            halo_statistics,
+            halo_model,
             z=z,
             zs_max=zs_max,
             mean_nz=mean_nz,
