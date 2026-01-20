@@ -118,9 +118,7 @@ class CastroHMFBias:
         # Compute main quantities
         dlnsigmadlnR = 3 * dlnsigmadlnM
         fsigmanu = self.f_sigma_nu(z, M)
-        S8 = self.halo_model.sigma8 * np.sqrt(
-            self.halo_model._Omega_m(0.0) / 0.3
-        )
+        S8 = self.halo_model.sigma8 * np.sqrt(self.halo_model._Omega_m(0.0) / 0.3)
 
         dlnfsigmanu_dlnnu = np.zeros(fsigmanu.shape)
         for i in range(len(Omega_m)):

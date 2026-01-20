@@ -56,9 +56,7 @@ class TinkerHMFBias:
         # compute inputs
         delta_c = self.halo_model.delta_c(z)
         nu = self.halo_model.nu_z_M(z, M)
-        Delta = self.halo_model.get_Delta_crit(z) / self.halo_model._Omega_m(
-            z
-        )
+        Delta = self.halo_model.get_Delta_crit(z) / self.halo_model._Omega_m(z)
 
         ###################
         # Bias computations
