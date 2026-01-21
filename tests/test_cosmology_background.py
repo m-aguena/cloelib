@@ -23,6 +23,7 @@ def test_background_required_methods():
         "angular_diameter_distance",
         "Omega_b",
         "Omega_m",
+        "Omega_m_cb",
         "transverse_comoving_distance",
     }
     assert methods_required == methods_found
@@ -56,17 +57,13 @@ def test_background_required_attributes():
     assert attributes_required == attributes_found
 
 
-def test_cosmo():
+def test_derived_cosmology():
     # Cosmology parameters
     print("# Cosmology parameters")
-    _H0 = 67.7
-    _h = _H0 / 100.0
-    _omch2 = 0.12
-    _ombh2 = 0.022
     _cosmo_pars = dict(
-        H0=_H0,
-        Omega_cdm0=_omch2 / _h**2,
-        Omega_b0=_ombh2 / _h**2,
+        H0=67.7,
+        Omega_cdm0=0.12 / 0.677**2,
+        Omega_b0=0.022 / 0.677**2,
         Omega_k0=0.0,
         w0=-1.0,
         wa=0.0,
@@ -91,3 +88,83 @@ def test_cosmo():
         # to be fixed in another PR
         if _Background != JAXBackground:
             assert_allclose(background.rdrag, 147.50225, rtol=1e-1)
+
+
+def test_Omega_m_cb():
+    # Cosmology parameters
+    print("# Cosmology parameters")
+    _cosmo_pars = dict(
+        H0=67.7,
+        Omega_cdm0=0.12 / 0.677**2,
+        Omega_b0=0.022 / 0.677**2,
+        Omega_k0=0.0,
+        w0=-1.0,
+        wa=0.0,
+        ns=0.96,
+        mnu=0.1,
+        As=2e-9,
+        gamma_MG=0.0,
+        N_mnu=1,
+    )
+
+    _z_test = np.zeros(1)
+    # not implemented for CLASSBackground yet
+    for _Background in (CAMBBackground, JAXBackground):
+        background = _Background(**_cosmo_pars)
+        assert (background.Omega_m_cb(_z_test) < background.Omega_m(_z_test)).all()
+        assert_allclose(
+            background.Omega_m_cb(_z_test)[0],
+            _cosmo_pars["Omega_cdm0"] + _cosmo_pars["Omega_b0"],
+            rtol=1e-03,
+        )
+
+
+def test_cosmo_photoz_rsd_correction():
+
+    from cloelib.observables.clusters.selection_function import SelectionFunction
+
+    print("# Cosmology parameters")
+    _cosmo_pars = dict(
+        H0=67.7,
+        Omega_cdm0=0.12 / 0.677**2,
+        Omega_b0=0.022 / 0.677**2,
+        Omega_k0=0.0,
+        w0=-1.0,
+        wa=0.0,
+        ns=0.96,
+        mnu=0.06,
+        As=2e-9,
+        gamma_MG=0.0,
+        N_mnu=1,
+    )
+
+    z_test = np.array([0.0, 1.0])
+    lob_test = np.array([50.0])
+    k_test = np.geomspace(1e-4, 10, 500)
+    zobs_scatter = np.array([5.0, 5.1])
+
+    background = CAMBBackground(**_cosmo_pars)
+
+    corr0, corr1, corr2 = derived_cosmology.photoz_rsd_correction(
+        background,
+        z_test,
+        k_test,
+        zobs_scatter,
+        nonu=True,
+    )
+
+    # test values
+
+    ref_phz_rsd_0 = np.array(
+        [[5.7111615e-01, 5.9122967e-06], [8.0073649e-01, 1.0336005e-05]]
+    )
+    ref_phz_rsd_1 = np.array(
+        [[1.0873061e-01, 1.3813213e-16], [3.8109362e-01, 1.2259151e-15]]
+    )
+    ref_phz_rsd_2 = np.array(
+        [[1.2568793e-02, 2.4204413e-27], [9.1092102e-02, 1.0905091e-25]]
+    )
+
+    assert_allclose(corr0[:, [0, -1]], ref_phz_rsd_0, rtol=1e-04)
+    assert_allclose(corr1[:, [0, -1]], ref_phz_rsd_1, rtol=1e-04)
+    assert_allclose(corr2[:, [0, -1]], ref_phz_rsd_2, rtol=1e-04)
