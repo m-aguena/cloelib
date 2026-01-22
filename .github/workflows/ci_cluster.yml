@@ -228,7 +228,7 @@ jobs:
         which python
         python --version
         python -c "import sys; print(sys.executable)"
-        pip show YOUR_PACKAGE_NAME
+        pip show cloelib
     - name: Run notebooks
       run: |
         jupyter nbconvert \
