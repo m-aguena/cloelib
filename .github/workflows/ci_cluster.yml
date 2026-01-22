@@ -219,6 +219,7 @@ jobs:
         python -c "import sys; print(sys.executable)"
         pip show cloelib
     - name: Download validation data
+      working-directory: notebooks
       run: |
         FILE_ID="1K0CiK3hZ-jBfJOTczvu3BT8G9Bs2Q_ky"
         wget --quiet --save-cookies cookies.txt --keep-session-cookies \
@@ -229,9 +230,10 @@ jobs:
               -O "data.zip"
         unzip data.zip
     - name: Run notebooks
+      working-directory: notebooks
       run: |
         jupyter nbconvert \
           --to notebook \
           --execute \
           --ExecutePreprocessor.timeout=600 \
-          notebooks/*.ipynb
+          *.ipynb
