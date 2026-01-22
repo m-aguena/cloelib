@@ -221,8 +221,6 @@ jobs:
           | wget --load-cookies cookies.txt \
               "https://drive.google.com/uc?export=download&confirm=\1&id=${FILE_ID}" \
               -O "data.zip"
-    - name: Download validation data
-      run: |
         unzip data.zip
     - name: Run notebooks
       run: |
