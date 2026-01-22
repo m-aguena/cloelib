@@ -210,8 +210,8 @@ jobs:
         pip install matplotlib
     - name: Install the package and nb kernel
       run: |
-        pip install .
-        pip install jupyter nbconvert ipykernel
+        python -m pip install .
+        python -m pip install jupyter nbconvert ipykernel
         python -m ipykernel install --user --name ci-kernel
     - name: Download validation data
       run: |
@@ -223,6 +223,12 @@ jobs:
               "https://drive.google.com/uc?export=download&confirm=\1&id=${FILE_ID}" \
               -O "data.zip"
         unzip data.zip
+    - name: Debug python environment
+      run: |
+        which python
+        python --version
+        python -c "import sys; print(sys.executable)"
+        pip show YOUR_PACKAGE_NAME
     - name: Run notebooks
       run: |
         jupyter nbconvert \
