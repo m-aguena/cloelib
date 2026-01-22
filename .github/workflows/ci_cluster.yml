@@ -11,38 +11,38 @@ on:
 jobs:
 
 
-####---  unit-tests:
-####---    name: Unit tests
-####---    runs-on: ubuntu-latest
-####---    steps:
-####---    - uses: actions/checkout@v4
-####---    - uses: conda-incubator/setup-miniconda@v3
-####---      with:
-####---        python-version: '3.13'
-####---    - name: Install prereq using pip
-####---      run: |
-####---        pip install astropy cython
-####---        pip install camb classy jax
-####---        pip install pyinstrument
-####---    - name: Install the package
-####---      run: |
-####---        pip install .
-####---    - name: Run the unit tests
-####---      run: |
-####---        pip install pytest pytest-cov
-####---        pytest tests_cluster/ --cov=cloelib/ --ignore=tests_cluster/benchmark_values.py
-####---      env:
-####---        DISPLAY: test
-####---
-####---
-####---  check-formatting:
-####---    name: Check code formatting
-####---    runs-on: ubuntu-latest
-####---    steps:
-####---    - uses: actions/checkout@v4
-####---    - uses: conda-incubator/setup-miniconda@v3
-####---      with:
-####---        python-version: '3.13'
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: conda-incubator/setup-miniconda@v3
+      with:
+        python-version: '3.13'
+    - name: Install prereq using pip
+      run: |
+        pip install astropy cython
+        pip install camb classy jax
+        pip install pyinstrument
+    - name: Install the package
+      run: |
+        pip install .
+    - name: Run the unit tests
+      run: |
+        pip install pytest pytest-cov
+        pytest tests_cluster/ --cov=cloelib/ --ignore=tests_cluster/benchmark_values.py
+      env:
+        DISPLAY: test
+
+
+  check-formatting:
+    name: Check code formatting
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: conda-incubator/setup-miniconda@v3
+      with:
+        python-version: '3.13'
 
 
 
