@@ -210,9 +210,14 @@ jobs:
         pip install matplotlib
     - name: Install the package and nb kernel
       run: |
-        python -m pip install .
-        python -m pip install jupyter nbconvert ipykernel
-        python -m ipykernel install --user --name ci-kernel
+        pip install .
+        pip install jupyter nbconvert ipykernel
+    - name: Debug python environment
+      run: |
+        which python
+        python --version
+        python -c "import sys; print(sys.executable)"
+        pip show cloelib
     - name: Download validation data
       run: |
         FILE_ID="1K0CiK3hZ-jBfJOTczvu3BT8G9Bs2Q_ky"
@@ -223,17 +228,10 @@ jobs:
               "https://drive.google.com/uc?export=download&confirm=\1&id=${FILE_ID}" \
               -O "data.zip"
         unzip data.zip
-    - name: Debug python environment
-      run: |
-        which python
-        python --version
-        python -c "import sys; print(sys.executable)"
-        pip show cloelib
     - name: Run notebooks
       run: |
         jupyter nbconvert \
           --to notebook \
           --execute \
           --ExecutePreprocessor.timeout=600 \
-          --ExecutePreprocessor.kernel_name=ci-kernel \
           notebooks/*.ipynb
