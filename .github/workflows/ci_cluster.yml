@@ -207,11 +207,12 @@ jobs:
         pip install astropy cython
         pip install camb classy jax
         pip install pyinstrument
-        pip install jupyter nbconvert ipykernel
         pip install matplotlib
-    - name: Install the package
+    - name: Install the package and nb kernel
       run: |
         pip install .
+        pip install jupyter nbconvert ipykernel
+        python -m ipykernel install --user --name ci-kernel
     - name: Download validation data
       run: |
         FILE_ID="1K0CiK3hZ-jBfJOTczvu3BT8G9Bs2Q_ky"
@@ -228,5 +229,5 @@ jobs:
           --to notebook \
           --execute \
           --ExecutePreprocessor.timeout=600 \
-          --ExecutePreprocessor.kernel_name=python3 \
+          --ExecutePreprocessor.kernel_name=ci-kernel \
           notebooks/*.ipynb
