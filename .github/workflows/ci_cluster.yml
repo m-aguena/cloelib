@@ -66,6 +66,18 @@ jobs:
     - name: Install the package
       run: |
         pip install .
+    - name: Download validation data
+      run: |
+        FILE_ID="1K0CiK3hZ-jBfJOTczvu3BT8G9Bs2Q_ky"
+        wget --quiet --save-cookies cookies.txt --keep-session-cookies \
+          "https://drive.google.com/uc?export=download&id=${FILE_ID}" -O- \
+          | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1/p' \
+          | wget --load-cookies cookies.txt \
+              "https://drive.google.com/uc?export=download&confirm=\1&id=${FILE_ID}" \
+              -O "data.zip"
+    - name: Download validation data
+      run: |
+        unzip data.zip
     - name: Run notebooks
       run: |
         jupyter nbconvert \
