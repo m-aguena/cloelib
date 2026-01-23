@@ -236,7 +236,7 @@ class MatterStatistics:
         -------
         Sigma: np.ndarray
             2-halo surface mass density profile (units : h * Msun / pc**2).
-            Shape: (z.size, M.size, R.size).
+            Shape: (z.size, R.size).
         """
         return self._generic_mass_density_2h(
             R, z, bessel_function=j0, radius_units=radius_units
@@ -263,7 +263,7 @@ class MatterStatistics:
         -------
         DeltaSigma: np.ndarray
             2-halo surface mass density profile (units : h * Msun / pc**2).
-            Shape: (z.size, M.size, R.size).
+            Shape: (z.size, R.size).
         """
         return self._generic_mass_density_2h(
             R, z, bessel_function=_bessel_j2, radius_units=radius_units
