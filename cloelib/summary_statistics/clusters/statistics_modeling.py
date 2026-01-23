@@ -93,7 +93,9 @@ class ClusterStatisticsModeling:
             * area
             * (np.pi**2.0 / 180.0**2.0),
             # hmf at the center of observed redshift bins
-            "dn/dM(ztrue,M)": self.halo_abundance.dn_dm(integ_ztrue_arr, integ_mass_arr),
+            "dn/dM(ztrue,M)": self.halo_abundance.dn_dm(
+                integ_ztrue_arr, integ_mass_arr
+            ),
             # halo bias at the center of observed redshift bins
             # only work for virial overdensity
             "bias(ztrue,M)": self.halo_abundance.bias(integ_ztrue_arr, integ_mass_arr),
