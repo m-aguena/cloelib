@@ -41,7 +41,7 @@ class ClusterStatisticsModeling:
 
     def __init__(
         self,
-        HaloAbundance: HaloAbundance,
+        halo_abundance: HaloAbundance,
         selectionfunction: SelectionFunction,
         integ_k_arr: np.ndarray,
         integ_mass_arr: np.ndarray,
@@ -70,8 +70,8 @@ class ClusterStatisticsModeling:
             Effective area of the survey in deg2.
         """
         # observable objects
-        self.HaloAbundance = HaloAbundance
-        self.matter_statistics = self.HaloAbundance.matter_statistics
+        self.halo_abundance = halo_abundance
+        self.matter_statistics = self.halo_abundance.core.matter_statistics
         self.selectionfunction = selectionfunction
 
         # integration tables
@@ -93,10 +93,10 @@ class ClusterStatisticsModeling:
             * area
             * (np.pi**2.0 / 180.0**2.0),
             # hmf at the center of observed redshift bins
-            "dn/dM(ztrue,M)": self.HaloAbundance.dn_dm(integ_ztrue_arr, integ_mass_arr),
+            "dn/dM(ztrue,M)": self.halo_abundance.dn_dm(integ_ztrue_arr, integ_mass_arr),
             # halo bias at the center of observed redshift bins
             # only work for virial overdensity
-            "bias(ztrue,M)": self.HaloAbundance.bias(integ_ztrue_arr, integ_mass_arr),
+            "bias(ztrue,M)": self.halo_abundance.bias(integ_ztrue_arr, integ_mass_arr),
             # kernel for integration in k
             "dk": integ_k_arr**2.0 / (2.0 * np.pi**2),
         }

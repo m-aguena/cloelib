@@ -4,6 +4,7 @@ from scipy.integrate import simpson as simps
 
 # cloelib imports
 from cloelib.observables.clusters.halo_profile import HaloProfile
+from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -39,6 +40,13 @@ class ClusterWeakLensing:
         halo_concentration : float
             Halo concentration
         """
+        halo_abundance = cluster_statitstics_modeling.halo_abundance
+        Delta_type = profile.core.overdensity_type
+        if isinstance(halo_abundance, CastroHaloAbundance) and Delta_type != "vir":
+            raise ValueError(
+                f"If the Castro HMF is used, only virial overdensities can be considered. The current overdensity is {Delta_type}."
+            )            
+
         # cluster counts summary statistics, contains tables for integrals
         # and functions to compute binned integrals of counts
         self.cluster_statitstics_modeling = cluster_statitstics_modeling
