@@ -71,7 +71,7 @@ class ClusterStatisticsModeling:
         """
         # observable objects
         self.HaloAbundance = HaloAbundance
-        self.halo_model = self.HaloAbundance.halo_model
+        self.matter_statistics = self.HaloAbundance.matter_statistics
         self.selectionfunction = selectionfunction
 
         # integration tables
@@ -86,7 +86,7 @@ class ClusterStatisticsModeling:
             ),
             # volume element at each point of z array
             "dv/dz(ztrue)": derived_cosmology.dV_dzdO(
-                self.halo_model.perturbations.background,
+                self.matter_statistics.perturbations.background,
                 integ_ztrue_arr,
                 hubble_units=True,
             )

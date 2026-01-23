@@ -9,10 +9,10 @@ from cloelib.observables.clusters.halo_abundance import (
     TinkerHaloAbundance,
 )
 from cloelib.observables.clusters.auxiliary import convert_to_Delta_crit
-from cloelib.observables.clusters.halo_model import HaloModel
+from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
-def test_HaloModel():
+def test_MatterStatistics():
     # Cosmology parameters
     print("# Cosmology parameters")
     _H0 = 67.7
@@ -36,9 +36,9 @@ def test_HaloModel():
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 
-    # HaloModel
-    print("# HaloModel")
-    HS = HaloModel(perturbations)
+    # MatterStatistics
+    print("# MatterStatistics")
+    HS = MatterStatistics(perturbations)
     HS_tinker = TinkerHaloAbundance(HS)
     HS_castro = CastroHaloAbundance(HS)
 

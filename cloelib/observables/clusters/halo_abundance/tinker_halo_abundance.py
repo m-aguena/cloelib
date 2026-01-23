@@ -2,7 +2,7 @@ import numpy as np
 
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.auxiliary import convert_to_Delta_crit
-from cloelib.observables.clusters.halo_model import HaloModel
+from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 from .halo_abundance_auxiliary import HaloAbundanceAuxiliary
 
@@ -11,13 +11,13 @@ class TinkerHaloAbundance:
 
     def __init__(
         self,
-        halo_model: HaloModel,
+        matter_statistics: MatterStatistics,
         overdensity_type: str = "vir",
         overdensity: int = 200,
     ):
 
-        self.halo_model = halo_model
-        self.auxiliary = HaloAbundanceAuxiliary(halo_model)
+        self.matter_statistics = matter_statistics
+        self.auxiliary = HaloAbundanceAuxiliary(matter_statistics)
         self.overdensity_type = overdensity_type
         self.overdensity = overdensity
 
@@ -65,8 +65,11 @@ class TinkerHaloAbundance:
         delta_c = self.auxiliary.delta_c(z)
         nu = self.auxiliary.nu_z_M(z, M)
         Delta = convert_to_Delta_crit(
-            self.overdensity_type, self.overdensity, self.halo_model.background, z
-        ) / self.halo_model._Omega_m(z)
+            self.overdensity_type,
+            self.overdensity,
+            self.matter_statistics.background,
+            z,
+        ) / self.matter_statistics._Omega_m(z)
 
         ###################
         # Bias computations

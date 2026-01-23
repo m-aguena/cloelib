@@ -2,13 +2,13 @@ import numpy as np
 from scipy.integrate import simpson as simps
 
 from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.halo_model import HaloModel
+from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
 class HaloAbundanceAuxiliary:
     def __init__(
         self,
-        halo_model: HaloModel,
+        matter_statistics: MatterStatistics,
     ):
         r"""Auxiliary class computing quantities used in halo mass function and halo bias models.
 
@@ -16,10 +16,10 @@ class HaloAbundanceAuxiliary:
 
         Parameters
         ----------
-        halo_model : HaloModel
-            An object from the `HaloModel` class.
+        matter_statistics : MatterStatistics
+            An object from the `MatterStatistics` class.
         """
-        self.halo_model = halo_model
+        self.matter_statistics = matter_statistics
 
         # to avoid recomputing sigma & dsigmadlnM
         self._tabulated_sigma = {
@@ -78,10 +78,10 @@ class HaloAbundanceAuxiliary:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        rho_mean_0 = self.halo_model._Omega_m(0) * derived_cosmology.rho_crit(
-            self.halo_model.background, 0.0
+        rho_mean_0 = self.matter_statistics._Omega_m(0) * derived_cosmology.rho_crit(
+            self.matter_statistics.background, 0.0
         )
-        rho_mean_0 /= self.halo_model.background.h**2.0
+        rho_mean_0 /= self.matter_statistics.background.h**2.0
 
         return -rho_mean_0 / M**2.0 * fsigmanu * self.dlns_dlnM(z, M)
 
@@ -128,9 +128,9 @@ class HaloAbundanceAuxiliary:
             Radius in h^{-1} Mpc
         """
         rho_m_0 = (
-            derived_cosmology.rho_crit(self.halo_model.background, 0.0)
-            * self.halo_model._Omega_m(0.0)
-            / self.halo_model.background.h**2.0
+            derived_cosmology.rho_crit(self.matter_statistics.background, 0.0)
+            * self.matter_statistics._Omega_m(0.0)
+            / self.matter_statistics.background.h**2.0
         )
         return (M / rho_m_0 * (3.0 / (4.0 * np.pi))) ** (1 / 3.0)
 
@@ -152,7 +152,7 @@ class HaloAbundanceAuxiliary:
         sigma_z_R: numpy.ndarray
             sigma_z_R[i,j], where i is the redshift axis and j the radius axis.
         """
-        k = self.halo_model.k  # h/Mpc
+        k = self.matter_statistics.k  # h/Mpc
         W, _ = self.window(k, R)
         return np.sqrt(
             (
@@ -160,7 +160,7 @@ class HaloAbundanceAuxiliary:
                 / (2.0 * np.pi**2)
                 * simps(
                     (k**2.0).reshape(1, 1, len(k))
-                    * self.halo_model.matter_power_spectrum(z, k).reshape(
+                    * self.matter_statistics.matter_power_spectrum(z, k).reshape(
                         len(z), 1, len(k)
                     )
                     * (W**2.0).reshape(1, len(R), len(k)),
@@ -217,7 +217,7 @@ class HaloAbundanceAuxiliary:
             3.0
             / 20.0
             * (12.0 * np.pi) ** (2.0 / 3.0)
-            * (1.0 + 0.012299 * np.log10(self.halo_model.background.Omega_m(z)))
+            * (1.0 + 0.012299 * np.log10(self.matter_statistics.background.Omega_m(z)))
         )
 
     def nu_z_M(self, z, M):
@@ -262,7 +262,7 @@ class HaloAbundanceAuxiliary:
 
         if not self._are_mass_and_z_tabulated(z, M, self._tabulated_dlnsigmadlnM):
 
-            k = self.halo_model.k  # h/Mpc
+            k = self.matter_statistics.k  # h/Mpc
             R = self.radius_M(M)  # Mpc/h
             W, dWdx = self.window(k, R)
             dsigma2_dlnR = (
@@ -270,7 +270,7 @@ class HaloAbundanceAuxiliary:
                 * np.pi**-2
                 * simps(
                     k.reshape(1, 1, len(k)) ** 3
-                    * self.halo_model.matter_power_spectrum(z, k).reshape(
+                    * self.matter_statistics.matter_power_spectrum(z, k).reshape(
                         len(z), 1, len(k)
                     )
                     * W.reshape(1, len(R), len(k))
