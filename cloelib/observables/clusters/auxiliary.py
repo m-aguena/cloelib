@@ -1,9 +1,12 @@
 """Module implementing auxiliary functions"""
+
 import numpy as np
 from astropy import units as ap_units
 
 
-def convert_to_Delta_crit(overdensity_type, overdensity=200, background=None, z=0.0, nonu=False):
+def convert_to_Delta_crit(
+    overdensity_type, overdensity=200, background=None, z=0.0, nonu=False
+):
     r"""Critical overdensity factor.
 
     Converts the input overdensity factor into a critical one.
@@ -48,7 +51,7 @@ def convert_to_Delta_crit(overdensity_type, overdensity=200, background=None, z=
         raise ValueError("Invalid overdensity definition, %s." % overdensity_type)
 
     if overdensity_type in ["mean", "vir"]:
-        if nonu: 
+        if nonu:
             Omega_m = background.Omega_m_cb(z)
         else:
             Omega_m = background.Omega_m(z)

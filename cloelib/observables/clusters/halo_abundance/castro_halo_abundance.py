@@ -37,8 +37,8 @@ class CastroHaloAbundance:
         """
         # compute inputs
         Omega_m = self.halo_model._Omega_m(z)
-        dlnsigmadlnM = self.halo_model.dlns_dlnM(z, M)
-        nu = self.halo_model.nu_z_M(z, M)
+        dlnsigmadlnM = self.auxiliary.dlns_dlnM(z, M)
+        nu = self.auxiliary.nu_z_M(z, M)
 
         ##################
         # HMF computations
@@ -109,9 +109,9 @@ class CastroHaloAbundance:
 
         # compute inputs
         Omega_m = self.halo_model._Omega_m(z)
-        delta_c = self.halo_model.delta_c(z)
-        dlnsigmadlnM = self.halo_model.dlns_dlnM(z, M)
-        nu = self.halo_model.nu_z_M(z, M)
+        delta_c = self.auxiliary.delta_c(z)
+        dlnsigmadlnM = self.auxiliary.dlns_dlnM(z, M)
+        nu = self.auxiliary.nu_z_M(z, M)
 
         ###################
         # Bias computations
@@ -120,7 +120,7 @@ class CastroHaloAbundance:
         # Compute main quantities
         dlnsigmadlnR = 3 * dlnsigmadlnM
         fsigmanu = self.f_sigma_nu(z, M)
-        S8 = self.halo_model.sigma8 * np.sqrt(self.halo_model._Omega_m(0.0) / 0.3)
+        S8 = self.auxiliary.sigma8 * np.sqrt(self.halo_model._Omega_m(0.0) / 0.3)
 
         dlnfsigmanu_dlnnu = np.zeros(fsigmanu.shape)
         for i in range(len(Omega_m)):

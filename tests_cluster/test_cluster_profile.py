@@ -151,7 +151,11 @@ def test_profiles():
         # All validation values have to be updated with extarnal values
         "sigma_crit": {
             "desired": [
-                57269.705861, 57134.890066, 57034.779821, 56957.599339, 56896.34007
+                57269.705861,
+                57134.890066,
+                57034.779821,
+                56957.599339,
+                56896.34007,
             ],
             "rtol": 1e-5,
         },

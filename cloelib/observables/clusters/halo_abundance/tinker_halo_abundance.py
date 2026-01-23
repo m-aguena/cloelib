@@ -62,8 +62,8 @@ class TinkerHaloAbundance:
             bias[i,j], where i is the redshift axis and j the mass axis
         """
         # compute inputs
-        delta_c = self.halo_model.delta_c(z)
-        nu = self.halo_model.nu_z_M(z, M)
+        delta_c = self.auxiliary.delta_c(z)
+        nu = self.auxiliary.nu_z_M(z, M)
         Delta = convert_to_Delta_crit(
             self.overdensity_type, self.overdensity, self.halo_model.background, z
         ) / self.halo_model._Omega_m(z)
