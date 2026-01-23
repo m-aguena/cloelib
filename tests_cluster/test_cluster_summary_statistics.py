@@ -9,8 +9,8 @@ from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbat
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.observables.clusters.halo_model import HaloModel
-from cloelib.observables.clusters.hmf_bias import CastroHMFBias
 from cloelib.observables.clusters.halo_profile import NFWHaloProfile
+from cloelib.observables.clusters.hmf_bias import CastroHMFBias
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters import (
     ClusterClustering,
