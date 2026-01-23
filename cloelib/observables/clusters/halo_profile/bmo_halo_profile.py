@@ -2,10 +2,10 @@ import numpy as np
 
 from cloelib.observables.clusters.halo_model import HaloModel
 
-from .mass_profile_auxiliary import MassProfileAuxiliary
+from .halo_profile_auxiliary import HaloProfileAuxiliary
 
 
-class BMOMassProfile:
+class BMOHaloProfile:
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ class BMOMassProfile:
         alpha_nz : float, optional
             Shape parameter of the source redshift distribution.
         """
-        self.auxiliary = MassProfileAuxiliary(
+        self.auxiliary = HaloProfileAuxiliary(
             halo_model,
             z=z,
             zs_max=zs_max,

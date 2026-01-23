@@ -12,7 +12,7 @@ T = TypeVar("T", bound=Union[jnp.ndarray, np.ndarray])
 
 
 @runtime_checkable
-class MassProfile(Protocol):
+class HaloProfile(Protocol):
     def _f_term(self, x: float) -> float:
         r"""Computes the F term."""
         ...

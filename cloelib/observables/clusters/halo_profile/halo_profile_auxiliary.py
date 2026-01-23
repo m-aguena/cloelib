@@ -16,7 +16,7 @@ def _bessel_j2(x):
     return 2.0 / x * j1(x) - j0(x)
 
 
-class MassProfileAuxiliary:
+class HaloProfileAuxiliary:
     def __init__(
         self,
         halo_model: HaloModel,

@@ -6,7 +6,7 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.halo_model import HaloModel
 from cloelib.observables.clusters.hmf_bias import CastroHMFBias
-from cloelib.observables.clusters.mass_profile import BMOMassProfile, NFWMassProfile
+from cloelib.observables.clusters.halo_profile import BMOHaloProfile, NFWHaloProfile
 
 
 def _get_halo_model():
@@ -55,14 +55,14 @@ def test_array_shapes():
         alpha_nz=0.4,
     )
 
-    profile_nfw = NFWMassProfile(_get_halo_model(), **_prof_kwargs)
+    profile_nfw = NFWHaloProfile(_get_halo_model(), **_prof_kwargs)
 
     R_test = np.linspace(0.01, 1.0, 9)
     z_test = np.linspace(0.01, 0.5, 4)
     M_test = np.linspace(1e14, 5e14, 6)
     c_test = 4.0
     HS = _get_halo_model()
-    profile = NFWMassProfile(HS)
+    profile = NFWHaloProfile(HS)
 
     _kwargs = {"R": R_test, "z": z_test, "M": M_test}
     out_shape = (z_test.size, M_test.size, R_test.size)
@@ -149,7 +149,7 @@ def test_profiles():
         sigma_nz=0.3,
         alpha_nz=0.4,
     )
-    profile_nfw = NFWMassProfile(_get_halo_model(), **_prof_kwargs)
+    profile_nfw = NFWHaloProfile(_get_halo_model(), **_prof_kwargs)
     _reference_vals = {
         # All validation values have to be updated with extarnal values
         "sigma_crit": {
@@ -215,5 +215,5 @@ def test_profiles():
         sigma_nz=0.3,
         alpha_nz=0.4,
     )
-    profile_bmo = BMOMassProfile(_get_halo_model(), **_prof_kwargs)
+    profile_bmo = BMOHaloProfile(_get_halo_model(), **_prof_kwargs)
     _test_profile(profile_bmo, _reference_vals)
