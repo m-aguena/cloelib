@@ -1,18 +1,25 @@
 import numpy as np
 from scipy import interpolate
 from scipy.integrate import simpson as simps
+from scipy.special import j0, j1
+from scipy.integrate import quad_vec
 
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Perturbations
+
+from .auxiliary import convert_distance
+
+
+def _bessel_j2(x):
+    """Bessel function j2"""
+    return 2.0 / x * j1(x) - j0(x)
 
 
 class HaloModel:
     def __init__(
         self,
         perturbations: Perturbations,
-        overdensity_type: str = "vir",
-        overdensity: int = 200,
         nonu: bool = False,
         use_interpolation: bool = True,
         z=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
@@ -29,15 +36,6 @@ class HaloModel:
         perturbations : Perturbations
             An object from the `LinearPerturbations` class containing cosmological
             perturbation data (e.g., power spectrum, growth function).
-        overdensity_type : str
-            Overdensity definition for halo mass calculation. Must be one of:
-            - "crit": Relative to critical density of the universe.
-            - "mean": Relative to mean matter density.
-            - "vir": Virial overdensity from spherical collapse.
-        overdensity : int, optional
-            Value of the overdensity. Effective for non-virial overdensities.
-            Example: If it equals 200, halos are defined as regions with density
-            200 times the chosen reference (`crit` or `mean`).
         nonu : bool, optional
             If `True`, massive neutrinos are excluded from the density parameter
             summation.
@@ -48,12 +46,6 @@ class HaloModel:
             the interpolate_matter_power_spectrum function.
         """
         self.perturbations = perturbations
-
-        if overdensity_type not in ["crit", "mean", "vir"]:
-            raise ValueError("Invalid overdensity definition, %s." % overdensity_type)
-        self.overdensity_type = overdensity_type
-        self.overdensity = overdensity
-
         self.nonu = nonu
 
         # Power spectrum interpolation
@@ -62,11 +54,20 @@ class HaloModel:
         # internal value of sigma8
         self.__sigma8 = None
 
-        # set interpolation usage
+        # set P(k) interpolation usage
         self.k = k
         if use_interpolation:
             self.interpolate_matter_power_spectrum(z, self.k)
         self.use_interpolation = use_interpolation
+
+        # interpolate the angular diameter distance
+        self.angular_diameter_distance = interpolate.InterpolatedUnivariateSpline(
+            x=np.linspace(z.min(), z.max() + 1.0e-5, len(z)),
+            y=self.background.angular_diameter_distance(
+                np.linspace(z.min(), z.max() + 1.0e-5, len(z))
+            ),
+            ext=2,
+        )
 
         # to avoid recomputing sigma & dsigmadlnM
         self._tabulated_sigma = {
@@ -254,45 +255,6 @@ class HaloModel:
             * (1.0 + 0.012299 * np.log10(self.background.Omega_m(z)))
         )
 
-    def get_Delta_crit(self, z):
-        r"""Critical overdensity factor.
-
-        Converts the input overdensity factor into a critical one.
-
-        Parameters
-        ----------
-        z: float or np.ndarray
-            Redshift.
-
-        Returns
-        -------
-        overdensity: float or np.ndarray
-            The overdensity factor which needs
-            to be multiplied to the critical
-            density in order to define an overdensity.
-
-        Notes
-        -----
-        The function is returned for :math:`\rm \rho_c` in a density definition
-        at a given redshift. The function returns :math:`\rm \Delta` for the
-        critical density of the universe, :math:`\rm \Delta \Omega_{m}` for
-        the mean matter density of the universe, :math:`\rm \Delta` determined
-        by `Bryan & Norman 1998
-        <http://adsabs.harvard.edu/abs/1998ApJ...495...80B>`_ Equation 6 for
-        the virial density.
-        """
-        if self.overdensity_type == "crit":
-            Delta = self.overdensity
-
-        elif self.overdensity_type == "mean":
-            Delta = self.overdensity * self._Omega_m(z)
-
-        elif self.overdensity_type == "vir":
-            x = self._Omega_m(z) - 1.0
-            Delta = 18.0 * np.pi**2 + 82.0 * x - 39.0 * x**2
-
-        return Delta
-
     def sigma_z_R(self, z, R):
         r"""Standard deviation of perturbations given a redshift and radius.
 
@@ -419,3 +381,135 @@ class HaloModel:
             self._tabulated_dlnsigmadlnM["values"] = dsigma2_dlnM / (2 * sigma**2)
 
         return self._tabulated_dlnsigmadlnM["values"]
+
+    def _generic_mass_density_2h(
+        self, R, z, halo_bias, bessel_function, radius_units="Mpc/h"
+    ):
+        r"""
+        Surface or excess surface 2-halo density profile.
+
+        Computes either the cosmological surface or excess surface
+        (depending on the input Bessel function) 2-halo density profile.
+
+        Parameters
+        ----------
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        halo_bias: np.ndarray
+            Halo bias, with shape (z.size, M.size).
+        bessel_function: function
+            Bessel function that goes in the integrand with the power spectrum.
+            Used to return the surface density or the excess surface density.
+            It should take (ll*theta) as input.
+
+        Returns
+        -------
+        profile: np.ndarray
+            2-halo surface mass density profile (units : h * Msun / pc**2).
+            Shape: (z.size, M.size, R.size).
+        """
+        # Calculate base quantities
+        D_A = self.angular_diameter_distance(z) * self.background.h
+
+        # Ensure proper array shapes (z, M, R)
+        z_outshape = np.asarray(z)[:, np.newaxis, np.newaxis]  # shape (nz, 1, 1)
+        D_A_outshape = D_A[:, np.newaxis, np.newaxis]
+        rho_m_outshape = (
+            self.background.Omega_m(z)
+            * derived_cosmology.rho_crit(self.background, z)
+            / self.background.h**2
+        )[:, np.newaxis, np.newaxis]
+
+        halo_bias_outshape = np.asarray(halo_bias)[:, :, np.newaxis]
+
+        # Two point correlation part
+
+        ## 1. Power spectrum interpolation
+
+        kl_array = self.k
+
+        ## 2. Get radial distance in radians
+        _theta = convert_distance(R, radius_units, "radians", D_A[:, np.newaxis])
+        theta_outshape = _theta[:, np.newaxis]
+        if radius_units.lower() != "mpc/h":
+            # in this case, theta_outshape was missing z dimension
+            theta_outshape = theta_outshape[np.newaxis, np.newaxis, :, 0]
+
+        ## 3. Integrand function
+        def integrand(kl):
+            ll = kl * (1.0 + z_outshape) * D_A_outshape
+            Pk_vals = self.matter_power_spectrum(z, kl)[:, np.newaxis]
+            return bessel_function(ll * theta_outshape) * ll * Pk_vals
+
+        ## 4. Integration
+        two_point_corr_outshape = (
+            quad_vec(integrand, kl_array.min(), kl_array.max(), epsrel=1e-1)[0]
+            * (1.0 + z_outshape)
+            * D_A_outshape
+        )
+
+        # Final strictly 3D calculation
+        profile = (
+            1.0e-12 * rho_m_outshape * halo_bias_outshape * two_point_corr_outshape
+        ) / (2.0 * np.pi * (1.0 + z_outshape) ** 3.0 * D_A_outshape**2.0)
+
+        return profile
+
+    def surface_mass_density_2h(self, R, z, halo_bias, radius_units="Mpc/h"):
+        r"""
+        Surface 2-halo density profile.
+
+        Computes the cosmological surface 2-halo density profile at radius R.
+
+        Parameters
+        ----------
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        halo_bias: np.ndarray
+            Halo bias, with shape (z.size, M.size).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+
+        Returns
+        -------
+        Sigma: np.ndarray
+            2-halo surface mass density profile (units : h * Msun / pc**2).
+            Shape: (z.size, M.size, R.size).
+        """
+        return self._generic_mass_density_2h(
+            R, z, halo_bias, bessel_function=j0, radius_units=radius_units
+        )
+
+    def excess_surface_mass_density_2h(self, R, z, halo_bias, radius_units="Mpc/h"):
+        r"""
+        Excess surface 2-halo density profile.
+
+        Computes the cosmological excess surface 2-halo
+        density profile at radius R.
+
+        Parameters
+        ----------
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        halo_bias: np.ndarray
+            Halo bias, with shape (z.size, M.size).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+
+        Returns
+        -------
+        DeltaSigma: np.ndarray
+            2-halo surface mass density profile (units : h * Msun / pc**2).
+            Shape: (z.size, M.size, R.size).
+        """
+        return self._generic_mass_density_2h(
+            R, z, halo_bias, bessel_function=_bessel_j2, radius_units=radius_units
+        )

@@ -84,7 +84,6 @@ def get_values():
     integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
 
     halo_concentration = 0.1
-    overdensity_type = "vir"
     area = 10313
 
     # Integration bins
@@ -105,7 +104,6 @@ def get_values():
         perturbations,
         z=integ_ztrue_arr,
         k=integ_k_arr,
-        overdensity_type=overdensity_type,
     )
     HSCastro = CastroHaloAbundance(halo_model=HS)
     covariance = HaloCovariance(

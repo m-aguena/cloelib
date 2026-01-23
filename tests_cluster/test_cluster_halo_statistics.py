@@ -8,6 +8,7 @@ from cloelib.observables.clusters.halo_abundance import (
     CastroHaloAbundance,
     TinkerHaloAbundance,
 )
+from cloelib.observables.clusters.auxiliary import convert_to_Delta_crit
 from cloelib.observables.clusters.halo_model import HaloModel
 
 
@@ -37,7 +38,7 @@ def test_HaloModel():
 
     # HaloModel
     print("# HaloModel")
-    HS = HaloModel(perturbations, overdensity_type="vir")
+    HS = HaloModel(perturbations)
     HS_tinker = TinkerHaloAbundance(HS)
     HS_castro = CastroHaloAbundance(HS)
 
@@ -59,9 +60,9 @@ def test_HaloModel():
     print("    delta_c")
     _ref = [1.67614, 1.679731, 1.681962, 1.683365, 1.684267]
     assert_allclose(HS.delta_c(z_test), _ref, rtol=5e-7)
-    print("    get_Delta_crit")
+    print("    convert_to_Delta_crit")
     _ref = [103.543328, 123.635875, 139.317406, 150.428862, 158.024219]
-    assert_allclose(HS.get_Delta_crit(z_test)[:5], _ref)
+    assert_allclose(convert_to_Delta_crit("vir", background=background, z=z_test)[:5], _ref)
     print("    sigma_z_R")
     _ref = [4.175587, 3.550908, 2.366934, 1.386543, 0.673829]
     assert_allclose(HS.sigma_z_R(z_test, R_test)[0, :5], _ref, rtol=5e-3)

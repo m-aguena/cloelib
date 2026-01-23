@@ -10,6 +10,8 @@ class BMOHaloProfile:
     def __init__(
         self,
         halo_model: HaloModel,
+        overdensity_type: str = "vir",
+        overdensity: int = 200,
         two_halo: str = "None",
         trunc_fact: float = 3.0,
         z=np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
@@ -42,6 +44,8 @@ class BMOHaloProfile:
         """
         self.auxiliary = HaloProfileAuxiliary(
             halo_model,
+            overdensity_type=overdensity_type,
+            overdensity=overdensity,
             z=z,
             zs_max=zs_max,
             mean_nz=mean_nz,

@@ -33,10 +33,7 @@ def _get_halo_model():
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 
-    return HaloModel(
-        perturbations,
-        overdensity_type="vir",
-    )
+    return HaloModel(perturbations)
 
 
 def _get_castro():
@@ -122,15 +119,15 @@ def _test_profile(profile, reference_vals):
     )
     print("    _surface_mass_density_2h")
     assert_allclose(
-        profile.auxiliary.surface_mass_density_2h(R_test, z_test, M_test, halo_bias)[
+        profile.auxiliary.halo_model.surface_mass_density_2h(R_test, z_test, halo_bias)[
             :, 0, 0
         ],
         **reference_vals["surface_mass_density_2h"],
     )
     print("    _excess_surface_mass_density_2h")
     assert_allclose(
-        profile.auxiliary.excess_surface_mass_density_2h(
-            R_test, z_test, M_test, halo_bias
+        profile.auxiliary.halo_model.excess_surface_mass_density_2h(
+            R_test, z_test, halo_bias
         )[:, 0, 0],
         **reference_vals["excess_surface_mass_density_2h"],
     )
@@ -154,11 +151,7 @@ def test_profiles():
         # All validation values have to be updated with extarnal values
         "sigma_crit": {
             "desired": [
-                57269.106048,
-                57134.290198,
-                57034.179918,
-                56956.999411,
-                56895.740123,
+                57269.705861, 57134.890066, 57034.779821, 56957.599339, 56896.34007
             ],
             "rtol": 1e-5,
         },

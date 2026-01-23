@@ -20,7 +20,8 @@ class CastroHaloAbundance:
         Computation of the multiplicity function.
 
         Computes the Castro et al. (2023) multiplicity function
-        at the requested redshift and mass points.
+        at the requested redshift and mass points. Valid only for
+        virial overdensities.
 
         Parameters
         ----------
@@ -79,7 +80,8 @@ class CastroHaloAbundance:
         Computation of the halo bias.
 
         Computes the Castro et al. (2024) halo bias
-        at the requested redshift and mass points.
+        at the requested redshift and mass points. Valid only
+        for virial overdensities.
 
         Parameters
         ----------
