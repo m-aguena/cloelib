@@ -3,7 +3,7 @@ import numpy as np
 from scipy.integrate import simpson as simps
 
 # cloelib imports
-from cloelib.observables.clusters.clustering import HaloClustering
+from cloelib.observables.clusters.halo_clustering import HaloClustering
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )

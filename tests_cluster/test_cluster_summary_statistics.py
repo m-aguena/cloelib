@@ -6,9 +6,9 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
-from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
+from cloelib.observables.clusters.halo_clustering import HaloClustering
 from cloelib.observables.clusters.halo_model import HaloModel
 from cloelib.observables.clusters.halo_profile import NFWHaloProfile
 from cloelib.observables.clusters.selection_function import SelectionFunction
