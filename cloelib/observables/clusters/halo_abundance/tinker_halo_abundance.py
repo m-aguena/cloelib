@@ -16,7 +16,6 @@ class TinkerHaloAbundance:
         overdensity: int = 200,
     ):
 
-        self.matter_statistics = matter_statistics
         self.core = HaloAbundanceCore(matter_statistics)
         self.overdensity_type = overdensity_type
         self.overdensity = overdensity
@@ -67,9 +66,9 @@ class TinkerHaloAbundance:
         Delta = convert_to_Delta_crit(
             self.overdensity_type,
             self.overdensity,
-            self.matter_statistics.background,
+            self.core.matter_statistics.background,
             z,
-        ) / self.matter_statistics._Omega_m(z)
+        ) / self.core.matter_statistics._Omega_m(z)
 
         ###################
         # Bias computations
