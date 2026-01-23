@@ -171,47 +171,37 @@ class MatterStatistics:
             2-halo surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, R.size).
         """
-        # Calculate base quantities
-        D_A = self.angular_diameter_distance(z) * self.background.h
-
-        # Ensure proper array shapes (z, R)
-        # All z quantities are re-shaped to (nz, 1)
-        z_outshape = np.asarray(z)[:, np.newaxis]
-        D_A_outshape = D_A[:, np.newaxis]
-        rho_m_outshape = (
+        # Calculate all redshift base quantities and shape them (nz, 1)
+        z_plus_1 = np.asarray(z)[:, np.newaxis] + 1.0
+        D_A = self.angular_diameter_distance(z)[:, np.newaxis] * self.background.h
+        rho_m = (
             self.background.Omega_m(z)
             * derived_cosmology.rho_crit(self.background, z)
             / self.background.h**2
         )[:, np.newaxis]
 
-        # Two point correlation part
-
-        ## 1. Power spectrum interpolation
-
-        kl_array = self.k
-
-        ## 2. Get radial distance in radians
-        theta_outshape = convert_distance(R, radius_units, "radians", D_A_outshape)
+        ## 1. Get radial distance in radians
+        theta = convert_distance(R, radius_units, "radians", D_A)
         if radius_units.lower() != "mpc/h":
-            # in this case, theta_outshape was missing z dimension
-            theta_outshape = theta_outshape[np.newaxis, :]
+            # in this case, theta was missing z dimension
+            theta = theta[np.newaxis, :]
 
-        ## 3. Integrand function
+        ## 2. Integrand function
         def integrand(kl):
-            ll = kl * (1.0 + z_outshape) * D_A_outshape
+            ll = kl * z_plus_1 * D_A
             Pk_vals = self.matter_power_spectrum(z, kl)
-            return bessel_function(ll * theta_outshape) * ll * Pk_vals
+            return bessel_function(ll * theta) * ll * Pk_vals
 
-        ## 4. Integration
-        two_point_corr_outshape = (
-            quad_vec(integrand, kl_array.min(), kl_array.max(), epsrel=1e-1)[0]
-            * (1.0 + z_outshape)
-            * D_A_outshape
+        ## 3. Integration
+        two_point_corr = (
+            quad_vec(integrand, self.k.min(), self.k.max(), epsrel=1e-1)[0]
+            * z_plus_1
+            * D_A
         )
 
-        # Final strictly 3D calculation
-        profile = (1.0e-12 * rho_m_outshape * two_point_corr_outshape) / (
-            2.0 * np.pi * (1.0 + z_outshape) ** 3.0 * D_A_outshape**2.0
+        # Final strictly 2D calculation
+        profile = (1.0e-12 * rho_m * two_point_corr) / (
+            2.0 * np.pi * z_plus_1**3.0 * D_A**2.0
         )
 
         return profile
