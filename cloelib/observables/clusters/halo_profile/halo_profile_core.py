@@ -314,7 +314,7 @@ class HaloProfileCore:
         """
         self._check_2h_inputs(inclusion_type, z, M, halo_bias)
         Sigma_2h = (
-            self.matter_statistics.surface_mass_density_2h(R, z, radius_units)
+            self.matter_statistics.surface_mass_density_2h(R, z, radius_units)[:,np.newaxis,:]
             * halo_bias[:, :, np.newaxis]
         )
 
@@ -358,7 +358,7 @@ class HaloProfileCore:
         """
         self._check_2h_inputs(inclusion_type, z, M, halo_bias)
         DeltaSigma_2h = (
-            self.matter_statistics.excess_surface_mass_density_2h(R, z, radius_units)
+            self.matter_statistics.excess_surface_mass_density_2h(R, z, radius_units)[:,np.newaxis,:]
             * halo_bias[:, :, np.newaxis]
         )
 

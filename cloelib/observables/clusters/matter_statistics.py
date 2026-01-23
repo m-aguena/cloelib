@@ -175,13 +175,13 @@ class MatterStatistics:
         D_A = self.angular_diameter_distance(z) * self.background.h
 
         # Ensure proper array shapes (z, M, R)
-        z_outshape = np.asarray(z)[:, np.newaxis, np.newaxis]  # shape (nz, 1, 1)
-        D_A_outshape = D_A[:, np.newaxis, np.newaxis]
+        z_outshape = np.asarray(z)[:, np.newaxis]  # shape (nz, 1)
+        D_A_outshape = D_A[:, np.newaxis]
         rho_m_outshape = (
             self.background.Omega_m(z)
             * derived_cosmology.rho_crit(self.background, z)
             / self.background.h**2
-        )[:, np.newaxis, np.newaxis]
+        )[:, np.newaxis]
 
         # Two point correlation part
 
@@ -190,21 +190,29 @@ class MatterStatistics:
         kl_array = self.k
 
         ## 2. Get radial distance in radians
-        _theta = convert_distance(R, radius_units, "radians", D_A[:, np.newaxis])
-        theta_outshape = _theta[:, np.newaxis]
+        theta_outshape = convert_distance(R, radius_units, "radians", D_A[:, np.newaxis])
         if radius_units.lower() != "mpc/h":
             # in this case, theta_outshape was missing z dimension
-            theta_outshape = theta_outshape[np.newaxis, np.newaxis, :, 0]
+            theta_outshape = theta_outshape[np.newaxis, :]
 
+        self.prt = True
         ## 3. Integrand function
         def integrand(kl):
-            ll = kl * (1.0 + z_outshape) * D_A_outshape
-            Pk_vals = self.matter_power_spectrum(z, kl)[:, np.newaxis]
+            ll = (kl * (1.0 + z_outshape) * D_A_outshape)#[:, np.newaxis, :]
+            Pk_vals = self.matter_power_spectrum(z, kl)#[:, np.newaxis, :]
+            if self.prt:
+                print(
+                    ll.shape,
+                    Pk_vals.shape,
+                    bessel_function(ll * theta_outshape).shape,
+                    )
+                self.prt = False
             return bessel_function(ll * theta_outshape) * ll * Pk_vals
 
         ## 4. Integration
+        _qv = quad_vec(integrand, kl_array.min(), kl_array.max(), epsrel=1e-1)[0]
         two_point_corr_outshape = (
-            quad_vec(integrand, kl_array.min(), kl_array.max(), epsrel=1e-1)[0]
+            _qv
             * (1.0 + z_outshape)
             * D_A_outshape
         )
@@ -213,6 +221,14 @@ class MatterStatistics:
         profile = (1.0e-12 * rho_m_outshape * two_point_corr_outshape) / (
             2.0 * np.pi * (1.0 + z_outshape) ** 3.0 * D_A_outshape**2.0
         )
+
+        print("z_outshape", z_outshape.shape)
+        print("D_A_outshape", D_A_outshape.shape)
+        print("rho_m_outshape", rho_m_outshape.shape)
+        print("theta_outshape", theta_outshape.shape)
+        print("_qv", _qv.shape)
+        print("two_point_corr_outshape", two_point_corr_outshape.shape)
+        #ooo
 
         return profile
 
