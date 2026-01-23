@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import interpolate
-from scipy.special import j0, j1
 from scipy.integrate import quad_vec
+from scipy.special import j0, j1
 
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
