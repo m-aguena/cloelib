@@ -20,7 +20,8 @@ class MatterStatistics:
         self,
         perturbations: Perturbations,
         nonu: bool = False,
-        use_interpolation: bool = True,
+        interpolate_pk: bool = True,
+        interpolate_da: bool = True,
         z=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
         k=np.geomspace(1e-4, 10, 500),
     ):
@@ -38,32 +39,38 @@ class MatterStatistics:
         nonu : bool, optional
             If `True`, massive neutrinos are excluded from the density parameter
             summation.
-        use_interpolation : bool, optional
+        interpolate_pk : bool, optional
             If true, the class interpolates the matter power spectrum.
             A default interpolation is set when class is instanciated with
-            use_interpolation=True. For a more customized interpolation, check
-            the interpolate_matter_power_spectrum function.
+            interpolate_pk=True. For a more customized interpolation, check
+            the set_matter_power_spectrum_interpolation function.
+        interpolate_da : bool, optional
+            If true, the class interpolates the angular diameter distance.
+            A default interpolation is set when class is instanciated with
+            interpolate_da=True. For a more customized interpolation, check
+            the set_angular_diameter_distance_interpolation function.
         """
         self.perturbations = perturbations
         self.nonu = nonu
 
-        # Power spectrum interpolation
+        self.k = k
+        self._z = z
+
+        # Interpolators
         self.Pk_interp = None
+        self.da_interp = None
 
         # set P(k) interpolation usage
-        self.k = k
-        if use_interpolation:
-            self.interpolate_matter_power_spectrum(z, self.k)
-        self.use_interpolation = use_interpolation
+        if interpolate_pk:
+            self.set_matter_power_spectrum_interpolation(self._z, self.k)
+        self.interpolate_pk = interpolate_pk
 
-        # interpolate the angular diameter distance
-        self.angular_diameter_distance = interpolate.InterpolatedUnivariateSpline(
-            x=np.linspace(z.min(), z.max() + 1.0e-5, len(z)),
-            y=self.background.angular_diameter_distance(
+        # set angular diameter distance interpolation usage
+        if interpolate_da:
+            self.set_angular_diameter_distance_interpolation(
                 np.linspace(z.min(), z.max() + 1.0e-5, len(z))
-            ),
-            ext=2,
-        )
+            )
+        self.interpolate_da = interpolate_da
 
     @property
     def background(self):
@@ -89,20 +96,34 @@ class MatterStatistics:
             self._matter_power_spectrum = self.perturbations.matter_power_spectrum
 
     @property
-    def use_interpolation(self):
+    def interpolate_pk(self):
         r"""If true, class uses interpolation for matter power spectrum computation."""
-        return self.__use_interpolation
+        return self.__interpolate_pk
 
-    @use_interpolation.setter
-    def use_interpolation(self, use_interpolation):
+    @property
+    def interpolate_da(self):
+        r"""If true, class uses interpolation for angular diameter distance computation."""
+        return self.__interpolate_da
+
+    @interpolate_pk.setter
+    def interpolate_pk(self, interpolate_pk):
         """If true, makes class uses interpolation for matter power spectrum computation."""
-        if use_interpolation:
+        if interpolate_pk:
             self.matter_power_spectrum = self.Pk_interp
         else:
-            self.matter_power_spectrum = _matter_power_spectrum_not_interpolated
-        self.__use_interpolation = use_interpolation
+            self.matter_power_spectrum = _matter_power_spectrum_exact
+        self.__interpolate_pk = interpolate_pk
 
-    def _matter_power_spectrum_not_interpolated(self, z, k):
+    @interpolate_da.setter
+    def interpolate_da(self, interpolate_da):
+        """If true, makes class uses interpolation for angular diameter distance computation."""
+        if interpolate_da:
+            self.angular_diameter_distance = self.da_interp
+        else:
+            self.angular_diameter_distance = self.background.angular_diameter_distance
+        self.__interpolate_da = interpolate_da
+
+    def _matter_power_spectrum_exact(self, z, k):
         r"""Computes the non interpolated matter power spectrum.
 
         Parameters
@@ -125,11 +146,7 @@ class MatterStatistics:
             k_hunit=True,
         )
 
-    def interpolate_matter_power_spectrum(
-        self,
-        z=np.linspace(1.0e-5, 2.0 - 1.0e-5, 100),
-        k=np.geomspace(1e-4, 10, 500),
-    ):
+    def set_matter_power_spectrum_interpolation(self, z, k):
         r"""Create internal interpolation of matter power spectrum.
 
         Parameters
@@ -144,7 +161,21 @@ class MatterStatistics:
         self.Pk_interp = interpolate.RectBivariateSpline(
             z,
             k,
-            self._matter_power_spectrum_not_interpolated(z, k),
+            self._matter_power_spectrum_exact(z, k),
+        )
+
+    def set_angular_diameter_distance_interpolation(self, z):
+        r"""Create internal interpolation of angular diameter distance.
+
+        Parameters
+        ----------
+        z: float or np.ndarray
+            Redshift.
+        """
+        self.da_interp = interpolate.InterpolatedUnivariateSpline(
+            x=z,
+            y=self.background.angular_diameter_distance(z),
+            ext=2,
         )
 
     def _generic_mass_density_2h(self, R, z, bessel_function, radius_units="Mpc/h"):
