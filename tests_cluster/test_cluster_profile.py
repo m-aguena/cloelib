@@ -5,8 +5,8 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
 from cloelib.observables.clusters.halo_profile import BMOHaloProfile, NFWHaloProfile
+from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
 def _get_matter_statistics():
