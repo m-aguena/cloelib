@@ -4,8 +4,11 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
+from cloelib.observables.clusters.halo_abundance import (
+    CastroHaloAbundance,
+    TinkerHaloAbundance,
+)
 from cloelib.observables.clusters.halo_model import HaloModel
-from cloelib.observables.clusters.hmf_bias import CastroHMFBias, TinkerHMFBias
 
 
 def test_HaloModel():
@@ -35,8 +38,8 @@ def test_HaloModel():
     # HaloModel
     print("# HaloModel")
     HS = HaloModel(perturbations, overdensity_type="vir")
-    HS_tinker = TinkerHMFBias(HS)
-    HS_castro = CastroHMFBias(HS)
+    HS_tinker = TinkerHaloAbundance(HS)
+    HS_castro = CastroHaloAbundance(HS)
 
     # tests
     z_test = np.linspace(0.01, 1.0, 5)

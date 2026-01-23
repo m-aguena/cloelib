@@ -4,7 +4,7 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_model import HaloModel
 
 
-class HMFBiasAuxiliary:
+class HaloAbundanceAuxiliary:
     def __init__(
         self,
         halo_model: HaloModel,

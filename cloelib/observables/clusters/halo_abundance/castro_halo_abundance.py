@@ -5,15 +5,15 @@ from scipy.special import gamma
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_model import HaloModel
 
-from .hmf_bias_auxiliary import HMFBiasAuxiliary
+from .halo_abundance_auxiliary import HaloAbundanceAuxiliary
 
 
-class CastroHMFBias:
+class CastroHaloAbundance:
 
     def __init__(self, halo_model: HaloModel):
 
         self.halo_model = halo_model
-        self.auxiliary = HMFBiasAuxiliary(halo_model)
+        self.auxiliary = HaloAbundanceAuxiliary(halo_model)
 
     def f_sigma_nu(self, z, M):
         r"""

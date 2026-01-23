@@ -8,9 +8,9 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.clustering import HaloClustering
 from cloelib.observables.clusters.covariance import HaloCovariance
+from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 from cloelib.observables.clusters.halo_model import HaloModel
 from cloelib.observables.clusters.halo_profile import NFWHaloProfile
-from cloelib.observables.clusters.hmf_bias import CastroHMFBias
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters import (
     ClusterClustering,
@@ -107,7 +107,7 @@ def get_values():
         k=integ_k_arr,
         overdensity_type=overdensity_type,
     )
-    HSCastro = CastroHMFBias(halo_model=HS)
+    HSCastro = CastroHaloAbundance(halo_model=HS)
     covariance = HaloCovariance(
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )

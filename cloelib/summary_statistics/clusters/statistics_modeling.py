@@ -6,7 +6,7 @@ from scipy.integrate import simpson as simps
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Perturbations
 from cloelib.observables.clusters.covariance import HaloCovariance
-from cloelib.observables.clusters.hmf_bias import HMFBias
+from cloelib.observables.clusters.halo_abundance import HaloAbundance
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 # import jax
@@ -41,7 +41,7 @@ class ClusterStatisticsModeling:
 
     def __init__(
         self,
-        hmfbias: HMFBias,
+        HaloAbundance: HaloAbundance,
         selectionfunction: SelectionFunction,
         integ_k_arr: np.ndarray,
         integ_mass_arr: np.ndarray,
@@ -54,7 +54,7 @@ class ClusterStatisticsModeling:
 
         Parameters
         ----------
-        hmfbias : HMFBias
+        HaloAbundance : HaloAbundance
             Halo mass function and bias object
         selectionfunction : SelectionFunction
             Selection function object
@@ -70,8 +70,8 @@ class ClusterStatisticsModeling:
             Effective area of the survey in deg2.
         """
         # observable objects
-        self.hmfbias = hmfbias
-        self.halo_model = self.hmfbias.halo_model
+        self.HaloAbundance = HaloAbundance
+        self.halo_model = self.HaloAbundance.halo_model
         self.selectionfunction = selectionfunction
 
         # integration tables
@@ -93,10 +93,10 @@ class ClusterStatisticsModeling:
             * area
             * (np.pi**2.0 / 180.0**2.0),
             # hmf at the center of observed redshift bins
-            "dn/dM(ztrue,M)": self.hmfbias.dn_dm(integ_ztrue_arr, integ_mass_arr),
+            "dn/dM(ztrue,M)": self.HaloAbundance.dn_dm(integ_ztrue_arr, integ_mass_arr),
             # halo bias at the center of observed redshift bins
             # only work for virial overdensity
-            "bias(ztrue,M)": self.hmfbias.bias(integ_ztrue_arr, integ_mass_arr),
+            "bias(ztrue,M)": self.HaloAbundance.bias(integ_ztrue_arr, integ_mass_arr),
             # kernel for integration in k
             "dk": integ_k_arr**2.0 / (2.0 * np.pi**2),
         }
