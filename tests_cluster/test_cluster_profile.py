@@ -119,7 +119,9 @@ def _test_profile(profile, reference_vals):
     )
     print("    _surface_mass_density_2h")
     profile_2h = (
-        profile.core.matter_statistics.surface_mass_density_2h(R_test, z_test)
+        profile.core.matter_statistics.surface_mass_density_2h(R_test, z_test)[
+            :, np.newaxis, :
+        ]
         * halo_bias[:, :, np.newaxis]
     )
     assert_allclose(
@@ -128,7 +130,9 @@ def _test_profile(profile, reference_vals):
     )
     print("    _excess_surface_mass_density_2h")
     profile_2h = (
-        profile.core.matter_statistics.excess_surface_mass_density_2h(R_test, z_test)
+        profile.core.matter_statistics.excess_surface_mass_density_2h(R_test, z_test)[
+            :, np.newaxis, :
+        ]
         * halo_bias[:, :, np.newaxis]
     )
     assert_allclose(
