@@ -4,7 +4,7 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.auxiliary import convert_to_Delta_crit
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
-from .halo_abundance_auxiliary import HaloAbundanceAuxiliary
+from .halo_abundance_core import HaloAbundanceCore
 
 
 class TinkerHaloAbundance:
@@ -17,7 +17,7 @@ class TinkerHaloAbundance:
     ):
 
         self.matter_statistics = matter_statistics
-        self.auxiliary = HaloAbundanceAuxiliary(matter_statistics)
+        self.core = HaloAbundanceCore(matter_statistics)
         self.overdensity_type = overdensity_type
         self.overdensity = overdensity
 
@@ -62,8 +62,8 @@ class TinkerHaloAbundance:
             bias[i,j], where i is the redshift axis and j the mass axis
         """
         # compute inputs
-        delta_c = self.auxiliary.delta_c(z)
-        nu = self.auxiliary.nu_z_M(z, M)
+        delta_c = self.core.delta_c(z)
+        nu = self.core.nu_z_M(z, M)
         Delta = convert_to_Delta_crit(
             self.overdensity_type,
             self.overdensity,
@@ -113,4 +113,4 @@ class TinkerHaloAbundance:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        return self.auxiliary.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))
+        return self.core.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))

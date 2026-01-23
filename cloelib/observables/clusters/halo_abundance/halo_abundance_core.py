@@ -5,7 +5,7 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
-class HaloAbundanceAuxiliary:
+class HaloAbundanceCore:
     def __init__(
         self,
         matter_statistics: MatterStatistics,

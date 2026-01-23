@@ -147,13 +147,11 @@ class MatterStatistics:
             self._matter_power_spectrum_not_interpolated(z, k),
         )
 
-    def _generic_mass_density_2h(
-        self, R, z, halo_bias, bessel_function, radius_units="Mpc/h"
-    ):
+    def _generic_mass_density_2h(self, R, z, bessel_function, radius_units="Mpc/h"):
         r"""
         Surface or excess surface 2-halo density profile.
 
-        Computes either the cosmological surface or excess surface
+        Computes either the cosmological unbiased surface or excess surface
         (depending on the input Bessel function) 2-halo density profile.
 
         Parameters
@@ -162,8 +160,6 @@ class MatterStatistics:
             Radial points (units : Mpc / h)
         z: np.ndarray
             Redshift.
-        halo_bias: np.ndarray
-            Halo bias, with shape (z.size, M.size).
         bessel_function: function
             Bessel function that goes in the integrand with the power spectrum.
             Used to return the surface density or the excess surface density.
@@ -186,8 +182,6 @@ class MatterStatistics:
             * derived_cosmology.rho_crit(self.background, z)
             / self.background.h**2
         )[:, np.newaxis, np.newaxis]
-
-        halo_bias_outshape = np.asarray(halo_bias)[:, :, np.newaxis]
 
         # Two point correlation part
 
@@ -216,17 +210,17 @@ class MatterStatistics:
         )
 
         # Final strictly 3D calculation
-        profile = (
-            1.0e-12 * rho_m_outshape * halo_bias_outshape * two_point_corr_outshape
-        ) / (2.0 * np.pi * (1.0 + z_outshape) ** 3.0 * D_A_outshape**2.0)
+        profile = (1.0e-12 * rho_m_outshape * two_point_corr_outshape) / (
+            2.0 * np.pi * (1.0 + z_outshape) ** 3.0 * D_A_outshape**2.0
+        )
 
         return profile
 
-    def surface_mass_density_2h(self, R, z, halo_bias, radius_units="Mpc/h"):
+    def surface_mass_density_2h(self, R, z, radius_units="Mpc/h"):
         r"""
-        Surface 2-halo density profile.
+        Surface 2-halo matter density profile.
 
-        Computes the cosmological surface 2-halo density profile at radius R.
+        Computes the cosmological unbiased surface 2-halo density profile at radius R.
 
         Parameters
         ----------
@@ -234,8 +228,6 @@ class MatterStatistics:
             Radial points (units : Mpc / h)
         z: np.ndarray
             Redshift.
-        halo_bias: np.ndarray
-            Halo bias, with shape (z.size, M.size).
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
@@ -247,14 +239,14 @@ class MatterStatistics:
             Shape: (z.size, M.size, R.size).
         """
         return self._generic_mass_density_2h(
-            R, z, halo_bias, bessel_function=j0, radius_units=radius_units
+            R, z, bessel_function=j0, radius_units=radius_units
         )
 
-    def excess_surface_mass_density_2h(self, R, z, halo_bias, radius_units="Mpc/h"):
+    def excess_surface_mass_density_2h(self, R, z, radius_units="Mpc/h"):
         r"""
-        Excess surface 2-halo density profile.
+        Excess surface 2-halo matter density profile.
 
-        Computes the cosmological excess surface 2-halo
+        Computes the cosmological unbiased excess surface 2-halo
         density profile at radius R.
 
         Parameters
@@ -263,8 +255,6 @@ class MatterStatistics:
             Radial points (units : Mpc / h)
         z: np.ndarray
             Redshift.
-        halo_bias: np.ndarray
-            Halo bias, with shape (z.size, M.size).
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
@@ -276,5 +266,5 @@ class MatterStatistics:
             Shape: (z.size, M.size, R.size).
         """
         return self._generic_mass_density_2h(
-            R, z, halo_bias, bessel_function=_bessel_j2, radius_units=radius_units
+            R, z, bessel_function=_bessel_j2, radius_units=radius_units
         )

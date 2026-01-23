@@ -68,7 +68,7 @@ def test_array_shapes():
         print(radius_units)
         _kwargs["radius_units"] = radius_units
 
-        _r, _z, _m = profile.auxiliary._surface_mass_density_args(**_kwargs)
+        _r, _z, _m = profile.core._surface_mass_density_args(**_kwargs)
         assert (_r * _z * _m).shape == out_shape
 
         _kwargs["c"] = c_test
@@ -100,13 +100,13 @@ def _test_profile(profile, reference_vals):
 
     print("    sigma_crit")
     assert_allclose(
-        profile.auxiliary.sigma_crit(z_test, z_sources_test)[0],
+        profile.core.sigma_crit(z_test, z_sources_test)[0],
         **reference_vals["sigma_crit"],
     )
     print("    n_zs_norM")
-    assert_allclose(profile.auxiliary.n_zs_norM(z_test), **reference_vals["n_zs_norM"])
+    assert_allclose(profile.core.n_zs_norM(z_test), **reference_vals["n_zs_norM"])
     print("    n_zs")
-    assert_allclose(profile.auxiliary.n_zs(z_test)[0][:5], **reference_vals["n_zs"])
+    assert_allclose(profile.core.n_zs(z_test)[0][:5], **reference_vals["n_zs"])
     print("    surface_mass_density")
     assert_allclose(
         profile.surface_mass_density(R_test, z_test, M_test, c_test)[:, 0, 0],
@@ -118,17 +118,21 @@ def _test_profile(profile, reference_vals):
         **reference_vals["excess_surface_mass_density"],
     )
     print("    _surface_mass_density_2h")
+    profile_2h = (
+        profile.core.matter_statistics.surface_mass_density_2h(R_test, z_test)
+        * halo_bias[:, :, np.newaxis]
+    )
     assert_allclose(
-        profile.auxiliary.matter_statistics.surface_mass_density_2h(
-            R_test, z_test, halo_bias
-        )[:, 0, 0],
+        profile_2h[:, 0, 0],
         **reference_vals["surface_mass_density_2h"],
     )
     print("    _excess_surface_mass_density_2h")
+    profile_2h = (
+        profile.core.matter_statistics.excess_surface_mass_density_2h(R_test, z_test)
+        * halo_bias[:, :, np.newaxis]
+    )
     assert_allclose(
-        profile.auxiliary.matter_statistics.excess_surface_mass_density_2h(
-            R_test, z_test, halo_bias
-        )[:, 0, 0],
+        profile_2h[:, 0, 0],
         **reference_vals["excess_surface_mass_density_2h"],
     )
 

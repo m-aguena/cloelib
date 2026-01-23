@@ -11,7 +11,7 @@ from cloelib.observables.clusters.auxiliary import (
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
-class HaloProfileAuxiliary:
+class HaloProfileCore:
     def __init__(
         self,
         matter_statistics: MatterStatistics,
@@ -313,8 +313,9 @@ class HaloProfileAuxiliary:
             Shape: (z.size, M.size, R.size).
         """
         self._check_2h_inputs(inclusion_type, z, M, halo_bias)
-        Sigma_2h = self.matter_statistics.surface_mass_density_2h(
-            R, z, halo_bias, radius_units
+        Sigma_2h = (
+            self.matter_statistics.surface_mass_density_2h(R, z, radius_units)
+            * halo_bias[:, :, np.newaxis]
         )
 
         if inclusion_type == "sum":
@@ -356,8 +357,9 @@ class HaloProfileAuxiliary:
             Shape: (z.size, M.size, R.size).
         """
         self._check_2h_inputs(inclusion_type, z, M, halo_bias)
-        DeltaSigma_2h = self.matter_statistics.excess_surface_mass_density_2h(
-            R, z, halo_bias, radius_units
+        DeltaSigma_2h = (
+            self.matter_statistics.excess_surface_mass_density_2h(R, z, radius_units)
+            * halo_bias[:, :, np.newaxis]
         )
 
         if inclusion_type == "sum":

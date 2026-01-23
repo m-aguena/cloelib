@@ -2,7 +2,7 @@ import numpy as np
 
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
-from .halo_profile_auxiliary import HaloProfileAuxiliary
+from .halo_profile_core import HaloProfileCore
 
 
 class NFWHaloProfile:
@@ -41,7 +41,7 @@ class NFWHaloProfile:
         alpha_nz : float, optional
             Shape parameter of the source redshift distribution.
         """
-        self.auxiliary = HaloProfileAuxiliary(
+        self.core = HaloProfileCore(
             matter_statistics,
             overdensity_type=overdensity_type,
             overdensity=overdensity,
@@ -216,18 +216,16 @@ class NFWHaloProfile:
             Shape: (z.size, M.size, R.size).
         """
         Sigma = self._surface_mass_density_1h(
-            *self.auxiliary._surface_mass_density_args(
-                R, z, M, radius_units=radius_units
-            ),
+            *self.core._surface_mass_density_args(R, z, M, radius_units=radius_units),
             c,
         )
 
         if self.two_halo != "None":
-            Sigma = self.auxiliary.include_surface_mass_density_2h(
+            Sigma = self.core.include_surface_mass_density_2h(
                 Sigma, self.two_halo, R, z, M, halo_bias, radius_units
             )
 
-        self.auxiliary._check_profile_shape(R, z, M, Sigma)
+        self.core._check_profile_shape(R, z, M, Sigma)
 
         return Sigma
 
@@ -262,10 +260,8 @@ class NFWHaloProfile:
             Excess surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        R_outshape, RDelta, densityThreshold = (
-            self.auxiliary._surface_mass_density_args(
-                R, z, M, radius_units=radius_units
-            )
+        R_outshape, RDelta, densityThreshold = self.core._surface_mass_density_args(
+            R, z, M, radius_units=radius_units
         )
         Sigma_mean = self._mean_surface_mass_density_1h(
             R_outshape, RDelta, densityThreshold, c
@@ -274,10 +270,10 @@ class NFWHaloProfile:
         DeltaSigma = Sigma_mean - Sigma
 
         if self.two_halo != "None":
-            DeltaSigma = self.auxiliary.include_excess_surface_mass_density_2h(
+            DeltaSigma = self.core.include_excess_surface_mass_density_2h(
                 DeltaSigma, self.two_halo, R, z, M, halo_bias, radius_units
             )
 
-        self.auxiliary._check_profile_shape(R, z, M, DeltaSigma)
+        self.core._check_profile_shape(R, z, M, DeltaSigma)
 
         return DeltaSigma
