@@ -143,12 +143,12 @@ def photoz_rsd_correction(
     ----------
     background: Background
         Background class containing cosmology
-    ks:  np.ndarray
+    k:  np.ndarray
         wavenumber
-    zs:  np.ndarray
+    z:  np.ndarray
         redshift
-    z_obs_scatter: numpy.ndarray
-        Observed redshift scatter with shape (true z, obs z).
+    z_obs_scatter: float, numpy.ndarray
+        Observed redshift scatter. If array, first dimension must be z.
     nonu: bool
         Consider neutrinos to compute the growth rate
 
@@ -156,7 +156,7 @@ def photoz_rsd_correction(
     -------
     corr0, corr1, corr2: np.ndarray
         Correction terms to the power spectrum monopole
-        Shape (true z, obs z, k)
+        Shape (z.size, k.size, other dimensions of z_obs_scatter)
     """
     if nonu:
         _Omega_m_func = background.Omega_m_cb
@@ -164,19 +164,30 @@ def photoz_rsd_correction(
         _Omega_m_func = background.Omega_m
     ks = np.atleast_1d(k)
     zs = np.atleast_1d(z)
+    z_obs_scatter_arr = np.array(z_obs_scatter)
 
-    # growth rate
-    f_gr = (_Omega_m_func(zs) ** 0.55)[:, np.newaxis, np.newaxis]
-
+    # growth rate and scaled k, shape (z.size, k.size)
+    f_gr = (_Omega_m_func(zs) ** 0.55)[:, np.newaxis]
     ks_z = (
-        ks[np.newaxis, np.newaxis, :]
-        * (
-            np.atleast_2d(z_obs_scatter)
-            * (units.SPEED_OF_LIGHT * 1e-3)
-            / background.hubble_parameter(zs)[:, np.newaxis]
-            * (background.H0 / 100)
-        )[:, :, np.newaxis]
+        ks[np.newaxis, :]
+        * (units.SPEED_OF_LIGHT * 1e-3)
+        / background.hubble_parameter(zs)[:, np.newaxis]
+        * (background.H0 / 100)
     )
+
+    # check if z_obs_scatter has more dimensions
+    ndim_z_obs_scatter = len(z_obs_scatter_arr.shape)
+    if ndim_z_obs_scatter > 1:
+        # if it does, add them to f_gr, ks_z
+        extra_axes = tuple(range(2, ndim_z_obs_scatter + 1))
+        f_gr = np.expand_dims(f_gr, axis=extra_axes)
+        ks_z = np.expand_dims(ks_z, axis=extra_axes)
+    if ndim_z_obs_scatter > 0:
+        # if z_obs_scatter is array, add k dimention in 2nd place
+        z_obs_scatter_arr = z_obs_scatter_arr[:, np.newaxis, ...]
+
+    # multiply by scatter
+    ks_z = ks_z * z_obs_scatter_arr
 
     erf_ks = erf(ks_z)
 

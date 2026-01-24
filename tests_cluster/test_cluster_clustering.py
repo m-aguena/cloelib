@@ -101,7 +101,7 @@ def test_cosmo_photoz_rsd_correction():
     z_test = np.array([0.0, 1.0])
     lob_test = np.array([50.0])
     k_test = np.geomspace(1e-4, 10, 500)
-    zobs_scatter = np.transpose([[5.0, 5.1]] * 2)
+    zobs_scatter = np.array([5.0, 5.1])
 
     background = CAMBBackground(**_cosmo_pars)
 
@@ -125,6 +125,6 @@ def test_cosmo_photoz_rsd_correction():
         [[1.2568793e-02, 2.4204413e-27], [9.1092102e-02, 1.0905091e-25]]
     )
 
-    assert_allclose(corr0[:, 0, [0, -1]], ref_phz_rsd_0, rtol=1e-04)
-    assert_allclose(corr1[:, 0, [0, -1]], ref_phz_rsd_1, rtol=1e-04)
-    assert_allclose(corr2[:, 0, [0, -1]], ref_phz_rsd_2, rtol=1e-04)
+    assert_allclose(corr0[:, [0, -1]], ref_phz_rsd_0, rtol=1e-04)
+    assert_allclose(corr1[:, [0, -1]], ref_phz_rsd_1, rtol=1e-04)
+    assert_allclose(corr2[:, [0, -1]], ref_phz_rsd_2, rtol=1e-04)

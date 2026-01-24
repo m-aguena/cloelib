@@ -150,7 +150,7 @@ class HaloClustering:
         # rsd corrections (lambda_obs, ztrue, k)
         photoz_corr0, photoz_corr1, photoz_corr2 = np.transpose(
             photoz_rsd_correction(self.background, z, k, z_obs_scatter, self.nonu),
-            axes=(0, 2, 1, 3),
+            axes=(0, 3, 1, 2),
         )
 
         # compute effective halo bias, with shape (lambda_obs, ztrue, 1)
