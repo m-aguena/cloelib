@@ -180,7 +180,7 @@ class HaloProfileCore:
 
         return self.nzsnorM[zbin] * simps(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
 
-    def _surface_mass_density_args(self, R, z, M, radius_units="Mpc/h"):
+    def surface_mass_density_args(self, R, z, M, radius_units="Mpc/h"):
         r"""
         Prepare arguments for _model_surface_mass_density_profile and
         _model_mean_surface_mass_density_profile with correct shapes.
@@ -231,7 +231,7 @@ class HaloProfileCore:
 
         return R_outshape, RDelta, densityThreshold
 
-    def _check_profile_shape(self, R, z, M, profile):
+    def check_profile_shape(self, R, z, M, profile):
         """
         Check the shape of the mass profile.
         """

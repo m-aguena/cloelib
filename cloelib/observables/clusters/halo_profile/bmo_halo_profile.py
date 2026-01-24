@@ -305,7 +305,7 @@ class BMOHaloProfile:
             Shape: (z.size, M.size, R.size).
         """
         Sigma_1h = self._surface_mass_density_1h(
-            *self.core._surface_mass_density_args(R, z, M, radius_units=radius_units),
+            *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),
             c,
         )
 
@@ -313,7 +313,7 @@ class BMOHaloProfile:
             Sigma_1h, self.two_halo, R, z, M, halo_bias, radius_units
         )
 
-        self.core._check_profile_shape(R, z, M, Sigma)
+        self.core.check_profile_shape(R, z, M, Sigma)
 
         return Sigma
 
@@ -348,7 +348,7 @@ class BMOHaloProfile:
             Excess surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        R_outshape, RDelta, densityThreshold = self.core._surface_mass_density_args(
+        R_outshape, RDelta, densityThreshold = self.core.surface_mass_density_args(
             R, z, M, radius_units=radius_units
         )
         DeltaSigma_1h = self._mean_surface_mass_density_1h(
@@ -359,6 +359,6 @@ class BMOHaloProfile:
             DeltaSigma_1h, self.two_halo, R, z, M, halo_bias, radius_units
         )
 
-        self.core._check_profile_shape(R, z, M, DeltaSigma)
+        self.core.check_profile_shape(R, z, M, DeltaSigma)
 
         return DeltaSigma
