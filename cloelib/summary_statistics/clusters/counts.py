@@ -146,14 +146,14 @@ class ClusterCounts:
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
         # can neglect richness dependence here
-        pk *= derived_cosmology.photoz_rsd_correction(
-            self.cluster_statitstics_modeling.halo_statistics.background,
+        pk *= photoz_rsd_correction(
+            self.cluster_statitstics_modeling.matter_statistics.background,
             z_mid,
             self.cluster_statitstics_modeling.tabulated_integrands["k"],
             self.cluster_statitstics_modeling.selectionfunction.scatter_zobs_z(
                 0, z_mid
             ),
-            self.cluster_statitstics_modeling.halo_statistics.nonu,
+            self.cluster_statitstics_modeling.matter_statistics.nonu,
         )[0]
 
         # spherical harmonic expansion coefficients (covariance)
