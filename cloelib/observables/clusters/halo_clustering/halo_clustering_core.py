@@ -3,10 +3,9 @@ import numpy as np
 from scipy.integrate import simpson as simps
 from scipy.special import erf, spherical_jn
 
+from cloelib.auxiliary import units
 from cloelib.cosmology.cosmology import Perturbations
 from cloelib.observables.clusters.selection_function import SelectionFunction
-
-from ...auxiliary import units
 
 
 class HaloClustering:
