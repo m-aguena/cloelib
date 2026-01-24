@@ -7,9 +7,9 @@ from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Background
 from cloelib.observables.clusters.auxiliary import (
+    isotropic_volume_distance,
     photoz_rsd_correction,
     tophat_window,
-    isotropic_volume_distance,
 )
 from cloelib.observables.clusters.selection_function import SelectionFunction
 

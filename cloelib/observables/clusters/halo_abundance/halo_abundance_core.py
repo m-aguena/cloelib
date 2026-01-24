@@ -2,11 +2,11 @@ import numpy as np
 from scipy.integrate import simpson as simps
 
 from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
 from cloelib.observables.clusters.auxiliary import (
     tophat_window,
     tophat_window_derivative,
 )
+from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
 class HaloAbundanceCore:
