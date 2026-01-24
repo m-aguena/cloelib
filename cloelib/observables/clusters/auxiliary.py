@@ -212,7 +212,7 @@ def photoz_rsd_correction(
 
 
 def tophat_window(kr):
-    r"""Top-hat window and its derivative.
+    r"""compute top-hat window and its derivative.
 
     Parameters
     ----------
@@ -228,7 +228,7 @@ def tophat_window(kr):
 
 
 def tophat_window_derivative(kr):
-    r"""Derivative of the top-hat window.
+    r"""Compute derivative of the top-hat window.
 
     Parameters
     ----------
@@ -241,3 +241,25 @@ def tophat_window_derivative(kr):
         Derivative of top-hat window function
     """
     return 3.0 * (np.sin(kr) * (kr**2.0 - 3.0) + 3.0 * kr * np.cos(kr)) / kr**4.0
+
+
+def isotropic_volume_distance(background, z):
+    """Compute isotropic volume distance
+
+    Parameters
+    ----------
+    z:  np.ndarray
+        redshift
+
+    Returns
+    -------
+    np.ndarray
+        Isotropic volume distance
+    """
+    return (
+        (1 + z) ** 2
+        * background.angular_diameter_distance(z) ** 2
+        * units.SPEED_OF_LIGHT
+        * z
+        / background.hubble_parameter(z)
+    ) ** (1 / 3.0)

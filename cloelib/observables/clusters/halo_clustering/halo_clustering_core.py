@@ -6,7 +6,11 @@ from scipy.special import spherical_jn
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Perturbations
-from cloelib.observables.clusters.auxiliary import photoz_rsd_correction, tophat_window
+from cloelib.observables.clusters.auxiliary import (
+    photoz_rsd_correction,
+    tophat_window,
+    isotropic_volume_distance,
+)
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
@@ -98,24 +102,12 @@ class HaloClustering:
         z[z == 0] = 1e-5
 
         # isotropic volume distance
-        Dv = (
-            (1 + z) ** 2
-            * self.background.angular_diameter_distance(z) ** 2
-            * units.SPEED_OF_LIGHT
-            * z
-            / self.background.hubble_parameter(z)
-        ) ** (1 / 3.0)
+        Dv = isotropic_volume_distance(self.background, z)
 
         # isotropic volume distance at fiducial cosmology (assumed for measuring the 2pcf)
-        Dv_fid = (
-            (1 + z) ** 2
-            * self.background_fid.angular_diameter_distance(z) ** 2
-            * units.SPEED_OF_LIGHT
-            * z
-            / self.background_fid.hubble_parameter(z)
-        ) ** (1 / 3.0)
+        Dv_fid = isotropic_volume_distance(self.background_fid, z)
 
-        return (Dv / self.background.rdrag) * (self.background_fid.rdrag / Dv_fid)
+        return (Dv / Dv_fid) * (self.background_fid.rdrag / self.background.rdrag)
 
     def power_spectrum_RSD_corrected(self, z, k, pk, z_obs_scatter, b_eff):
         """Computes Pk with RSD correction.
