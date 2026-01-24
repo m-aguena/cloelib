@@ -5,7 +5,7 @@ from scipy.special import spherical_jn
 
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
-from cloelib.cosmology.cosmology import Perturbations
+from cloelib.cosmology.cosmology import Background
 from cloelib.observables.clusters.auxiliary import (
     photoz_rsd_correction,
     tophat_window,
@@ -17,13 +17,13 @@ from cloelib.observables.clusters.selection_function import SelectionFunction
 class HaloClustering:
     def __init__(
         self,
-        perturbations: Perturbations,
-        perturbations_fid: Perturbations,
+        background: Background,
+        background_fid: Background,
         nonu: bool = False,
     ):
 
-        self.background = perturbations.background
-        self.background_fid = perturbations_fid.background
+        self.background = background
+        self.background_fid = background_fid
         self.nonu = nonu
 
     @property

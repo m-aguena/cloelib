@@ -52,9 +52,6 @@ def get_values():
     _cosmo_pars_fid = {**_cosmo_pars}
     _cosmo_pars_fid["H0"] = 73.0
     background_fid = CAMBBackground(**_cosmo_pars_fid)
-    perturbations_fid = CAMBLinearPerturbations(
-        background_fid, np.linspace(0.0, 2.0, 100)
-    )
     print(f"cosmo     :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
 
@@ -110,7 +107,7 @@ def get_values():
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
     profileNFW = NFWHaloProfile(HS, two_halo="None")
-    haloClustering = HaloClustering(perturbations, perturbations_fid)
+    haloClustering = HaloClustering(background, background_fid)
 
     print(f"init obs  :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
