@@ -67,17 +67,13 @@ class HaloClustering:
         )  # AP correction (adds a redshift dependence)
         k_r_z = r_z * k[np.newaxis, np.newaxis, :]
 
-        r3_tophat_filter = (
-            r_z**3 * 3.0 * (np.sin(k_r_z) - k * r_z * np.cos(k_r_z)) / (k_r_z) ** 3.0
+        tophat_filter = 3.0 * (np.sin(k_r_z) - k * r_z * np.cos(k_r_z)) / (k_r_z) ** 3.0
+
+        shell_window = np.diff(r_z**3 * tophat_filter, axis=1) / (
+            np.diff(r_z**3, axis=1)
         )
 
-        shell_window = (r3_tophat_filter[:, 1:, :] - r3_tophat_filter[:, :-1, :]) / (
-            r_z[:, 1:, :] ** 3 - r_z[:, :-1, :] ** 3
-        )
-
-        shell_volume = (
-            4.0 * np.pi / 3.0 * ((r_z[:, 1:, 0]) ** 3 - (r_z[:, :-1, 0]) ** 3)
-        )
+        shell_volume = 4.0 * np.pi / 3.0 * np.diff(r_z[:, :, 0] ** 3, axis=1)
 
         return shell_window, shell_volume
 
