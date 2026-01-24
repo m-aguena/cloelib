@@ -80,7 +80,7 @@ class ClusterClustering:
         _pk = self.cluster_statitstics_modeling.matter_statistics.matter_power_spectrum(
             self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
             self.cluster_statitstics_modeling.tabulated_integrands["k"],
-        )
+        )  # (ztrue, k)
         _z_obs_scatter = (
             self.cluster_statitstics_modeling.selectionfunction.scatter_zobs_z(
                 lambda_obs_mid[np.newaxis, :],
@@ -88,10 +88,10 @@ class ClusterClustering:
                     :, np.newaxis
                 ],
             )
-        )
+        )  # (ztrue, lambda_obs)
         pk_halo = self.clustering.power_spectrum_RSD_corrected(
             self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
-            self.clustering.k,
+            self.cluster_statitstics_modeling.tabulated_integrands["k"],
             pk=_pk[np.newaxis, :, :],
             z_obs_scatter=_z_obs_scatter,
             b_eff=b_eff[:, :, np.newaxis],
@@ -199,7 +199,9 @@ class ClusterClustering:
         # radial_shell_volume is used only by covariance
         _z_obs_mid = 0.5 * (z_obs_edges[1:] + z_obs_edges[:-1])
         radial_shell_window, radial_shell_volume = self.clustering.WF_ra(
-            _z_obs_mid, radius_edges
+            _z_obs_mid,
+            self.cluster_statitstics_modeling.tabulated_integrands["k"],
+            radius_edges,
         )
 
         # compute 2point correlation function : (z_obs, lambda_obs, lambda_obs, radius)

@@ -15,16 +15,12 @@ class HaloClustering:
         self,
         perturbations: Perturbations,
         perturbations_fid: Perturbations,
-        k: np.ndarray = np.geomspace(1e-4, 10, 500),
         nonu: bool = False,
     ):
 
         self.background = perturbations.background
         self.background_fid = perturbations_fid.background
         self.nonu = nonu
-
-        # wavelength array (integration variable)
-        self.k = k
 
     @property
     def nonu(self):
@@ -44,7 +40,9 @@ class HaloClustering:
         else:
             self._Omega_m = self.background.Omega_m
 
-    def WF_ra(self, z: np.ndarray, r: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def WF_ra(
+        self, z: np.ndarray, k: np.ndarray, r: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Computes the window function and the volume of the spherical shells as a function of the radial separation
 
@@ -63,18 +61,14 @@ class HaloClustering:
                 V[i,j] where i is the redshift bin and j is the radial bin
         """
 
-        r = r[np.newaxis, :, np.newaxis]
-        k = self.k[np.newaxis, np.newaxis, :]
-
         r_z = (
-            self.APcorr_func(z)[:, np.newaxis, np.newaxis] * r
+            self.APcorr_func(z)[:, np.newaxis, np.newaxis]
+            * r[np.newaxis, :, np.newaxis]
         )  # AP correction (adds a redshift dependence)
+        k_r_z = r_z * k[np.newaxis, np.newaxis, :]
 
         r3_TH_filter = (
-            r_z**3
-            * 3.0
-            * (np.sin(k * r_z) - k * r_z * np.cos(k * r_z))
-            / (k * r_z) ** 3.0
+            r_z**3 * 3.0 * (np.sin(k_r_z) - k * r_z * np.cos(k_r_z)) / (k_r_z) ** 3.0
         )
 
         W_rad = (r3_TH_filter[:, 1:, :] - r3_TH_filter[:, :-1, :]) / (
@@ -161,12 +155,14 @@ class HaloClustering:
         return pk_halo
 
     # IR resummation of the bao wiggles in the Pk
-    def Pk_IR_func(self, Pk: np.ndarray) -> np.ndarray:
+    def Pk_IR_func(self, k: np.array, Pk: np.ndarray) -> np.ndarray:
         """
         Infrared resummation (first order approx) to correct non-linear damping of bao wiggles
 
         Parameters
         ----------
+        k: np.ndarray
+           Wavenumber used to evaluate power spectrum, in h Mpc^{-1}
         Pk: np.ndarray
            Linear matter power spectrum at different redshifts in (Mpc/h)^3
 
@@ -183,7 +179,6 @@ class HaloClustering:
         Omh2 = self._Omega_m(0.0) * h**2
         Tcmb = 2.73
 
-        k = self.k
         k *= h  #  1/Mpc
         s = 44.5 * np.log(9.83 / Omh2) / np.sqrt(1.0 + 10.0 * (Obh2) ** 0.75)
         Gamma = Omh2 / h

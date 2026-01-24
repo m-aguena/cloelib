@@ -12,6 +12,7 @@ def _test_clustering(CL, perturbations):
     z_test = np.array([0.0, 1.0])
     r_test = np.array([30.0, 60.0, 90.0])
     lob_test = np.array([50.0])
+    k_test = np.geomspace(1e-4, 10, 500)
 
     print("    APcorr_func")
     ref_APcorr = np.array([1.0162, 1.016033])
@@ -29,7 +30,7 @@ def _test_clustering(CL, perturbations):
         [[830784.512318, 2254986.533435], [830373.221984, 2253870.173956]]
     )
 
-    WF, VF = CL.WF_ra(z_test, r_test)
+    WF, VF = CL.WF_ra(z_test, k_test, r_test)
     assert_allclose(WF[:, :, [0, -1]], ref_WF_ra0, rtol=1e-03)
     assert_allclose(VF, ref_WF_ra1, rtol=1e-03)
 
@@ -37,9 +38,9 @@ def _test_clustering(CL, perturbations):
     ref_Pk_IR = np.array([[4.2284186e02, 1.0611498e-01], [1.5616818e02, 3.9339960e-02]])
 
     Pk_test = perturbations.matter_power_spectrum(
-        z_test, CL.k, hubble_units=True, k_hunit=True
+        z_test, k_test, hubble_units=True, k_hunit=True
     )
-    assert_allclose(CL.Pk_IR_func(Pk_test)[:, [0, -1]], ref_Pk_IR, rtol=1e-4)
+    assert_allclose(CL.Pk_IR_func(k_test, Pk_test)[:, [0, -1]], ref_Pk_IR, rtol=1e-4)
 
 
 def test_clustering():
