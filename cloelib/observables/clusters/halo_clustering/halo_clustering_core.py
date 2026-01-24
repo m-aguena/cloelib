@@ -6,7 +6,7 @@ from scipy.special import spherical_jn
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Perturbations
-from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
+from cloelib.observables.clusters.auxiliary import photoz_rsd_correction, tophat_window
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
@@ -67,9 +67,7 @@ class HaloClustering:
         )  # AP correction (adds a redshift dependence)
         k_r_z = r_z * k[np.newaxis, np.newaxis, :]
 
-        tophat_filter = 3.0 * (np.sin(k_r_z) - k * r_z * np.cos(k_r_z)) / (k_r_z) ** 3.0
-
-        shell_window = np.diff(r_z**3 * tophat_filter, axis=1) / (
+        shell_window = np.diff(r_z**3 * tophat_window(k_r_z), axis=1) / (
             np.diff(r_z**3, axis=1)
         )
 

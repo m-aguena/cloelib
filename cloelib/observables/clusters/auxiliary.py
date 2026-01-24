@@ -209,3 +209,35 @@ def photoz_rsd_correction(
     corr2[idx] = 1 / 5.0
 
     return corr0, corr1, corr2
+
+
+def tophat_window(kr):
+    r"""Top-hat window and its derivative.
+
+    Parameters
+    ----------
+    kr: numpy.ndarray
+           Wavenumber times radius.
+
+    Returns
+    -------
+    numpy.ndarray
+        Top-hat window function
+    """
+    return 3.0 * (np.sin(kr) - kr * np.cos(kr)) / kr**3.0
+
+
+def tophat_window_derivative(kr):
+    r"""Derivative of the top-hat window.
+
+    Parameters
+    ----------
+    kr: numpy.ndarray
+           Wavenumber times radius.
+
+    Returns
+    -------
+    numpy.ndarray
+        Derivative of top-hat window function
+    """
+    return 3.0 * (np.sin(kr) * (kr**2.0 - 3.0) + 3.0 * kr * np.cos(kr)) / kr**4.0
