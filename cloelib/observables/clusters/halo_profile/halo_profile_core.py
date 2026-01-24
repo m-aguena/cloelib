@@ -292,6 +292,7 @@ class HaloProfileCore:
         Sigma_1h : np.ndarray
             One-halo surface mass density.
         inclusion_type : str
+            If "None", only the 1-halo profile is used.
             If "sum", the 1-halo and 2-halo profile are summed.
             If "max", the maximum between them is considered at each point.
         R: np.ndarray
@@ -312,6 +313,9 @@ class HaloProfileCore:
             Total surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
+        if inclusion_type == "None":
+            return Sigma_1h
+
         self._check_2h_inputs(inclusion_type, z, M, halo_bias)
         Sigma_2h = (
             self.matter_statistics.surface_mass_density_2h(R, z, radius_units)[
@@ -338,6 +342,7 @@ class HaloProfileCore:
         DeltaSigma_1h : np.ndarray
             One-halo surface mass density.
         inclusion_type : str
+            If "None", only the 1-halo profile is used.
             If "sum", the 1-halo and 2-halo profile are summed.
             If "max", the maximum between them is considered at each point.
         R: np.ndarray
@@ -358,6 +363,9 @@ class HaloProfileCore:
             Total excess surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
+        if inclusion_type == "None":
+            return DeltaSigma_1h
+
         self._check_2h_inputs(inclusion_type, z, M, halo_bias)
         DeltaSigma_2h = (
             self.matter_statistics.excess_surface_mass_density_2h(R, z, radius_units)[
