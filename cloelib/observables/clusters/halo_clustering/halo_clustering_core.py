@@ -6,6 +6,7 @@ from scipy.special import spherical_jn
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Perturbations
+from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
@@ -125,6 +126,39 @@ class HaloClustering:
         ) ** (1 / 3.0)
 
         return (Dv / self.background.rdrag) * (self.background_fid.rdrag / Dv_fid)
+
+    def power_spectrum_RSD_corrected(self, z, k, pk, z_obs_scatter, b_eff):
+        """Computes Pk with RSD correction.
+
+        Parameters
+        ----------
+        z: np.ndarray
+           Redshift
+        k: np.ndarray
+           Wavenumber used to evaluate power spectrum, in h Mpc^{-1}
+        pk: np.ndarray
+           Linear matter power spectrum at different redshifts in (Mpc/h)^3
+           Shape (z.size, k.size)
+
+        Returns
+        -------
+        pk_halo : numpy.ndarray
+            Power spectrum averaged on redshift and richnesses bins (with IR-resummation),
+            Dimension: (z_obs, lambda_obs, lambda_obs, k)
+        """
+        # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
+        # rsd corrections (lambda_obs, ztrue, k)
+        photoz_corr0, photoz_corr1, photoz_corr2 = np.transpose(
+            photoz_rsd_correction(self.background, z, k, z_obs_scatter, self.nonu),
+            axes=(0, 2, 1, 3),
+        )
+
+        # compute effective halo bias, with shape (lambda_obs, ztrue, 1)
+
+        # corrected power specrum (lambda_obs, ztrue, k)
+        pk_halo = (b_eff**2 * photoz_corr0 + b_eff * photoz_corr1 + photoz_corr2) * pk
+
+        return pk_halo
 
     # IR resummation of the bao wiggles in the Pk
     def Pk_IR_func(self, Pk: np.ndarray) -> np.ndarray:

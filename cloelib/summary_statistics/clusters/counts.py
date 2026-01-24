@@ -152,9 +152,9 @@ class ClusterCounts:
             self.cluster_statitstics_modeling.tabulated_integrands["k"],
             self.cluster_statitstics_modeling.selectionfunction.scatter_zobs_z(
                 0, z_mid
-            ),
+            )[:, np.newaxis],
             self.cluster_statitstics_modeling.matter_statistics.nonu,
-        )[0]
+        )[0][:, 0, :]
 
         # spherical harmonic expansion coefficients (covariance)
         KL = self.covariance.Kl_coeff()

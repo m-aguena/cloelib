@@ -131,8 +131,8 @@ def convert_distance(distance, units_in, units_out, angular_diameter_distance=No
 
 def photoz_rsd_correction(
     background,
-    zs: np.ndarray,
-    ks: np.ndarray,
+    z: np.ndarray,
+    k: np.ndarray,
     z_obs_scatter: np.ndarray,
     nonu: bool,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -154,23 +154,29 @@ def photoz_rsd_correction(
 
     Returns
     -------
-    corr0, corr1, corr2: np.ndarray, np.ndarray, np.ndarray
+    corr0, corr1, corr2: np.ndarray
         Correction terms to the power spectrum monopole
+        Shape (true z, obs z, k)
     """
     if nonu:
         _Omega_m_func = background.Omega_m_cb
     else:
         _Omega_m_func = background.Omega_m
+    ks = np.atleast_1d(k)
+    zs = np.atleast_1d(z)
 
     # growth rate
-    f_gr = (_Omega_m_func(zs) ** 0.55)[:, np.newaxis]
+    f_gr = (_Omega_m_func(zs) ** 0.55)[:, np.newaxis, np.newaxis]
 
-    ks_z = ks * (
-        z_obs_scatter
-        * (units.SPEED_OF_LIGHT * 1e-3)
-        / background.hubble_parameter(zs)
-        * (background.H0 / 100)
-    ).reshape(len(zs), 1)
+    ks_z = (
+        ks[np.newaxis, np.newaxis, :]
+        * (
+            np.atleast_2d(z_obs_scatter)
+            * (units.SPEED_OF_LIGHT * 1e-3)
+            / background.hubble_parameter(zs)[:, np.newaxis]
+            * (background.H0 / 100)
+        )[:, :, np.newaxis]
+    )
 
     erf_ks = erf(ks_z)
 

@@ -69,36 +69,32 @@ class ClusterClustering:
             NOT normalized by the number counts.
             Dimension: (z_obs, lambda_obs, lambda_obs, k)
         """
-        # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
-        # rsd corrections (lambda_obs, ztrue, k)
-        photoz_corr0, photoz_corr1, photoz_corr2 = np.array(
-            [
-                photoz_rsd_correction(
-                    self.clustering.background,
-                    self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
-                    self.clustering.k,
-                    self.cluster_statitstics_modeling.selectionfunction.scatter_zobs_z(
-                        _lambda_obs,
-                        self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
-                    ),
-                    self.clustering.nonu,
-                )
-                for _lambda_obs in lambda_obs_mid
-            ]
-        ).transpose(1, 0, 2, 3)
 
-        # compute effective halo bias, with shape (lambda_obs, ztrue, 1)
+        # compute effective halo bias, with shape (lambda_obs, ztrue)
         b_eff = (
             halo_bias_in_window_lambda_obs_mass_integrated
             / window_lambda_obs_mass_integrated
-        )[:, :, np.newaxis]
+        )
 
         # corrected power specrum (lambda_obs, ztrue, k)
-        pk_halo = (
-            b_eff**2 * photoz_corr0 + b_eff * photoz_corr1 + photoz_corr2
-        ) * self.cluster_statitstics_modeling.matter_statistics.matter_power_spectrum(
+        _pk = self.cluster_statitstics_modeling.matter_statistics.matter_power_spectrum(
             self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
             self.cluster_statitstics_modeling.tabulated_integrands["k"],
+        )
+        _z_obs_scatter = (
+            self.cluster_statitstics_modeling.selectionfunction.scatter_zobs_z(
+                lambda_obs_mid[np.newaxis, :],
+                self.cluster_statitstics_modeling.tabulated_integrands["ztrue"][
+                    :, np.newaxis
+                ],
+            )
+        )
+        pk_halo = self.clustering.power_spectrum_RSD_corrected(
+            self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
+            self.clustering.k,
+            pk=_pk[np.newaxis, :, :],
+            z_obs_scatter=_z_obs_scatter,
+            b_eff=b_eff[:, :, np.newaxis],
         )
 
         # average square of power spectrum in redshift and richness bins (z_obs, lambda_obs, k)
