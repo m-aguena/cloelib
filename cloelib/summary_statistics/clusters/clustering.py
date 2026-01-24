@@ -76,25 +76,22 @@ class ClusterClustering:
             / window_lambda_obs_mass_integrated
         )
 
+        # to use for pk
+        _z = self.cluster_statitstics_modeling.tabulated_integrands["ztrue"]
+        _k = self.cluster_statitstics_modeling.tabulated_integrands["k"]
+
         # corrected power specrum (lambda_obs, ztrue, k)
         _pk = self.cluster_statitstics_modeling.matter_statistics.matter_power_spectrum(
-            self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
-            self.cluster_statitstics_modeling.tabulated_integrands["k"],
+            _z, _k
         )  # (ztrue, k)
         _z_obs_scatter = (
             self.cluster_statitstics_modeling.selectionfunction.scatter_zobs_z(
                 lambda_obs_mid[np.newaxis, :],
-                self.cluster_statitstics_modeling.tabulated_integrands["ztrue"][
-                    :, np.newaxis
-                ],
+                _z[:, np.newaxis],
             )
         )  # (ztrue, lambda_obs)
         pk_halo = self.clustering.power_spectrum_RSD_corrected(
-            self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
-            self.cluster_statitstics_modeling.tabulated_integrands["k"],
-            pk=_pk[np.newaxis, :, :],
-            z_obs_scatter=_z_obs_scatter,
-            b_eff=b_eff[:, :, np.newaxis],
+            _z, _k, _pk[np.newaxis, :, :], _z_obs_scatter, b_eff[:, :, np.newaxis]
         )
 
         # average square of power spectrum in redshift and richness bins (z_obs, lambda_obs, k)
