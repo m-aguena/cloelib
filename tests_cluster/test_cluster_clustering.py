@@ -14,9 +14,9 @@ def _test_clustering(CL, perturbations):
     lob_test = np.array([50.0])
     k_test = np.geomspace(1e-4, 10, 500)
 
-    print("    APcorr_func")
+    print("    fiducial_cosmology_correction")
     ref_APcorr = np.array([1.0162, 1.016033])
-    assert_allclose(CL.APcorr_func(z_test), ref_APcorr, rtol=1e-04)
+    assert_allclose(CL.fiducial_cosmology_correction(z_test), ref_APcorr, rtol=1e-04)
 
     print("    radial_shell_window_and_volume")
     ref_radial_shell_window_and_volume0 = np.array(

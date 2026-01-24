@@ -66,7 +66,7 @@ class HaloClustering:
         """
 
         r_z = (
-            self.APcorr_func(z)[:, np.newaxis, np.newaxis]
+            self.fiducial_cosmology_correction(z)[:, np.newaxis, np.newaxis]
             * r[np.newaxis, :, np.newaxis]
         )  # AP correction (adds a redshift dependence)
         k_r_z = r_z * k[np.newaxis, np.newaxis, :]
@@ -80,7 +80,7 @@ class HaloClustering:
         return shell_window, shell_volume
 
     # cosmo correction (isotropic AP)
-    def APcorr_func(self, z: np.ndarray) -> np.ndarray:
+    def fiducial_cosmology_correction(self, z: np.ndarray) -> np.ndarray:
         """
         Compute the correction that accounts for the wrong cosmology assumed in the measurement of the 2ptCF
         See https://arxiv.org/pdf/1511.00012.pdf (Sect. 4.3.1) for details.
@@ -143,6 +143,7 @@ class HaloClustering:
         return pk_halo
 
     # IR resummation of the bao wiggles in the Pk
+    # not in use currently
     def Pk_IR_func(self, k: np.array, Pk: np.ndarray) -> np.ndarray:
         """
         Infrared resummation (first order approx) to correct non-linear damping of bao wiggles
