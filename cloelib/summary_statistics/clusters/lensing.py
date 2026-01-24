@@ -46,11 +46,11 @@ class ClusterWeakLensing:
         Delta_profile = profile.core.overdensity_type
         if isinstance(halo_abundance, CastroHaloAbundance) and Delta_profile != "vir":
             raise ValueError(
-                f"If the Castro HMF is used, only virial overdensities can be considered. The current overdensity is {Delta_profile}."
+                f"If the Castro HMF is used, only virial overdensities can be considered. The current overdensity in the profile modeling is {Delta_profile}."
             )
         if Delta_abundance != Delta_profile:
             raise ValueError(
-                f"The overdensity definition of the mass profile ({Delta_profiles} differs from the one adopted for halo abundance modelling ({Delta_abundance}).)"
+                f"The overdensity definition of the mass profile ({Delta_profiles}) differs from the one adopted for halo abundance modeling ({Delta_abundance}).)"
             )
 
         # cluster counts summary statistics, contains tables for integrals
