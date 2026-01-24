@@ -42,10 +42,15 @@ class ClusterWeakLensing:
             Halo concentration
         """
         halo_abundance = cluster_statitstics_modeling.halo_abundance
-        Delta_type = profile.core.overdensity_type
-        if isinstance(halo_abundance, CastroHaloAbundance) and Delta_type != "vir":
+        Delta_abundance = halo_abundance.overdensity_type
+        Delta_profile = profile.core.overdensity_type
+        if isinstance(halo_abundance, CastroHaloAbundance) and Delta_profile != "vir":
             raise ValueError(
-                f"If the Castro HMF is used, only virial overdensities can be considered. The current overdensity is {Delta_type}."
+                f"If the Castro HMF is used, only virial overdensities can be considered. The current overdensity is {Delta_profile}."
+            )
+        if Delta_abundance != Delta_profile:
+            raise ValueError(
+                f"The overdensity definition of the mass profile ({Delta_profiles} differs from the one adopted for halo abundance modelling ({Delta_abundance}).)"
             )
 
         # cluster counts summary statistics, contains tables for integrals
