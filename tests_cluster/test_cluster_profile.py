@@ -68,7 +68,7 @@ def test_array_shapes():
         print(radius_units)
         _kwargs["radius_units"] = radius_units
 
-        _r, _z, _m = profile.core._surface_mass_density_args(**_kwargs)
+        _r, _z, _m = profile.core.surface_mass_density_args(**_kwargs)
         assert (_r * _z * _m).shape == out_shape
 
         _kwargs["c"] = c_test
