@@ -2,9 +2,9 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
 
+from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.halo_clustering import HaloClustering
-from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
 def _test_clustering(CL, perturbations):
@@ -40,22 +40,6 @@ def _test_clustering(CL, perturbations):
     )
     assert_allclose(CL.Pk_IR_func(Pk_test)[:, [0, -1]], ref_Pk_IR, rtol=1e-4)
 
-    print("    photoz_rsd_correction")
-    ref_phz_rsd_0 = np.array(
-        [[5.7111615e-01, 5.9122967e-06], [8.0073649e-01, 1.0336005e-05]]
-    )
-    ref_phz_rsd_1 = np.array(
-        [[1.0873061e-01, 1.3813213e-16], [3.8109362e-01, 1.2259151e-15]]
-    )
-    ref_phz_rsd_2 = np.array(
-        [[1.2568793e-02, 2.4204413e-27], [9.1092102e-02, 1.0905091e-25]]
-    )
-
-    corr0, corr1, corr2 = CL.photoz_rsd_correction(z_test, lob_test)
-    assert_allclose(corr0[:, [0, -1]], ref_phz_rsd_0, rtol=1e-04)
-    assert_allclose(corr1[:, [0, -1]], ref_phz_rsd_1, rtol=1e-04)
-    assert_allclose(corr2[:, [0, -1]], ref_phz_rsd_2, rtol=1e-04)
-
 
 def test_clustering():
     # Cosmology parameters
@@ -90,23 +74,5 @@ def test_clustering():
     perturbations_fid = CAMBLinearPerturbations(
         background_fid, np.linspace(0.0, 2.0, 100)
     )
-    k_min = 1e-3
-    k_max = 1e0
-    k_div = 2
-    nonu = True
-    _sel_pars = dict(
-        A_l=0.5,
-        B_l=0.6,
-        C_l=0.5,
-        sig_A_l=0.1,
-        sig_B_l=0.0,
-        sig_C_l=0.0,
-        sig_lambda_norm=0.1,
-        sig_lambda_z=0.1,
-        sig_lambda_exponent=0.1,
-        sig_z_z=0.1,
-        sig_z_lambda=0.1,
-    )
-    SF = SelectionFunction(**_sel_pars)
-    CL = HaloClustering(perturbations, perturbations_fid, SF, nonu=nonu)
+    CL = HaloClustering(perturbations, perturbations_fid, nonu=True)
     _test_clustering(CL, perturbations)

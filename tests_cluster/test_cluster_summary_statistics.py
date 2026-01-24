@@ -110,9 +110,7 @@ def get_values():
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
     profileNFW = NFWHaloProfile(HS, two_halo="None")
-    haloClustering = HaloClustering(
-        perturbations, perturbations_fid, selectionFunction, k=integ_k_arr
-    )
+    haloClustering = HaloClustering(perturbations, perturbations_fid, k=integ_k_arr)
 
     print(f"init obs  :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
@@ -145,7 +143,6 @@ def get_values():
     cluster_counts_statistics = ClusterCounts(
         cluster_statitstics_modeling,
         covariance,
-        photoz_rsd_correction=haloClustering.photoz_rsd_correction,
     )
     cluster_wl_statistics = ClusterWeakLensing(
         cluster_statitstics_modeling,
