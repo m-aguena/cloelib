@@ -2,6 +2,9 @@
 
 import numpy as np
 from astropy import units as ap_units
+from scipy.special import erf
+
+from cloelib.auxiliary import units
 
 
 def convert_to_Delta_crit(
@@ -124,3 +127,68 @@ def convert_distance(distance, units_in, units_out, angular_diameter_distance=No
         )
 
     return out
+
+
+def photoz_rsd_correction(
+    background,
+    zs: np.ndarray,
+    ks: np.ndarray,
+    z_obs_scatter: np.ndarray,
+    nonu: bool,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute the correction that accounts for photo-z uncertainty and RSD (Kaiser effect)
+
+    Parameters
+    ----------
+    background: Background
+        Background class containing cosmology
+    ks:  np.ndarray
+        wavenumber
+    zs:  np.ndarray
+        redshift
+    z_obs_scatter: numpy.ndarray
+        Observed redshift scatter with shape (true z, obs z).
+    nonu: bool
+        Consider neutrinos to compute the growth rate
+
+    Returns
+    -------
+    corr0, corr1, corr2: np.ndarray, np.ndarray, np.ndarray
+        Correction terms to the power spectrum monopole
+    """
+    if nonu:
+        _Omega_m_func = background.Omega_m_cb
+    else:
+        _Omega_m_func = background.Omega_m
+
+    # growth rate
+    f_gr = (_Omega_m_func(zs) ** 0.55)[:, np.newaxis]
+
+    ks_z = ks * (
+        z_obs_scatter
+        * (units.SPEED_OF_LIGHT * 1e-3)
+        / background.hubble_parameter(zs)
+        * (background.H0 / 100)
+    ).reshape(len(zs), 1)
+
+    erf_ks = erf(ks_z)
+
+    corr0 = np.sqrt(np.pi) / (2 * ks_z) * erf_ks
+    corr1 = f_gr / ks_z**3 * (np.sqrt(np.pi) / 2 * erf_ks - ks_z * np.exp(-(ks_z**2)))
+    corr2 = (
+        f_gr**2
+        / ks_z**5
+        * (
+            3 * np.sqrt(np.pi) / 8 * erf_ks
+            - ks_z / 4 * (2 * ks_z**2 + 3) * np.exp(-(ks_z**2))
+        )
+    )
+
+    # correct for numerical inaccuracy
+    # note: for jax, use corr1 = corr1.at[idx].set(2 / 3.0)
+    idx = erf_ks < 0.02
+    corr1[idx] = 2 / 3.0
+    corr2[idx] = 1 / 5.0
+
+    return corr0, corr1, corr2

@@ -3,7 +3,7 @@ import numpy as np
 from scipy.integrate import simpson as simps
 
 # cloelib imports
-from cloelib.cosmology import derived_cosmology
+from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
