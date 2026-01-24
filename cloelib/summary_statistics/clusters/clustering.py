@@ -198,10 +198,12 @@ class ClusterClustering:
         # volume of the shell : (z_obs, radius) in each z_obs_bin
         # radial_shell_volume is used only by covariance
         _z_obs_mid = 0.5 * (z_obs_edges[1:] + z_obs_edges[:-1])
-        radial_shell_window, radial_shell_volume = self.clustering.WF_ra(
-            _z_obs_mid,
-            self.cluster_statitstics_modeling.tabulated_integrands["k"],
-            radius_edges,
+        radial_shell_window, radial_shell_volume = (
+            self.clustering.radial_shell_window_and_volume(
+                _z_obs_mid,
+                self.cluster_statitstics_modeling.tabulated_integrands["k"],
+                radius_edges,
+            )
         )
 
         # compute 2point correlation function : (z_obs, lambda_obs, lambda_obs, radius)

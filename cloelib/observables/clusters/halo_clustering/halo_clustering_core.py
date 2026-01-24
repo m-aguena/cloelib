@@ -40,7 +40,7 @@ class HaloClustering:
         else:
             self._Omega_m = self.background.Omega_m
 
-    def WF_ra(
+    def radial_shell_window_and_volume(
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -56,9 +56,9 @@ class HaloClustering:
         Returns
         -------
         cluster count covariance window:   numpy.ndarray
-                W[i,j,k] where i is the redshift bin, j is the radial bin and k are the wavenumbers
+            shell_window, shape (z, r, k)
         spherical shell volume: numpy.ndarray
-                V[i,j] where i is the redshift bin and j is the radial bin
+            shell_volume, shape (z, r)
         """
 
         r_z = (
@@ -67,17 +67,19 @@ class HaloClustering:
         )  # AP correction (adds a redshift dependence)
         k_r_z = r_z * k[np.newaxis, np.newaxis, :]
 
-        r3_TH_filter = (
+        r3_tophat_filter = (
             r_z**3 * 3.0 * (np.sin(k_r_z) - k * r_z * np.cos(k_r_z)) / (k_r_z) ** 3.0
         )
 
-        W_rad = (r3_TH_filter[:, 1:, :] - r3_TH_filter[:, :-1, :]) / (
+        shell_window = (r3_tophat_filter[:, 1:, :] - r3_tophat_filter[:, :-1, :]) / (
             r_z[:, 1:, :] ** 3 - r_z[:, :-1, :] ** 3
         )
 
-        V_rad = 4.0 * np.pi / 3.0 * ((r_z[:, 1:, 0]) ** 3 - (r_z[:, :-1, 0]) ** 3)
+        shell_volume = (
+            4.0 * np.pi / 3.0 * ((r_z[:, 1:, 0]) ** 3 - (r_z[:, :-1, 0]) ** 3)
+        )
 
-        return W_rad, V_rad
+        return shell_window, shell_volume
 
     # cosmo correction (isotropic AP)
     def APcorr_func(self, z: np.ndarray) -> np.ndarray:

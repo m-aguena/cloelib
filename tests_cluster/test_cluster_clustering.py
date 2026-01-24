@@ -18,21 +18,21 @@ def _test_clustering(CL, perturbations):
     ref_APcorr = np.array([1.0162, 1.016033])
     assert_allclose(CL.APcorr_func(z_test), ref_APcorr, rtol=1e-04)
 
-    print("    WF_ra")
-    ref_WF_ra0 = np.array(
+    print("    radial_shell_window_and_volume")
+    ref_radial_shell_window_and_volume0 = np.array(
         [
             [[9.99995884e-01, -1.35023865e-05], [9.99989679e-01, 8.02679298e-06]],
             [[9.99995885e-01, -1.37175506e-05], [9.99989682e-01, 8.32722698e-06]],
         ]
     )
 
-    ref_WF_ra1 = np.array(
+    ref_radial_shell_window_and_volume1 = np.array(
         [[830784.512318, 2254986.533435], [830373.221984, 2253870.173956]]
     )
 
-    WF, VF = CL.WF_ra(z_test, k_test, r_test)
-    assert_allclose(WF[:, :, [0, -1]], ref_WF_ra0, rtol=1e-03)
-    assert_allclose(VF, ref_WF_ra1, rtol=1e-03)
+    WF, VF = CL.radial_shell_window_and_volume(z_test, k_test, r_test)
+    assert_allclose(WF[:, :, [0, -1]], ref_radial_shell_window_and_volume0, rtol=1e-03)
+    assert_allclose(VF, ref_radial_shell_window_and_volume1, rtol=1e-03)
 
     print("    Pk_IR_func")
     ref_Pk_IR = np.array([[4.2284186e02, 1.0611498e-01], [1.5616818e02, 3.9339960e-02]])
