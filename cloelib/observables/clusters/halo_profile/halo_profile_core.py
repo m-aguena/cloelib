@@ -156,7 +156,7 @@ class HaloProfileCore:
 
         return n_zs
 
-    def m_sig_crit_m1(self, z, zbin):
+    def sigma_crit_inv_eff(self, z, zbin):
         r"""
         Effective inverse critical surface mass density.
 

@@ -209,7 +209,7 @@ class ClusterWeakLensing:
         )
         for ind_z in range(z_obs_edges_size):
             effective_inverse_critical_surface_mass_density[ind_z] = (
-                self.profile.core.m_sig_crit_m1(
+                self.profile.core.sigma_crit_inv_eff(
                     self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
                     ind_z,
                 )

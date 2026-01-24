@@ -71,7 +71,7 @@ class ClusterStatisticsModeling:
         """
         # observable objects
         self.halo_abundance = halo_abundance
-        self.matter_statistics = self.halo_abundance.core.matter_statistics
+        self.matter_statistics = halo_abundance.core.matter_statistics
         self.selectionfunction = selectionfunction
 
         # integration tables
