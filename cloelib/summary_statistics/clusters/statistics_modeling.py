@@ -71,7 +71,6 @@ class ClusterStatisticsModeling:
         """
         # observable objects
         self.halo_abundance = halo_abundance
-        self.matter_statistics = halo_abundance.core.matter_statistics
         self.selectionfunction = selectionfunction
 
         # check if the integration points lie within the interpolation ranges
@@ -127,6 +126,10 @@ class ClusterStatisticsModeling:
             # kernel for integration in k
             "dk": integ_k_arr**2.0 / (2.0 * np.pi**2),
         }
+
+    @property
+    def matter_statistics(self):
+        return self.halo_abundance.core.matter_statistics
 
     # ----------------------------
     # cluster statistics functions

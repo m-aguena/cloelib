@@ -215,14 +215,15 @@ class NFWHaloProfile:
             Surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        Sigma_1h = self._surface_mass_density_1h(
+        Sigma = self._surface_mass_density_1h(
             *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),
             c,
         )
 
-        Sigma = self.core.include_surface_mass_density_2h(
-            Sigma_1h, self.two_halo, R, z, M, halo_bias, radius_units
-        )
+        if self.two_halo != "None":
+            self.core.include_surface_mass_density_2h(
+                Sigma, self.two_halo, R, z, halo_bias, radius_units
+            )
 
         self.core.check_profile_shape(R, z, M, Sigma)
 
@@ -262,13 +263,14 @@ class NFWHaloProfile:
         R_outshape, RDelta, densityThreshold = self.core.surface_mass_density_args(
             R, z, M, radius_units=radius_units
         )
-        DeltaSigma_1h = self._mean_surface_mass_density_1h(
+        DeltaSigma = self._mean_surface_mass_density_1h(
             R_outshape, RDelta, densityThreshold, c
         ) - self._surface_mass_density_1h(R_outshape, RDelta, densityThreshold, c)
 
-        DeltaSigma = self.core.include_excess_surface_mass_density_2h(
-            DeltaSigma_1h, self.two_halo, R, z, M, halo_bias, radius_units
-        )
+        if self.two_halo != "None":
+            self.core.include_excess_surface_mass_density_2h(
+                DeltaSigma, self.two_halo, R, z, halo_bias, radius_units
+            )
 
         self.core.check_profile_shape(R, z, M, DeltaSigma)
 

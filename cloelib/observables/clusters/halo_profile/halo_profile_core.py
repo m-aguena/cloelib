@@ -245,43 +245,61 @@ class HaloProfileCore:
             profile.shape == expected_shape
         ), f"Expected shape {expected_shape}, got {profile.shape}"
 
-    def _check_2h_inputs(self, inclusion_type, z, M, halo_bias):
+    def _include_2h_term(
+        self, inclusion_type, term_1h, func_2h, R, z, halo_bias, radius_units
+    ):
         """
-        Check the 2-halo inputs.
+        Computes and adds the 2-halo term.
 
         Parameters
         ----------
+        term_1h : np.ndarray
+            1 halo term, with shape (z.size, M.size, R.size).
+        func_2h : function
+            Function that computes the 2h term. It must take (R, z, radius_units)
+            inputs, and output shape (z.size, R.size)
         inclusion_type : str
             If "sum", the 1-halo and 2-halo profile are summed.
             If "max", the maximum between them is considered at each point.
+        R: np.ndarray
+            Radial points (units : Mpc / h)
         z: np.ndarray
             Redshift.
-        M: np.ndarray
-            Mass (Msun / h).
         halo_bias: np.ndarray
             Halo bias, with shape (z.size, M.size).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
         """
         if inclusion_type not in ("sum", "max"):
             raise ValueError(
                 "Invalid 'inclusion_type' definition, %s." % inclusion_type
             )
 
+        # Check 2h inputs
         if halo_bias is None:
             raise ValueError(
                 "halo_bias must be provided explicitly when computing the 2-halo term."
             )
 
-        halo_bias = np.asarray(halo_bias)
-        nz = np.atleast_1d(z).size
-        nM = np.atleast_1d(M).size
-        if halo_bias.shape != (nz, nM):
+        if halo_bias.shape != term_1h.shape[:2]:
             raise ValueError(
-                f"halo_bias must have shape (len(z), len(M)) = ({nz}, {nM}), "
-                f"got {halo_bias.shape}"
+                f"halo_bias shape {halo_bias.shape} must "
+                f"be the same as first two of term_1h {term_1h.shape}"
             )
 
+        # compute and add 2h term
+        term_2h = (
+            func_2h(R, z, radius_units)[:, np.newaxis, :] * halo_bias[:, :, np.newaxis]
+        )
+
+        if inclusion_type == "sum":
+            return term_1h + term_2h
+        elif inclusion_type == "max":
+            return np.maximum(term_1h, term_2h)
+
     def include_surface_mass_density_2h(
-        self, Sigma_1h, inclusion_type, R, z, M, halo_bias, radius_units="Mpc/h"
+        self, Sigma_1h, inclusion_type, R, z, halo_bias, radius_units="Mpc/h"
     ):
         r"""
         Include the contribution of the cosmological 2-halo term.
@@ -293,15 +311,12 @@ class HaloProfileCore:
         Sigma_1h : np.ndarray
             One-halo surface mass density.
         inclusion_type : str
-            If "None", only the 1-halo profile is used.
             If "sum", the 1-halo and 2-halo profile are summed.
             If "max", the maximum between them is considered at each point.
         R: np.ndarray
             Radial points (units : Mpc / h)
         z: np.ndarray
             Redshift.
-        M: np.ndarray
-            Mass (Msun / h).
         halo_bias: np.ndarray
             Halo bias, with shape (z.size, M.size).
         radius_units: str
@@ -314,24 +329,18 @@ class HaloProfileCore:
             Total surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        if inclusion_type == "None":
-            return Sigma_1h
-
-        self._check_2h_inputs(inclusion_type, z, M, halo_bias)
-        Sigma_2h = (
-            self.matter_statistics.surface_mass_density_2h(R, z, radius_units)[
-                :, np.newaxis, :
-            ]
-            * halo_bias[:, :, np.newaxis]
+        return self._include_2h_term(
+            inclusion_type,
+            Sigma_1h,
+            func_2h=self.matter_statistics.surface_mass_density_2h,
+            R=R,
+            z=z,
+            halo_bias=halo_bias,
+            radius_units=radius_units,
         )
 
-        if inclusion_type == "sum":
-            return Sigma_1h + Sigma_2h
-        elif inclusion_type == "max":
-            return np.maximum(Sigma_1h, Sigma_2h)
-
     def include_excess_surface_mass_density_2h(
-        self, DeltaSigma_1h, inclusion_type, R, z, M, halo_bias, radius_units="Mpc/h"
+        self, DeltaSigma_1h, inclusion_type, R, z, halo_bias, radius_units="Mpc/h"
     ):
         r"""
         Include the contribution of the cosmological 2-halo term.
@@ -343,15 +352,12 @@ class HaloProfileCore:
         DeltaSigma_1h : np.ndarray
             One-halo surface mass density.
         inclusion_type : str
-            If "None", only the 1-halo profile is used.
             If "sum", the 1-halo and 2-halo profile are summed.
             If "max", the maximum between them is considered at each point.
         R: np.ndarray
             Radial points (units : Mpc / h)
         z: np.ndarray
             Redshift.
-        M: np.ndarray
-            Mass (Msun / h).
         halo_bias: np.ndarray
             Halo bias, with shape (z.size, M.size).
         radius_units: str
@@ -364,18 +370,12 @@ class HaloProfileCore:
             Total excess surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
-        if inclusion_type == "None":
-            return DeltaSigma_1h
-
-        self._check_2h_inputs(inclusion_type, z, M, halo_bias)
-        DeltaSigma_2h = (
-            self.matter_statistics.excess_surface_mass_density_2h(R, z, radius_units)[
-                :, np.newaxis, :
-            ]
-            * halo_bias[:, :, np.newaxis]
+        return self._include_2h_term(
+            inclusion_type,
+            DeltaSigma_1h,
+            func_2h=self.matter_statistics.excess_surface_mass_density_2h,
+            R=R,
+            z=z,
+            halo_bias=halo_bias,
+            radius_units=radius_units,
         )
-
-        if inclusion_type == "sum":
-            return DeltaSigma_1h + DeltaSigma_2h
-        elif inclusion_type == "max":
-            return np.maximum(DeltaSigma_1h, DeltaSigma_2h)

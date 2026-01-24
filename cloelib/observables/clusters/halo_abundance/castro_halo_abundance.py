@@ -13,7 +13,11 @@ class CastroHaloAbundance:
     def __init__(self, matter_statistics: MatterStatistics):
 
         self.core = HaloAbundanceCore(matter_statistics)
-        self.overdensity_type = "vir"  # hard-coded attribute, allowing for sanity checks in summary_statistics
+
+    # For sanity checks in summary_statistics
+    @property
+    def overdensity_type(self):
+        return "vir"
 
     def f_sigma_nu(self, z, M):
         r"""
