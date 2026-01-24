@@ -125,13 +125,21 @@ def get_values():
     t1 = time.time()
 
     # Istanciate objects
+    integ_ztrue_arr_new = integ_ztrue_arr.copy()
+    integ_ztrue_arr_new[0] += 1.0e-10
+    integ_ztrue_arr_new[-1] -= 1.0e-10
+
+    integ_k_arr_new = integ_k_arr.copy()
+    integ_k_arr_new[0] += 1.0e-10
+    integ_k_arr_new[-1] -= 1.0e-10
+
     cluster_statitstics_modeling = ClusterStatisticsModeling(
         HSCastro,
         selectionFunction,
-        integ_k_arr=integ_k_arr,
+        integ_k_arr=integ_k_arr_new,
         integ_mass_arr=integ_mass_arr,
         integ_lambda_true_arr=integ_lambda_true_arr,
-        integ_ztrue_arr=integ_ztrue_arr,
+        integ_ztrue_arr=integ_ztrue_arr_new,
         area=area,
     )
     cluster_counts_statistics = ClusterCounts(

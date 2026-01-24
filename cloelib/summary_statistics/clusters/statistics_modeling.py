@@ -74,6 +74,31 @@ class ClusterStatisticsModeling:
         self.matter_statistics = halo_abundance.core.matter_statistics
         self.selectionfunction = selectionfunction
 
+        # check if the integration points lie within the interpolation ranges
+        if self.matter_statistics.interpolate_pk:
+            z_knots, k_knots = self.matter_statistics.Pk_interp.get_knots()
+            if (
+                integ_ztrue_arr.min() <= z_knots.min()
+                or integ_ztrue_arr.max() >= z_knots.max()
+            ):
+                raise ValueError(
+                    "integ_ztrue_arr points lie outside the P(k,z) interpolation range."
+                )
+            if integ_k_arr.min() <= k_knots.min() or integ_k_arr.max() >= k_knots.max():
+                raise ValueError(
+                    "integ_k_arr points lie outside the P(k,z) interpolation range."
+                )
+
+        if self.matter_statistics.interpolate_da:
+            z_knots = self.matter_statistics.da_interp.get_knots()
+            if (
+                integ_ztrue_arr.min() <= z_knots.min()
+                or integ_ztrue_arr.max() >= z_knots.max()
+            ):
+                raise ValueError(
+                    "integ_ztrue_arr points lie outside the D_A interpolation range."
+                )
+
         # integration tables
         self.tabulated_integrands = {
             "k": integ_k_arr,  # k array

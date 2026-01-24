@@ -54,7 +54,6 @@ class MatterStatistics:
         self.nonu = nonu
 
         self.k = k
-        self._z = z
 
         # Interpolators
         self.Pk_interp = None
@@ -62,14 +61,12 @@ class MatterStatistics:
 
         # set P(k) interpolation usage
         if interpolate_pk:
-            self.set_matter_power_spectrum_interpolation(self._z, self.k)
+            self.set_matter_power_spectrum_interpolation(z, self.k)
         self.interpolate_pk = interpolate_pk
 
         # set angular diameter distance interpolation usage
         if interpolate_da:
-            self.set_angular_diameter_distance_interpolation(
-                np.linspace(z.min(), z.max() + 1.0e-5, len(z))
-            )
+            self.set_angular_diameter_distance_interpolation(z)
         self.interpolate_da = interpolate_da
 
     @property

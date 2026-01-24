@@ -18,7 +18,7 @@ class HaloProfileCore:
         overdensity_type: str = "vir",
         overdensity: int = 200,
         z=np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
-        zs_max: float = 2.0,
+        zs_max: float = 4.0,
         mean_nz: float = 0.4,
         sigma_nz: float = 0.3,
         alpha_nz: float = 0.4,
@@ -146,7 +146,7 @@ class HaloProfileCore:
         """
         n_zs = np.zeros((z.size, len(self.z)))
         for z_ind, _z in enumerate(z):
-            z_s = np.linspace(_z + 1.0e-5, self.zs_max, len(self.z))
+            z_s = np.linspace(_z + 1.0e-10, self.zs_max, len(self.z))
             n_zs[z_ind] = skewnorm.pdf(
                 z_s,
                 self.alpha_nz,
@@ -175,7 +175,8 @@ class HaloProfileCore:
         m_sigma_crit_m1: float
             Effective inverse critical surface mass density (units : pc^2 / Msun / h)
         """
-        z_s = np.linspace(z + 1.0e-5, self.zs_max, len(self.z), axis=1)
+        # z_s is temporarily hard-coded
+        z_s = np.linspace(z + 1.0e-10, self.zs_max, len(self.z), axis=1)
         sig_crit_m1 = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s)
 
         return self.nzsnorM[zbin] * simps(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
