@@ -14,7 +14,7 @@ from cloelib.observables.clusters.auxiliary import (
 from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
-class HaloClustering:
+class HaloClusteringCore:
     def __init__(
         self,
         background: Background,

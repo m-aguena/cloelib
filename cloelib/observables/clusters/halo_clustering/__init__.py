@@ -1,1 +1,1 @@
-from .halo_clustering_core import HaloClustering
+from .halo_clustering_core import HaloClusteringCore

@@ -8,7 +8,7 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
-from cloelib.observables.clusters.halo_clustering import HaloClustering
+from cloelib.observables.clusters.halo_clustering import HaloClusteringCore
 from cloelib.observables.clusters.halo_profile import NFWHaloProfile
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 from cloelib.observables.clusters.selection_function import SelectionFunction
@@ -107,7 +107,7 @@ def get_values():
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
     profileNFW = NFWHaloProfile(HS, two_halo="None")
-    haloClustering = HaloClustering(background, background_fid)
+    haloClustering = HaloClusteringCore(background, background_fid)
 
     print(f"init obs  :  {time.time()-t0:.4f} seconds")
     t0 = time.time()

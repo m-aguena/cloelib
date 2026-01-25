@@ -4,7 +4,7 @@ from scipy.integrate import simpson as simps
 
 # cloelib imports
 from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
-from cloelib.observables.clusters.halo_clustering import HaloClustering
+from cloelib.observables.clusters.halo_clustering import HaloClusteringCore
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -24,7 +24,7 @@ class ClusterClustering:
     def __init__(
         self,
         cluster_statitstics_modeling: ClusterStatisticsModeling,
-        clustering: HaloClustering,
+        clustering: HaloClusteringCore,
     ):
         """
         Initializes the cluster profile lensing
@@ -34,7 +34,7 @@ class ClusterClustering:
         cluster_statitstics_modeling : ClusterStatisticsModeling
             Cluster summary statistics modeling object, it contains functions
             for cluster statistics and tabled values for integration.
-        clustering : HaloClustering
+        clustering : HaloClusteringCore
             Halo clustering object
         """
         # cluster counts summary statistics, contains tables for integrals
