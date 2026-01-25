@@ -66,7 +66,7 @@ class HaloClustering:
         """
 
         r_z = (
-            self.fiducial_cosmology_correction(z)[:, np.newaxis, np.newaxis]
+            self.alcock_paczynski_correction_factor(z)[:, np.newaxis, np.newaxis]
             * r[np.newaxis, :, np.newaxis]
         )  # AP correction (adds a redshift dependence)
         k_r_z = r_z * k[np.newaxis, np.newaxis, :]
@@ -80,9 +80,9 @@ class HaloClustering:
         return shell_window, shell_volume
 
     # cosmo correction (isotropic AP)
-    def fiducial_cosmology_correction(self, z: np.ndarray) -> np.ndarray:
+    def alcock_paczynski_correction_factor(self, z: np.ndarray) -> np.ndarray:
         """
-        Compute the correction that accounts for the wrong cosmology assumed in the measurement of the 2ptCF
+        Compute the Alcock-Paczynski correction factor for isotropic clustering measurements.
         See https://arxiv.org/pdf/1511.00012.pdf (Sect. 4.3.1) for details.
 
         Parameters
