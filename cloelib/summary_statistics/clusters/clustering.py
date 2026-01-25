@@ -90,9 +90,10 @@ class ClusterClustering:
                 _z[:, np.newaxis],
             )
         )  # (ztrue, lambda_obs)
+        # reshape pk_halo for (lambda_obs, ztrue, k) dimension
         pk_halo = self.clustering.power_spectrum_RSD_corrected(
-            _z, _k, _pk[np.newaxis, :, :], _z_obs_scatter, b_eff[:, :, np.newaxis]
-        )
+            _z, _k, _z_obs_scatter, b_eff.T
+        ).transpose(2, 0, 1)
 
         # average square of power spectrum in redshift and richness bins (z_obs, lambda_obs, k)
         sqrt_pk_mean_values = (

@@ -119,7 +119,7 @@ class HaloClusteringCore:
             self.background_fid.rdrag / self.matter_statistics.background.rdrag
         )
 
-    def power_spectrum_RSD_corrected(self, z, k, pk, z_obs_scatter, b_eff):
+    def power_spectrum_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
         """Computes Pk with RSD correction.
 
         Parameters
@@ -131,26 +131,41 @@ class HaloClusteringCore:
         pk: np.ndarray
            Linear matter power spectrum at different redshifts in (Mpc/h)^3
            Shape (z.size, k.size)
+        z_obs_scatter: float, numpy.ndarray
+            Observed redshift scatter. If array, first dimension must be z.
+        b_eff: np.ndarray
+            Effective bias, must have same shape as z_obs_scatter.
 
         Returns
         -------
         pk_halo : numpy.ndarray
             Power spectrum averaged on redshift and richnesses bins (with IR-resummation),
-            Dimension: (z_obs, lambda_obs, lambda_obs, k)
+            Shape (z.size, k.size, other dimensions of z_obs_scatter)
         """
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
-        # rsd corrections (lambda_obs, ztrue, k)
-        photoz_corr0, photoz_corr1, photoz_corr2 = np.transpose(
-            photoz_rsd_correction(
-                self.matter_statistics.background, z, k, z_obs_scatter, self.nonu
-            ),
-            axes=(0, 3, 1, 2),
+        # rsd corrections (z, k, ...)
+        photoz_corr0, photoz_corr1, photoz_corr2 = photoz_rsd_correction(
+            self.matter_statistics.background, z, k, z_obs_scatter, self.nonu
         )
 
-        # compute effective halo bias, with shape (lambda_obs, ztrue, 1)
+        # dark matter power spectrum (z, k)
+        pk = self.matter_statistics.matter_power_spectrum(z, k)
 
-        # corrected power specrum (lambda_obs, ztrue, k)
-        pk_halo = (b_eff**2 * photoz_corr0 + b_eff * photoz_corr1 + photoz_corr2) * pk
+        # check if z_obs_scatter has more dimensions
+        ndim_z_obs_scatter = len(np.array(z_obs_scatter).shape)
+        if ndim_z_obs_scatter > 1:
+            # if it does, add them to pk
+            extra_axes = tuple(range(2, ndim_z_obs_scatter + 1))
+            pk = np.expand_dims(pk, axis=extra_axes)
+
+        b_eff_reshaped = b_eff[:, np.newaxis]  # add k axis in position 1
+
+        # corrected power specrum (z, k, ...)
+        pk_halo = (
+            b_eff_reshaped**2 * photoz_corr0
+            + b_eff_reshaped * photoz_corr1
+            + photoz_corr2
+        ) * pk
 
         return pk_halo
 
