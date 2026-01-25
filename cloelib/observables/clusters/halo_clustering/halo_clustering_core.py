@@ -102,10 +102,18 @@ class HaloClusteringCore:
         z[z == 0] = 1e-5
 
         # isotropic volume distance
-        Dv = isotropic_volume_distance(self.matter_statistics.background, z)
+        Dv = isotropic_volume_distance(
+            z,
+            self.matter_statistics.angular_diameter_distance(z),
+            self.matter_statistics.background.hubble_parameter(z),
+        )
 
         # isotropic volume distance at fiducial cosmology (assumed for measuring the 2pcf)
-        Dv_fid = isotropic_volume_distance(self.background_fid, z)
+        Dv_fid = isotropic_volume_distance(
+            z,
+            self.background_fid.angular_diameter_distance(z),
+            self.background_fid.hubble_parameter(z),
+        )
 
         return (Dv / Dv_fid) * (
             self.background_fid.rdrag / self.matter_statistics.background.rdrag

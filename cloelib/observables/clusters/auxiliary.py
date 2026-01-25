@@ -243,23 +243,21 @@ def tophat_window_derivative(kr):
     return 3.0 * (np.sin(kr) * (kr**2.0 - 3.0) + 3.0 * kr * np.cos(kr)) / kr**4.0
 
 
-def isotropic_volume_distance(background, z):
+def isotropic_volume_distance(z, da, hz):
     """Compute isotropic volume distance
 
     Parameters
     ----------
-    z:  np.ndarray
+    z : np.ndarray
         redshift
+    da : np.ndarray
+        Angular diameter distance
+    hz : np.ndarray
+        Hubble parameter as a function of redshift.
 
     Returns
     -------
     np.ndarray
         Isotropic volume distance
     """
-    return (
-        (1 + z) ** 2
-        * background.angular_diameter_distance(z) ** 2
-        * units.SPEED_OF_LIGHT
-        * z
-        / background.hubble_parameter(z)
-    ) ** (1 / 3.0)
+    return ((1 + z) ** 2 * da**2 * units.SPEED_OF_LIGHT * z / hz) ** (1 / 3.0)
