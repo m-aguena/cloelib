@@ -6,6 +6,7 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
 from cloelib.observables.clusters.halo_clustering import HaloClustering
+from cloelib.observables.clusters.selection_function import SelectionFunction
 
 
 def _test_clustering(CL, perturbations):
@@ -78,8 +79,6 @@ def test_clustering():
 
 
 def test_cosmo_photoz_rsd_correction():
-
-    from cloelib.observables.clusters.selection_function import SelectionFunction
 
     print("# Cosmology parameters")
     _cosmo_pars = dict(
