@@ -97,17 +97,17 @@ def get_values():
     # Istanciate objects
 
     selectionFunction = SelectionFunction(**_sel_pars)
-    HS = MatterStatistics(
+    matter_stat = MatterStatistics(
         perturbations,
         z=integ_ztrue_arr,
         k=integ_k_arr,
     )
-    HSCastro = CastroHaloAbundance(matter_statistics=HS)
+    HSCastro = CastroHaloAbundance(matter_statistics=matter_stat)
     covariance = HaloCovariance(
         perturbations, area=area, nbins_zob=len(z_obs_nc_edges), k=integ_k_arr
     )
-    profileNFW = NFWHaloProfile(HS, two_halo="None")
-    haloClustering = HaloClusteringCore(background, background_fid)
+    profileNFW = NFWHaloProfile(matter_stat, two_halo="None")
+    haloClustering = HaloClusteringCore(matter_stat, background_fid)
 
     print(f"init obs  :  {time.time()-t0:.4f} seconds")
     t0 = time.time()

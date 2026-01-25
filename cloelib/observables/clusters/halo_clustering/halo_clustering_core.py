@@ -11,18 +11,18 @@ from cloelib.observables.clusters.auxiliary import (
     photoz_rsd_correction,
     tophat_window,
 )
-from cloelib.observables.clusters.selection_function import SelectionFunction
+from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
 class HaloClusteringCore:
     def __init__(
         self,
-        background: Background,
+        matter_statistics: MatterStatistics,
         background_fid: Background,
         nonu: bool = False,
     ):
 
-        self.background = background
+        self.matter_statistics = matter_statistics
         self.background_fid = background_fid
         self.nonu = nonu
 
@@ -40,9 +40,9 @@ class HaloClusteringCore:
             raise ValueError(f"value for nonu must be boolean, used {value}")
         self.__nonu = value
         if self.nonu:
-            self._Omega_m = self.background.Omega_m_cb
+            self._Omega_m = self.matter_statistics.background.Omega_m_cb
         else:
-            self._Omega_m = self.background.Omega_m
+            self._Omega_m = self.matter_statistics.background.Omega_m
 
     def radial_shell_window_and_volume(
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray
@@ -102,12 +102,14 @@ class HaloClusteringCore:
         z[z == 0] = 1e-5
 
         # isotropic volume distance
-        Dv = isotropic_volume_distance(self.background, z)
+        Dv = isotropic_volume_distance(self.matter_statistics.background, z)
 
         # isotropic volume distance at fiducial cosmology (assumed for measuring the 2pcf)
         Dv_fid = isotropic_volume_distance(self.background_fid, z)
 
-        return (Dv / Dv_fid) * (self.background_fid.rdrag / self.background.rdrag)
+        return (Dv / Dv_fid) * (
+            self.background_fid.rdrag / self.matter_statistics.background.rdrag
+        )
 
     def power_spectrum_RSD_corrected(self, z, k, pk, z_obs_scatter, b_eff):
         """Computes Pk with RSD correction.
@@ -131,7 +133,9 @@ class HaloClusteringCore:
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
         # rsd corrections (lambda_obs, ztrue, k)
         photoz_corr0, photoz_corr1, photoz_corr2 = np.transpose(
-            photoz_rsd_correction(self.background, z, k, z_obs_scatter, self.nonu),
+            photoz_rsd_correction(
+                self.matter_statistics.background, z, k, z_obs_scatter, self.nonu
+            ),
             axes=(0, 3, 1, 2),
         )
 
@@ -162,9 +166,9 @@ class HaloClusteringCore:
 
         """
 
-        ns = self.background.ns
-        h = self.background.h
-        Obh2 = self.background.Omega_b(0.0) * h**2
+        ns = self.matter_statistics.background.ns
+        h = self.matter_statistics.background.h
+        Obh2 = self.matter_statistics.background.Omega_b(0.0) * h**2
         Omh2 = self._Omega_m(0.0) * h**2
         Tcmb = 2.73
 

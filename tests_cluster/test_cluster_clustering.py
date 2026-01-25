@@ -6,7 +6,7 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
 from cloelib.observables.clusters.halo_clustering import HaloClusteringCore
-from cloelib.observables.clusters.selection_function import SelectionFunction
+from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
 def _test_clustering(CL, perturbations):
@@ -72,11 +72,16 @@ def test_clustering():
 
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
+    matter_statistics = MatterStatistics(
+        perturbations,
+        # z=integ_ztrue_arr,
+        k=np.geomspace(1e-4, 10, 500),
+    )
 
     _cosmo_pars_fid = {**_cosmo_pars}
     _cosmo_pars_fid["H0"] = 73.0
     background_fid = CAMBBackground(**_cosmo_pars_fid)
-    CL = HaloClusteringCore(background, background_fid, nonu=True)
+    CL = HaloClusteringCore(matter_statistics, background_fid, nonu=True)
     _test_clustering(CL, perturbations)
 
 
