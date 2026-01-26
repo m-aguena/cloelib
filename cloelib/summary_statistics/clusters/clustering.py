@@ -81,9 +81,6 @@ class ClusterClustering:
         _k = self.cluster_statitstics_modeling.tabulated_integrands["k"]
 
         # corrected power specrum (lambda_obs, ztrue, k)
-        _pk = self.cluster_statitstics_modeling.matter_statistics.matter_power_spectrum(
-            _z, _k
-        )  # (ztrue, k)
         _z_obs_scatter = (
             self.cluster_statitstics_modeling.selectionfunction.scatter_zobs_z(
                 lambda_obs_mid[np.newaxis, :],
