@@ -6,14 +6,15 @@ from scipy.special import spherical_jn
 from cloelib.auxiliary import units
 from cloelib.cosmology.cosmology import Background
 from cloelib.observables.clusters.auxiliary import (
-    isotropic_volume_distance,
     photoz_rsd_correction,
-    tophat_window,
+)
+from cloelib.observables.clusters.halo_clustering.halo_clustering_core import (
+    HaloClusteringCore,
 )
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
-class HaloClusteringCore:
+class TwoPoint3DHaloClustering:
     def __init__(
         self,
         matter_statistics: MatterStatistics,
@@ -21,102 +22,7 @@ class HaloClusteringCore:
         nonu: bool = False,
     ):
 
-        self.matter_statistics = matter_statistics
-        self.background_fid = background_fid
-        self.nonu = nonu
-
-    @property
-    def nonu(self):
-        r"""
-        Includes or not neutrinos on matter density and matter power spectrum.
-        """
-        return self.__nonu
-
-    @nonu.setter
-    def nonu(self, value):
-        """Set nonu"""
-        if not isinstance(value, bool):
-            raise ValueError(f"value for nonu must be boolean, used {value}")
-        self.__nonu = value
-        if self.nonu:
-            self._Omega_m = self.matter_statistics.background.Omega_m_cb
-        else:
-            self._Omega_m = self.matter_statistics.background.Omega_m
-
-    def radial_shell_window_and_volume(
-        self, z: np.ndarray, k: np.ndarray, r: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Computes the window function and the volume of the spherical shells as a function of the radial separation
-
-        Parameters
-        ----------
-        z: np.ndarray
-           Redshift at which apply the geometrical correction (Alcock-Paczynski effect)
-        k: np.ndarray
-           Wavenumber used to evaluate power spectrum, in h Mpc^{-1}
-
-        Returns
-        -------
-        cluster count covariance window:   numpy.ndarray
-            shell_window, shape (z, r, k)
-        spherical shell volume: numpy.ndarray
-            shell_volume, shape (z, r)
-        """
-
-        r_z = (
-            self.alcock_paczynski_correction_factor(z)[:, np.newaxis, np.newaxis]
-            * r[np.newaxis, :, np.newaxis]
-        )  # AP correction (adds a redshift dependence)
-        k_r_z = r_z * k[np.newaxis, np.newaxis, :]
-
-        shell_window = np.diff(r_z**3 * tophat_window(k_r_z), axis=1) / (
-            np.diff(r_z**3, axis=1)
-        )
-
-        shell_volume = 4.0 * np.pi / 3.0 * np.diff(r_z[:, :, 0] ** 3, axis=1)
-
-        return shell_window, shell_volume
-
-    # cosmo correction (isotropic AP)
-    def alcock_paczynski_correction_factor(self, z: np.ndarray) -> np.ndarray:
-        """
-        Compute the Alcock-Paczynski correction factor for isotropic clustering measurements.
-        See https://arxiv.org/pdf/1511.00012.pdf (Sect. 4.3.1) for details.
-
-        Parameters
-        ----------
-        z: np.ndarray
-           Redshift
-
-        Returns
-        -------
-        AP_corr: np.ndarray
-           Volume distance over drag scale (sound horizon scale at recombination) over the same quantity at fiducial cosmology
-
-        """
-
-        # units don't matter here, they cancel out
-
-        z[z == 0] = 1e-5
-
-        # isotropic volume distance
-        Dv = isotropic_volume_distance(
-            z,
-            self.matter_statistics.angular_diameter_distance(z),
-            self.matter_statistics.background.hubble_parameter(z),
-        )
-
-        # isotropic volume distance at fiducial cosmology (assumed for measuring the 2pcf)
-        Dv_fid = isotropic_volume_distance(
-            z,
-            self.background_fid.angular_diameter_distance(z),
-            self.background_fid.hubble_parameter(z),
-        )
-
-        return (Dv / Dv_fid) * (
-            self.background_fid.rdrag / self.matter_statistics.background.rdrag
-        )
+        self.core = HaloClusteringCore(matter_statistics, background_fid, nonu)
 
     def power_spectrum_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
         """Computes Pk with RSD correction.
@@ -144,11 +50,11 @@ class HaloClusteringCore:
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
         # rsd corrections (z, k, ...)
         photoz_corr0, photoz_corr1, photoz_corr2 = photoz_rsd_correction(
-            self.matter_statistics.background, z, k, z_obs_scatter, self.nonu
+            self.core.matter_statistics.background, z, k, z_obs_scatter, self.core.nonu
         )
 
         # dark matter power spectrum (z, k)
-        pk = self.matter_statistics.matter_power_spectrum(z, k)
+        pk = self.core.matter_statistics.matter_power_spectrum(z, k)
 
         # check if z_obs_scatter has more dimensions
         ndim_z_obs_scatter = len(np.array(z_obs_scatter).shape)
@@ -188,10 +94,10 @@ class HaloClusteringCore:
 
         """
 
-        ns = self.matter_statistics.background.ns
-        h = self.matter_statistics.background.h
-        Obh2 = self.matter_statistics.background.Omega_b(0.0) * h**2
-        Omh2 = self._Omega_m(0.0) * h**2
+        ns = self.core.matter_statistics.background.ns
+        h = self.core.matter_statistics.background.h
+        Obh2 = self.core.matter_statistics.background.Omega_b(0.0) * h**2
+        Omh2 = self.core._Omega_m(0.0) * h**2
         Tcmb = 2.73
 
         k *= h  #  1/Mpc

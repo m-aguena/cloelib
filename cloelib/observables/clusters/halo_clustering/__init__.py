@@ -1,1 +1,2 @@
-from .halo_clustering_core import HaloClusteringCore
+from .halo_clustering import HaloClustering
+from .twopt_3d_halo_clustering import TwoPoint3DHaloClustering

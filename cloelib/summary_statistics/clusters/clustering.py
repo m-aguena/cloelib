@@ -4,7 +4,7 @@ from scipy.integrate import simpson as simps
 
 # cloelib imports
 from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
-from cloelib.observables.clusters.halo_clustering import HaloClusteringCore
+from cloelib.observables.clusters.halo_clustering import HaloClustering
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -24,7 +24,7 @@ class ClusterClustering:
     def __init__(
         self,
         cluster_statitstics_modeling: ClusterStatisticsModeling,
-        clustering: HaloClusteringCore,
+        clustering: HaloClustering,
     ):
         """
         Initializes the cluster profile lensing
@@ -197,7 +197,7 @@ class ClusterClustering:
         # radial_shell_volume is used only by covariance
         _z_obs_mid = 0.5 * (z_obs_edges[1:] + z_obs_edges[:-1])
         radial_shell_window, radial_shell_volume = (
-            self.clustering.radial_shell_window_and_volume(
+            self.clustering.core.radial_shell_window_and_volume(
                 _z_obs_mid,
                 self.cluster_statitstics_modeling.tabulated_integrands["k"],
                 radius_edges,

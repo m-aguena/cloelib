@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
-from cloelib.observables.clusters.halo_clustering import HaloClusteringCore
+from cloelib.observables.clusters.halo_clustering import TwoPoint3DHaloClustering
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
@@ -18,7 +18,7 @@ def _test_clustering(CL, perturbations):
     print("    alcock_paczynski_correction_factor")
     ref_APcorr = np.array([1.0162, 1.016033])
     assert_allclose(
-        CL.alcock_paczynski_correction_factor(z_test), ref_APcorr, rtol=1e-04
+        CL.core.alcock_paczynski_correction_factor(z_test), ref_APcorr, rtol=1e-04
     )
 
     print("    radial_shell_window_and_volume")
@@ -33,7 +33,7 @@ def _test_clustering(CL, perturbations):
         [[830784.512318, 2254986.533435], [830373.221984, 2253870.173956]]
     )
 
-    WF, VF = CL.radial_shell_window_and_volume(z_test, k_test, r_test)
+    WF, VF = CL.core.radial_shell_window_and_volume(z_test, k_test, r_test)
     assert_allclose(WF[:, :, [0, -1]], ref_radial_shell_window_and_volume0, rtol=1e-03)
     assert_allclose(VF, ref_radial_shell_window_and_volume1, rtol=1e-03)
 
@@ -81,7 +81,7 @@ def test_clustering():
     _cosmo_pars_fid = {**_cosmo_pars}
     _cosmo_pars_fid["H0"] = 73.0
     background_fid = CAMBBackground(**_cosmo_pars_fid)
-    CL = HaloClusteringCore(matter_statistics, background_fid, nonu=True)
+    CL = TwoPoint3DHaloClustering(matter_statistics, background_fid, nonu=True)
     _test_clustering(CL, perturbations)
 
 
