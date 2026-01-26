@@ -91,7 +91,7 @@ class ClusterClustering:
             )
         )  # (ztrue, lambda_obs)
         # reshape pk_halo for (lambda_obs, ztrue, k) dimension
-        pk_halo = self.clustering.power_spectrum_RSD_corrected(
+        pk_halo = self.clustering.core.power_spectrum_RSD_corrected(
             _z, _k, _z_obs_scatter, b_eff.T
         ).transpose(2, 0, 1)
 

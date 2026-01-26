@@ -43,7 +43,9 @@ def _test_clustering(CL, perturbations):
     Pk_test = perturbations.matter_power_spectrum(
         z_test, k_test, hubble_units=True, k_hunit=True
     )
-    assert_allclose(CL.Pk_IR_func(k_test, Pk_test)[:, [0, -1]], ref_Pk_IR, rtol=1e-4)
+    assert_allclose(
+        CL.core.Pk_IR_func(k_test, Pk_test)[:, [0, -1]], ref_Pk_IR, rtol=1e-4
+    )
 
 
 def test_clustering():
