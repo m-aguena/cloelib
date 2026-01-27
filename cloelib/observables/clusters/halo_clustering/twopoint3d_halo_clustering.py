@@ -67,3 +67,23 @@ class TwoPoint3DHaloClustering:
         pk_halo = photoz_halo_corr * pk
 
         return pk_halo
+
+    def sqrt_xi_integrand(self, z, k, z_obs_scatter, b_eff, radial_shell_window):
+
+        # corrected power specrum (ztrue, k)
+        pk = self.core.matter_statistics.matter_power_spectrum(z, k)
+
+        # z_obs_scatter (ztrue, lambda_obs)
+
+        # pk_halo (ztrue, k, lambda_obs) dimension
+        pk_halo = self.core.power_spectrum_RSD_corrected(z, k, z_obs_scatter, b_eff.T)
+
+        # radial shell window : (z_obs, radius, k) and
+        # radial shell window : (radius, k, z_obs) and
+        # square root for xi integrand (ztrue, radius, k)
+        sqrt_xi_integrand = np.sqrt(
+            pk_halo[:, np.newaxis, :, np.newaxis, :]
+            * radial_shell_window[np.newaxis, :, :, :, np.newaxis]
+        )
+
+        return sqrt_xi_integrand
