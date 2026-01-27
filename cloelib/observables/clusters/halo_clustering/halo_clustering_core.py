@@ -142,6 +142,11 @@ class HaloClusteringCore:
             Power spectrum averaged on redshift and richnesses bins (with IR-resummation),
             Shape (z.size, k.size, other dimensions of z_obs_scatter)
         """
+        if z_obs_scatter.shape != b_eff.shape:
+            raise ValueError(
+                f"Shape of z_obs_scatter {z_obs_scatter.shape} must be"
+                f" the same as b_eff {b_eff.shape}"
+            )
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
         # rsd corrections (z, k, ...)
         photoz_corr0, photoz_corr1, photoz_corr2 = photoz_rsd_correction(
