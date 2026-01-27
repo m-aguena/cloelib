@@ -134,7 +134,7 @@ class ClusterClustering:
         ################################################
 
         # halo matter power spectrum + IR resummation : (lambda_obs, ztrue, k) dimension
-        _pk_halo = self.clustering.core.power_spectrum_RSD_corrected(
+        _pk_halo = self.clustering.power_spectrum_RSD_corrected(
             z=self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
             k=self.cluster_statitstics_modeling.tabulated_integrands["k"],
             z_obs_scatter=(
