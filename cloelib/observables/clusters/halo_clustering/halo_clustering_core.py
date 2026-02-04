@@ -121,6 +121,7 @@ class HaloClusteringCore:
     def photoz_rsd_halo_correction(self, z, k, z_obs_scatter, b_eff):
         """Compute the correction that accounts for photo-z uncertainty
         and RSD (Kaiser effect) for halos.
+        From `(Kaiser (1987)) <(https://doi.org/10.1093/mnras/227.1.1>`_.
 
         Parameters
         ----------
@@ -159,8 +160,8 @@ class HaloClusteringCore:
         # halo correction (z, k, ...)
         b_eff_reshaped = b_eff[:, np.newaxis]  # add k axis in position 1
         photoz_halo_corr = (
-            b_eff_reshaped**2 * photoz_corr0
-            + b_eff_reshaped * photoz_corr1
+            photoz_corr0 * b_eff_reshaped**2
+            + photoz_corr1 * b_eff_reshaped
             + photoz_corr2
         )
 
@@ -170,7 +171,8 @@ class HaloClusteringCore:
     # not in use currently
     def Pk_IR_func(self, k: np.array, Pk: np.ndarray) -> np.ndarray:
         """
-        Infrared resummation (first order approx) to correct non-linear damping of bao wiggles
+        Infrared resummation (first order approx) to correct non-linear damping of bao wiggles.
+        Approach of `(Eisenstein & Hu (1998)) <(https://doi.org/10.1086/305424>`_.
 
         Parameters
         ----------

@@ -137,7 +137,8 @@ def photoz_rsd_correction(
     nonu: bool,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute the correction that accounts for photo-z uncertainty and RSD (Kaiser effect)
+    Compute the correction that accounts for photo-z uncertainty and RSD (Kaiser effect),
+    from `(Kaiser (1987)) <(https://doi.org/10.1093/mnras/227.1.1>`_.
 
     Parameters
     ----------
