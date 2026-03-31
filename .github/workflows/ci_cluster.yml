@@ -74,7 +74,7 @@ jobs:
           CURRENT_VERSION="$(grep -oP '__version__ = "\K[^"]+' cloelib/observables/clusters/__init__.py)"
           echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
           echo "my branch is ${{ github.ref }}"
-          CLOE_ORG_SHA=$(git merge-base origin/main)
+          CLOE_ORG_SHA=$(git merge-base HEAD origin/main)
           CLOE_ORG_SHA=${CLOE_ORG_SHA:0:7}
           echo "Latest main commit: $CLOE_ORG_SHA"
           echo "CLOE_ORG_SHA=$CLOE_ORG_SHA" >> $GITHUB_ENV
