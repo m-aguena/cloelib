@@ -386,33 +386,6 @@ class CLASSLinearPerturbations:
                                  k_hunit=False) -> np.ndarray:
         r"""Computes the linear matter power spectrum without neutrinos.
 
-        Parameters
-        ----------
-        zs: numpy.ndarray
-            redshifts
-
-        ks: numpy.ndarray
-            wavenumber
-
-        hubble_units: (Optional) bool
-            Flag to specify if output in h units, defaults to False
-
-        k_hunit: (Optional) bool
-            Flag to specify if wavenumber in h units, defaults to False
-
-        Returns
-        -------
-        pk: numpy.ndarray
-            Linear matter power spectrum at the specified scale
-            and redshift
-        """
-        raise NotImplementedError("Not implemented for CLASS.")
-
-
-    def growth_factor(self, zs, ks) -> np.ndarray:
-        r"""
-        Calculate the growth factor for given redshifts and wavenumbers.
-
         $$
             D(z, k) =\sqrt{P_{\rm \delta\delta}(z, k)\
             /P_{\rm \delta\delta}(z=0, k)}\\
@@ -595,32 +568,6 @@ class CLASSNonLinearPerturbations:
         """
         arr = [self.results.scale_independent_growth_factor_f(zi) for zi in self.z]  # type: ignore[union-attr]
         return np.array(arr)
-
-    def matter_power_spectrum_cb(self, zs, ks, hubble_units=False,
-                                 k_hunit=False) -> np.ndarray:
-        r"""Computes the linear matter power spectrum without neutrinos.
-
-        Parameters
-        ----------
-        zs: numpy.ndarray
-            redshifts
-
-        ks: numpy.ndarray
-            wavenumber
-
-        hubble_units: (Optional) bool
-            Flag to specify if output in h units, defaults to False
-
-        k_hunit: (Optional) bool
-            Flag to specify if wavenumber in h units, defaults to False
-
-        Returns
-        -------
-        pk: numpy.ndarray
-            Linear matter power spectrum at the specified scale
-            and redshift
-        """
-        raise NotImplementedError("Not implemented for CLASS.")
 
     def sigma8_0(self) -> float:
         """
