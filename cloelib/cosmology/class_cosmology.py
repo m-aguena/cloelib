@@ -382,9 +382,9 @@ class CLASSLinearPerturbations:
         # To match array convention of CAMB
         return self.Pk_cb_linear
 
-    def matter_power_spectrum_cb(self, zs, ks, hubble_units=False,
-                                 k_hunit=False) -> np.ndarray:
-        r"""Computes the linear matter power spectrum without neutrinos.
+    def growth_factor(self, zs, ks) -> np.ndarray:
+        r"""
+        Calculate the growth factor for given redshifts and wavenumbers.
 
         $$
             D(z, k) =\sqrt{P_{\rm \delta\delta}(z, k)\

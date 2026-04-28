@@ -367,7 +367,6 @@ class CAMBLinearPerturbations:
     ) -> np.ndarray:
         r"""Computes the linear matter power spectrum of cold dark matter + baryons (no neutrinos).
 
-<<<<<<< HEAD
         Parameters
         ----------
         zs: numpy.ndarray
