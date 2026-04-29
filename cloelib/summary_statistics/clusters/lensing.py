@@ -1,3 +1,11 @@
+"""
+
+## Notes :
+
+- Cluster profile lensing
+
+"""
+
 # General imports
 import numpy as np
 
@@ -11,14 +19,6 @@ from cloelib.summary_statistics.clusters.statistics_modeling import (
 )
 
 # import jax
-
-"""
-
-## Notes :
-
-- Cluster profile lensing
-
-"""
 
 
 class ClusterWeakLensing:

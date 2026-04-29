@@ -1,3 +1,11 @@
+"""
+
+## Notes :
+
+- Cluster counts
+
+"""
+
 # General imports
 import numpy as np
 
@@ -10,14 +18,6 @@ from cloelib.summary_statistics.clusters.statistics_modeling import (
 )
 
 # import jax
-
-"""
-
-## Notes :
-
-- Cluster counts
-
-"""
 
 
 class ClusterCounts:

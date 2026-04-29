@@ -1,3 +1,11 @@
+"""
+
+## Notes :
+
+- Clusters clustering class
+
+"""
+
 # General imports
 import numpy as np
 
@@ -9,14 +17,6 @@ from cloelib.summary_statistics.clusters.statistics_modeling import (
 )
 
 # import jax
-
-"""
-
-## Notes :
-
-- Clusters clustering class
-
-"""
 
 
 class ClusterClustering:
