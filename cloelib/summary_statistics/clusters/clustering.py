@@ -1,9 +1,7 @@
 # General imports
 import numpy as np
-from scipy.integrate import simpson as simps
 
 # cloelib imports
-from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
 from cloelib.observables.clusters.halo_clustering import HaloClustering
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
@@ -286,7 +284,6 @@ class ClusterClustering:
         ####################
 
         # define cluster clustering bin numbers for loops
-        z_bin_loop = range(z_obs_edges_size)
         lambda_bin_loop = range(lambda_obs_edges_size)
         rad_bin_loop = range(radius_edges_size)
 
@@ -340,7 +337,6 @@ class ClusterClustering:
 
                 for ind_lambda_k in lambda_bin_loop:
                     for ind_lambda_h in lambda_bin_loop:
-
                         # somehow using integrate_probe_function_in_k is much faster then
                         # integrate_probe_function_in_dk here, to be investigated
 
@@ -368,11 +364,11 @@ class ClusterClustering:
                         )
 
         # Compute the covariance : (z_obs, lambda_obs,  lambda_obs, lambda_obs, lambda_obs, radius, radius)
+        # for tranposing lambda_obs_clustering bins
+        _invert_index = (0, 1, 2, 4, 3, 5, 6)
         _cov_clustering_4_lambda_obs_edges = (
             (_cov_gaussian + _cov_nongaussian)
-            + (_cov_gaussian + _cov_nongaussian).transpose(
-                0, 1, 2, 4, 3, 5, 6  # tranposing lambda_obs_clustering bins
-            )
+            + (_cov_gaussian + _cov_nongaussian).transpose(_invert_index)
         ) / volume_mean_values[
             :, :, np.newaxis, np.newaxis, np.newaxis, np.newaxis, np.newaxis
         ]

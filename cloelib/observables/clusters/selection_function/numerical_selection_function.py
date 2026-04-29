@@ -1,5 +1,5 @@
 # General imports
-import jax.numpy as np  # type: ignore
+# import jax.numpy as np  # type: ignore
 import numpy as np  # type: ignore
 from scipy import integrate, interpolate
 from scipy.integrate import simpson
@@ -10,7 +10,6 @@ from cloelib.observables.clusters.halo_mass_observable import (
 
 
 class NumericalSelectionFunction:
-
     def __init__(
         self,
         halo_mass_observable: HaloMassObservable,
@@ -601,7 +600,6 @@ def read_sel_cl_output(sel_cl_filename):
 
 
 if __name__ == "__main__":
-
     # Read data
     import sys
 

@@ -4,8 +4,6 @@ from scipy.integrate import simpson
 
 # cloelib imports
 from cloelib.cosmology import derived_cosmology
-from cloelib.cosmology.cosmology import Perturbations
-from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.observables.clusters.halo_abundance import HaloAbundance
 
 # import jax

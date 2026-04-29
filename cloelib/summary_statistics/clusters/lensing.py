@@ -1,6 +1,5 @@
 # General imports
 import numpy as np
-from scipy.integrate import simpson as simps
 
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 
@@ -54,7 +53,7 @@ class ClusterWeakLensing:
             )
         if Delta_abundance != Delta_profile:
             raise ValueError(
-                f"The overdensity definition of the mass profile ({Delta_profiles}) differs from the one adopted for halo abundance modeling ({Delta_abundance}).)"
+                f"The overdensity definition of the mass profile ({Delta_profile}) differs from the one adopted for halo abundance modeling ({Delta_abundance}).)"
             )
 
         # cluster counts summary statistics, contains tables for integrals
@@ -96,7 +95,6 @@ class ClusterWeakLensing:
             Weak lensing quantity (excess surface density or reduced shear) in redshift,
             richness, and radial bins.
         """
-        z_obs_edges_size = len(z_obs_edges) - 1
 
         ############################################
         # Get cluster statistics modeling quantities

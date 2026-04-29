@@ -1,14 +1,18 @@
 ## 🚀 Pull Request Checklist
 
 ### ✅ Summary
+
 <!-- Briefly describe the purpose of this pull request. What problem does it solve? -->
 
 ### 🔄 Changes
+
 <!-- List the major changes in this PR. Bullet points preferred. -->
+
 - Change 1
 - Change 2
 
 ## Checklist
+
 ## ✅ PR Checklists
 
 > **Code versioning**:
