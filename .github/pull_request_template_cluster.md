@@ -24,9 +24,9 @@
 
 ### For developers
 
+- [ ] **Formating**: run `pre-commit run --all-files`
 - [ ] **Notebooks:** notebooks related to this PR have been updated and all notebooks can run correctly.
 - [ ] **Version number:** update the version number at `cloelib/observables/clusters/__init__.py` according the the definitions above.
-- [ ] **Formating**: run `pre-commit run --all-files`
 
 ### For reviewers
 
