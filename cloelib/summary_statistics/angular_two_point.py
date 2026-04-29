@@ -13,7 +13,6 @@ from cloelib.profiling import profile_function
 import interpax
 import jax.numpy as np
 import jax
-from scipy import integrate
 
 # results imports
 from cosmolib.data import AngularPowerSpectrum, COSEBI

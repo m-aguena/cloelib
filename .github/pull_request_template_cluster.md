@@ -1,14 +1,18 @@
 ## 🚀 Pull Request Checklist
 
 ### ✅ Summary
+
 <!-- Briefly describe the purpose of this pull request. What problem does it solve? -->
 
 ### 🔄 Changes
+
 <!-- List the major changes in this PR. Bullet points preferred. -->
+
 - Change 1
 - Change 2
 
 ## Checklist
+
 ## ✅ PR Checklists
 
 > **Code versioning**:
@@ -20,6 +24,7 @@
 
 ### For developers
 
+- [ ] **Formating**: run `pre-commit run --all-files`
 - [ ] **Notebooks:** notebooks related to this PR have been updated and all notebooks can run correctly.
 - [ ] **Version number:** update the version number at `cloelib/observables/clusters/__init__.py` according the the definitions above.
 

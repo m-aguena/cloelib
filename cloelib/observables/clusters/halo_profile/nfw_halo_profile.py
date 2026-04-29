@@ -6,7 +6,6 @@ from .halo_profile_core import HaloProfileCore
 
 
 class NFWHaloProfile:
-
     def __init__(
         self,
         matter_statistics: MatterStatistics,
