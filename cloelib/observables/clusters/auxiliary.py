@@ -1,7 +1,6 @@
 """Module implementing auxiliary functions"""
 
 import numpy as np
-from astropy import units as ap_units
 from scipy.special import erf
 
 from cloelib.auxiliary import units
@@ -84,13 +83,13 @@ def convert_distance(distance, units_in, units_out, angular_diameter_distance=No
         Distance in output units. If z is array and physical to
         angular conversion used, output shape is (z.size, distance.size).
     """
-    angular_units_dict = {
-        "radians": ap_units.rad,
-        "degrees": ap_units.deg,
-        "arcmin": ap_units.arcmin,
-        "arcsec": ap_units.arcsec,
+    ang_to_rad = {
+        "radians": 1,
+        "degrees": np.pi / 180.0,
+        "arcmin": np.pi / 180.0 / 60.0,
+        "arcsec": np.pi / 180.0 / 3600.0,
     }
-    _valid_units = ["mpc/h", *angular_units_dict.keys()]
+    _valid_units = ["mpc/h", *ang_to_rad.keys()]
     if units_in.lower() not in _valid_units:
         raise ValueError(f"units_in (={units_in}) must be in {_valid_units}")
     if units_out.lower() not in _valid_units:
@@ -99,22 +98,16 @@ def convert_distance(distance, units_in, units_out, angular_diameter_distance=No
     if units_in.lower() == units_out.lower():
         return distance
 
-    if units_out.lower() not in angular_units_dict:
+    if units_out.lower() not in ang_to_rad:
         # converting to mpc/h
-        theta = (
-            (distance * angular_units_dict[units_in]).to(ap_units.rad).value
-        )  # distance in radians
+        theta = distance * ang_to_rad[units_in]  # distance in radians
         out = theta * angular_diameter_distance
-    elif units_in.lower() not in angular_units_dict:
+    elif units_in.lower() not in ang_to_rad:
         # converting to angular units
         theta = distance / angular_diameter_distance  # distance in radians
-        out = (theta * ap_units.rad).to(angular_units_dict[units_out]).value
+        out = theta / ang_to_rad[units_out]
     else:
-        out = (
-            (distance * angular_units_dict[units_in])
-            .to(angular_units_dict[units_out])
-            .value
-        )
+        out = distance * ang_to_rad[units_in] / ang_to_rad[units_out]
 
     return out
 
