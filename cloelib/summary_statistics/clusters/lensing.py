@@ -9,9 +9,12 @@
 # General imports
 import numpy as np
 
-from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 
 # cloelib imports
+from cloelib.auxiliary.cluster_systematics import (
+    weak_lensing_optical_selection_bias_correction,
+)
+from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 from cloelib.observables.clusters.halo_profile import HaloProfile
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
@@ -180,7 +183,9 @@ class ClusterWeakLensing:
             effective_inverse_critical_surface_mass_density=None,
         )
 
-    def get_gt(self, z_obs_edges, lambda_obs_edges, radius_edges):
+    def get_gt(
+        self, z_obs_edges, lambda_obs_edges, radius_edges, opt_sel_bias_params=None
+    ):
         """Compute reduced shear profile.
 
         Parameters
@@ -191,6 +196,12 @@ class ClusterWeakLensing:
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
             Edges of radial bins for the profile.
+        opt_sel_bias_params: tuple, None
+            If not None, applies the optical selection bias correction to the
+            profile multiplying it by
+            ``weak_lensing_optical_selection_bias_correction(radius_edges, *opt_sel_bias_params)``.
+            Each individual parameter must be either float or
+            have shape (redshift, richness, radius) bins.
 
         Returns
         -------
@@ -215,9 +226,17 @@ class ClusterWeakLensing:
             )
 
         # output : (z_obs, lambda_obs, radius)
-        return self._get_profile(
-            z_obs_edges,
-            lambda_obs_edges,
-            radius_edges,
-            effective_inverse_critical_surface_mass_density,
+        opt_sel_corr = 1
+        if opt_sel_bias_params is not None:
+            opt_sel_corr = weak_lensing_optical_selection_bias_correction(
+                radius_edges, *opt_sel_bias_params
+            )
+        return (
+            self._get_profile(
+                z_obs_edges,
+                lambda_obs_edges,
+                radius_edges,
+                effective_inverse_critical_surface_mass_density,
+            )
+            * opt_sel_corr
         )
