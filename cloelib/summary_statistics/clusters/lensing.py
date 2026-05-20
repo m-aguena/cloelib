@@ -200,8 +200,9 @@ class ClusterWeakLensing:
             If not None, applies the optical selection bias correction to the
             profile multiplying it by
             ``weak_lensing_optical_selection_bias_correction(radius_edges, *opt_sel_bias_params)``.
-            Each individual parameter must be either float or
-            have shape (redshift, richness, radius) bins.
+            The values must be `opt_sel_bias_params=(R0, A, alpha, beta, gamma)``,
+            where each individual parameter must be either float or have shape
+            (redshift, richness, radius) bins.
 
         Returns
         -------
