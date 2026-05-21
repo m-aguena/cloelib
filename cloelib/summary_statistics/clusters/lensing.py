@@ -11,9 +11,6 @@ import numpy as np
 
 
 # cloelib imports
-from cloelib.auxiliary.cluster_systematics import (
-    weak_lensing_optical_selection_bias_correction,
-)
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 from cloelib.observables.clusters.halo_profile import HaloProfile
 from cloelib.observables.clusters.selection_function import SelectionFunction
@@ -199,7 +196,7 @@ class ClusterWeakLensing:
         opt_sel_bias_params: tuple, None
             If not None, applies the optical selection bias correction to the
             profile multiplying it by
-            ``weak_lensing_optical_selection_bias_correction(radius_edges, *opt_sel_bias_params)``.
+            ``self.optical_selection_bias_correction(radius_edges, *opt_sel_bias_params)``.
             The values must be `opt_sel_bias_params=(R0, A, alpha, beta, gamma)``,
             where each individual parameter must be either float or have shape
             (redshift, richness, radius) bins.
@@ -229,7 +226,7 @@ class ClusterWeakLensing:
         # output : (z_obs, lambda_obs, radius)
         opt_sel_corr = 1
         if opt_sel_bias_params is not None:
-            opt_sel_corr = weak_lensing_optical_selection_bias_correction(
+            opt_sel_corr = self.optical_selection_bias_correction(
                 radius_edges, *opt_sel_bias_params
             )
         return (
@@ -240,4 +237,41 @@ class ClusterWeakLensing:
                 effective_inverse_critical_surface_mass_density,
             )
             * opt_sel_corr
+        )
+
+    @staticmethod
+    def optical_selection_bias_correction(R, R0, A, alpha, beta, gamma):
+        """
+        Correction for the weak lensing optical selection bias to account for
+        miscentering and projection effects. To be multiplied directly to the WL
+        profile integrated in observed richness and redshift.
+
+        Parameters
+        ----------
+        R: numpy.ndarray
+            Radius of the profile in Mpc
+        R0: numpy.ndarray
+            Transition scale in Mpc, dimensions should be (z_obs_bins, lambda_obs_bins)
+        A: numpy.ndarray
+            Amplitude of the correction, dimensions should be (z_obs_bins, lambda_obs_bins)
+        alpha: numpy.ndarray
+            Slope at small radii, dimensions should be (z_obs_bins, lambda_obs_bins)
+        beta: numpy.ndarray
+            Slope at large radii, dimensions should be (z_obs_bins, lambda_obs_bins)
+        gamma: numpy.ndarray
+            Smoothness of the transition between slopes, dimensions should be (z_obs_bins, lambda_obs_bins)
+
+
+        Retruns
+        -------
+            Correction for WL optical selection bias. Dimension (z_obs_bins, lambda_obs_bins)
+
+        Note
+        ----
+        Reasonable values for the parameters are: R0=1.20cMpc/h, A=0.20, alpha=4.0,
+        beta=−0.3 , gamma=1.6
+        """
+        return (
+            A * (R / R0) ** alpha * (1 + (R / R0**gamma)) ** ((alpha - beta) / gamma)
+            + 1
         )
