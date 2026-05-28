@@ -1,6 +1,6 @@
 import numpy as np
 
-from cloelib.observables.clusters.auxiliary import convert_to_Delta_crit
+from cloelib.auxiliary.cluster_helpers import convert_to_Delta_crit
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 from .halo_abundance_base import HaloAbundanceBase
