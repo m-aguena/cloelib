@@ -2,9 +2,8 @@ import numpy as np
 from scipy import interpolate
 from scipy.special import gamma
 
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
-from .halo_abundance_core import HaloAbundanceBase
+from .halo_abundance_base import HaloAbundanceBase
 
 
 class CastroHaloAbundance(HaloAbundanceBase):
