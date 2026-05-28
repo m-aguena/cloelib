@@ -10,7 +10,7 @@ from cloelib.observables.clusters.auxiliary import (
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
-class HaloAbundanceCore:
+class HaloAbundanceBase:
     def __init__(
         self,
         matter_statistics: MatterStatistics,

@@ -3,26 +3,26 @@ import numpy as np
 from cloelib.observables.clusters.auxiliary import convert_to_Delta_crit
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
-from .halo_abundance_core import HaloAbundanceCore
+from .halo_abundance_core import HaloAbundanceBase
 
 
-class TinkerHaloAbundance:
+class TinkerHaloAbundance(HaloAbundanceBase):
+    """
+    Class implementing the Tinker et al. mass abundance models.
+
+    Following the cold dark matter
+    prescription by Costanzi+13 (https://arxiv.org/abs/1311.1514) and
+    Castorina+13 (https://arxiv.org/pdf/1311.1212), the halo mass function
+    and halo bias do not include the massive neutrino contribution in the
+    computation of mass variance, power spectrum, and overdensity.
+    """
     def __init__(
         self,
         matter_statistics: MatterStatistics,
         overdensity_type: str = "vir",
         overdensity: int = 200,
     ):
-        """
-        Class implementing the Tinker et al. mass abundance models.
-
-        Following the cold dark matter
-        prescription by Costanzi+13 (https://arxiv.org/abs/1311.1514) and
-        Castorina+13 (https://arxiv.org/pdf/1311.1212), the halo mass function
-        and halo bias do not include the massive neutrino contribution in the
-        computation of mass variance, power spectrum, and overdensity.
-        """
-        self.core = HaloAbundanceCore(matter_statistics)
+        HaloAbundanceBase.__init__(self, matter_statistics)
         self.overdensity_type = overdensity_type
         self.overdensity = overdensity
 
@@ -67,14 +67,14 @@ class TinkerHaloAbundance:
             bias[i,j], where i is the redshift axis and j the mass axis
         """
         # compute inputs
-        delta_c = self.core.delta_c(z)
-        nu = self.core.nu_z_M(z, M)
+        delta_c = self.delta_c(z)
+        nu = self.nu_z_M(z, M)
         Delta = convert_to_Delta_crit(
             self.overdensity_type,
             self.overdensity,
-            self.core.matter_statistics.background,
+            self.matter_statistics.background,
             z,
-        ) / self.core.matter_statistics.background.Omega_cb(z)
+        ) / self.matter_statistics.background.Omega_cb(z)
 
         ###################
         # Bias computations
@@ -118,4 +118,4 @@ class TinkerHaloAbundance:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        return self.core.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))
+        return self.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))

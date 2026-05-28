@@ -4,21 +4,19 @@ from scipy.special import gamma
 
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
-from .halo_abundance_core import HaloAbundanceCore
+from .halo_abundance_core import HaloAbundanceBase
 
 
-class CastroHaloAbundance:
-    def __init__(self, matter_statistics: MatterStatistics):
-        """
-        Class implementing the Castro et al. mass abundance models.
+class CastroHaloAbundance(HaloAbundanceBase):
+    """
+    Class implementing the Castro et al. mass abundance models.
 
-        Castro et al. followed the cold dark matter
-        prescription by Costanzi+13 (https://arxiv.org/abs/1311.1514) and
-        Castorina+13 (https://arxiv.org/pdf/1311.1212). That is, the halo mass function
-        and halo bias do not include the massive neutrino contribution in the
-        computation of mass variance, power spectrum, and overdensity.
-        """
-        self.core = HaloAbundanceCore(matter_statistics)
+    Castro et al. followed the cold dark matter
+    prescription by Costanzi+13 (https://arxiv.org/abs/1311.1514) and
+    Castorina+13 (https://arxiv.org/pdf/1311.1212). That is, the halo mass function
+    and halo bias do not include the massive neutrino contribution in the
+    computation of mass variance, power spectrum, and overdensity.
+    """
 
     # For sanity checks in summary_statistics
     @property
@@ -46,9 +44,9 @@ class CastroHaloAbundance:
             f_sigma_nu[i,j], where i is the redshift axis and j the mass axis
         """
         # compute inputs
-        Omega_m = self.core.matter_statistics.background.Omega_cb(z)
-        dlnsigmadlnM = self.core.dlns_dlnM(z, M)
-        nu = self.core.nu_z_M(z, M)
+        Omega_m = self.matter_statistics.background.Omega_cb(z)
+        dlnsigmadlnM = self.dlns_dlnM(z, M)
+        nu = self.nu_z_M(z, M)
 
         ##################
         # HMF computations
@@ -118,10 +116,10 @@ class CastroHaloAbundance:
             M = np.append(M, M[-1] * np.arange(2, 6))
 
         # compute inputs
-        Omega_m = self.core.matter_statistics.background.Omega_cb(z)
-        delta_c = self.core.delta_c(z)
-        dlnsigmadlnM = self.core.dlns_dlnM(z, M)
-        nu = self.core.nu_z_M(z, M)
+        Omega_m = self.matter_statistics.background.Omega_cb(z)
+        delta_c = self.delta_c(z)
+        dlnsigmadlnM = self.dlns_dlnM(z, M)
+        nu = self.nu_z_M(z, M)
 
         ###################
         # Bias computations
@@ -130,7 +128,7 @@ class CastroHaloAbundance:
         # Compute main quantities
         dlnsigmadlnR = 3 * dlnsigmadlnM
         fsigmanu = self.f_sigma_nu(z, M)
-        S8 = self.core.sigma8_0 * np.sqrt(self.core.matter_statistics.Omega_cb_0 / 0.3)
+        S8 = self.sigma8_0 * np.sqrt(self.matter_statistics.Omega_cb_0 / 0.3)
 
         dlnfsigmanu_dlnnu = np.zeros(fsigmanu.shape)
         for i in range(len(Omega_m)):
@@ -172,4 +170,4 @@ class CastroHaloAbundance:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        return self.core.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))
+        return self.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))
