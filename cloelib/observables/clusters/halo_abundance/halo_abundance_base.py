@@ -7,13 +7,13 @@ from cloelib.auxiliary.cluster_helpers import (
     tophat_window,
     tophat_window_derivative,
 )
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.clusters.common_halo_properties import CommonHaloProperties
 
 
 class HaloAbundanceBase:
     def __init__(
         self,
-        matter_statistics: MatterStatistics,
+        common_halo_properties: CommonHaloProperties,
     ):
         r"""Auxiliary class computing quantities used in halo mass function and halo bias models.
 
@@ -21,10 +21,10 @@ class HaloAbundanceBase:
 
         Parameters
         ----------
-        matter_statistics : MatterStatistics
-            An object from the `MatterStatistics` class.
+        common_halo_properties : CommonHaloProperties
+            An object from the `CommonHaloProperties` class.
         """
-        self.matter_statistics = matter_statistics
+        self.common_halo_properties = common_halo_properties
 
         # to avoid recomputing sigma & dsigmadlnM
         self._tabulated_sigma = {
@@ -79,10 +79,10 @@ class HaloAbundanceBase:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        rho_mean_0 = self.matter_statistics.Omega_cb_0 * derived_cosmology.rho_crit(
-            self.matter_statistics.background, 0.0
+        rho_mean_0 = self.common_halo_properties.Omega_cb_0 * derived_cosmology.rho_crit(
+            self.common_halo_properties.background, 0.0
         )
-        rho_mean_0 /= self.matter_statistics.background.h**2.0
+        rho_mean_0 /= self.common_halo_properties.background.h**2.0
 
         return -rho_mean_0 / M**2.0 * fsigmanu * self.dlns_dlnM(z, M)
 
@@ -127,9 +127,9 @@ class HaloAbundanceBase:
             Radius in h^{-1} Mpc
         """
         rho_m_0 = (
-            derived_cosmology.rho_crit(self.matter_statistics.background, 0.0)
-            * self.matter_statistics.Omega_cb_0
-            / self.matter_statistics.background.h**2.0
+            derived_cosmology.rho_crit(self.common_halo_properties.background, 0.0)
+            * self.common_halo_properties.Omega_cb_0
+            / self.common_halo_properties.background.h**2.0
         )
         return (M / rho_m_0 * (3.0 / (4.0 * np.pi))) ** (1 / 3.0)
 
@@ -153,7 +153,7 @@ class HaloAbundanceBase:
         sigma_z_R: numpy.ndarray
             sigma_z_R[i,j], where i is the redshift axis and j the radius axis.
         """
-        k = self.matter_statistics.k  # h/Mpc
+        k = self.common_halo_properties.k  # h/Mpc
         W, _ = self.window(k, R)
         return np.sqrt(
             (
@@ -161,7 +161,7 @@ class HaloAbundanceBase:
                 / (2.0 * np.pi**2)
                 * simpson(
                     (k**2.0).reshape(1, 1, len(k))
-                    * self.matter_statistics.matter_power_spectrum_cb(z, k).reshape(
+                    * self.common_halo_properties.matter_power_spectrum_cb(z, k).reshape(
                         len(z), 1, len(k)
                     )
                     * (W**2.0).reshape(1, len(R), len(k)),
@@ -219,7 +219,7 @@ class HaloAbundanceBase:
             3.0
             / 20.0
             * (12.0 * np.pi) ** (2.0 / 3.0)
-            * (1.0 + 0.012299 * np.log10(self.matter_statistics.background.Omega_cb(z)))
+            * (1.0 + 0.012299 * np.log10(self.common_halo_properties.background.Omega_cb(z)))
         )
 
     def nu_z_M(self, z, M):
@@ -248,7 +248,7 @@ class HaloAbundanceBase:
         """Core computation for derivative of the logarithmic rms.
         see dlns_dlnM for complete docstrings.
         """
-        k = self.matter_statistics.k  # h/Mpc
+        k = self.common_halo_properties.k  # h/Mpc
         R = self.radius_M(M)  # Mpc/h
         W, dWdx = self.window(k, R)
         dsigma2_dlnR = (
@@ -256,7 +256,7 @@ class HaloAbundanceBase:
             * np.pi**-2
             * simpson(
                 k.reshape(1, 1, len(k)) ** 3
-                * self.matter_statistics.matter_power_spectrum_cb(z, k).reshape(
+                * self.common_halo_properties.matter_power_spectrum_cb(z, k).reshape(
                     len(z), 1, len(k)
                 )
                 * W.reshape(1, len(R), len(k))

@@ -9,10 +9,10 @@ from cloelib.observables.clusters.halo_abundance import (
     CastroHaloAbundance,
     TinkerHaloAbundance,
 )
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.clusters.common_halo_properties import CommonHaloProperties
 
 
-def test_MatterStatistics():
+def test_CommonHaloProperties():
     # Cosmology parameters
     print("# Cosmology parameters")
     _H0 = 67.7
@@ -36,9 +36,9 @@ def test_MatterStatistics():
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 
-    # MatterStatistics
-    print("# MatterStatistics")
-    HS = MatterStatistics(perturbations)
+    # CommonHaloProperties
+    print("# CommonHaloProperties")
+    HS = CommonHaloProperties(perturbations)
     HS_tinker = TinkerHaloAbundance(HS)
     HS_castro = CastroHaloAbundance(HS)
 

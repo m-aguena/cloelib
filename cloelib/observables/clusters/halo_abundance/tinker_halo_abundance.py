@@ -1,7 +1,7 @@
 import numpy as np
 
 from cloelib.auxiliary.cluster_helpers import convert_to_Delta_crit
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.clusters.common_halo_properties import CommonHaloProperties
 
 from .halo_abundance_base import HaloAbundanceBase
 
@@ -19,11 +19,11 @@ class TinkerHaloAbundance(HaloAbundanceBase):
 
     def __init__(
         self,
-        matter_statistics: MatterStatistics,
+        common_halo_properties: CommonHaloProperties,
         overdensity_type: str = "vir",
         overdensity: int = 200,
     ):
-        HaloAbundanceBase.__init__(self, matter_statistics)
+        HaloAbundanceBase.__init__(self, common_halo_properties)
         self.overdensity_type = overdensity_type
         self.overdensity = overdensity
 
@@ -73,9 +73,9 @@ class TinkerHaloAbundance(HaloAbundanceBase):
         Delta = convert_to_Delta_crit(
             self.overdensity_type,
             self.overdensity,
-            self.matter_statistics.background,
+            self.common_halo_properties.background,
             z,
-        ) / self.matter_statistics.background.Omega_cb(z)
+        ) / self.common_halo_properties.background.Omega_cb(z)
 
         ###################
         # Bias computations
