@@ -28,7 +28,8 @@ For spectroscopic observables (3D clustering, redshift-space distortions)
 
 ---
 
-## Part 1: Tracer Protocol (Photometric Observables)
+<details>
+<summary><h2>Part 1: Tracer Protocol (Photometric Observables)</h2></summary>
 
 **Protocol Definition**: `cloelib.observables.tracer.Tracer`
 
@@ -303,7 +304,10 @@ def test_cmb_lensing_tracer():
 
 ---
 
-## Part 2: SpectroPower Protocol (Spectroscopic Observables)
+</details>
+
+<details>
+<summary><h2>Part 2: SpectroPower Protocol (Spectroscopic Observables)</h2></summary>
 
 **Protocol Definition**: `cloelib.observables.spectro.SpectroPower`
 
@@ -566,7 +570,10 @@ def test_with_different_parameters():
 
 ---
 
-## Tips & Tricks for Both Protocols
+</details>
+
+<details>
+<summary><h2>Tips & Tricks for Both Protocols</h2></summary>
 
 ### Protocol Compliance
 
@@ -630,6 +637,8 @@ else:
 # Good (JIT-able)
 result = jnp.where(z > 1.0, compute_high_z(z), compute_low_z(z))
 ```
+
+</details>
 
 ## Next Steps
 
