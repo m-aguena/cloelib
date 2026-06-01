@@ -149,24 +149,3 @@ class CastroHaloAbundance(HaloAbundanceBase):
             bias = bias[:, :lenM_orig]
 
         return bias
-
-    def dn_dm(self, z, M):
-        r"""Derivative of the number density.
-
-        Computes the derivative of the number density
-        at the requested redshift and mass points.
-
-        Parameters
-        ----------
-        z: numpy.ndarray
-            Redshift points.
-        M: numpy.ndarray
-            Mass points in h^{-1} Msun.
-
-        Returns
-        -------
-        dn_dm: numpy.ndarray
-            dn_dm[i,j], where i is the redshift axis and j the mass axis.
-            Units: h^4 Mpc^{-3} Ms^{-1}.
-        """
-        return self.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))

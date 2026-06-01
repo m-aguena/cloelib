@@ -79,8 +79,9 @@ class HaloAbundanceBase:
             dn_dm[i,j], where i is the redshift axis and j the mass axis.
             Units: h^4 Mpc^{-3} Ms^{-1}.
         """
-        rho_mean_0 = self.common_halo_properties.Omega_cb_0 * derived_cosmology.rho_crit(
-            self.common_halo_properties.background, 0.0
+        rho_mean_0 = (
+            self.common_halo_properties.Omega_cb_0
+            * derived_cosmology.rho_crit(self.common_halo_properties.background, 0.0)
         )
         rho_mean_0 /= self.common_halo_properties.background.h**2.0
 
@@ -161,9 +162,9 @@ class HaloAbundanceBase:
                 / (2.0 * np.pi**2)
                 * simpson(
                     (k**2.0).reshape(1, 1, len(k))
-                    * self.common_halo_properties.matter_power_spectrum_cb(z, k).reshape(
-                        len(z), 1, len(k)
-                    )
+                    * self.common_halo_properties.matter_power_spectrum_cb(
+                        z, k
+                    ).reshape(len(z), 1, len(k))
                     * (W**2.0).reshape(1, len(R), len(k)),
                     x=k,
                     axis=-1,
@@ -219,7 +220,11 @@ class HaloAbundanceBase:
             3.0
             / 20.0
             * (12.0 * np.pi) ** (2.0 / 3.0)
-            * (1.0 + 0.012299 * np.log10(self.common_halo_properties.background.Omega_cb(z)))
+            * (
+                1.0
+                + 0.012299
+                * np.log10(self.common_halo_properties.background.Omega_cb(z))
+            )
         )
 
     def nu_z_M(self, z, M):
@@ -294,3 +299,24 @@ class HaloAbundanceBase:
             self._dlns_dlnM,
             {"z": z, "M": M},
         )
+
+    def dn_dm(self, z, M):
+        r"""Derivative of the number density.
+
+        Computes the derivative of the number density
+        at the requested redshift and mass points.
+
+        Parameters
+        ----------
+        z: numpy.ndarray
+            Redshift points.
+        M: numpy.ndarray
+            Mass points in h^{-1} Msun.
+
+        Returns
+        -------
+        dn_dm: numpy.ndarray
+            dn_dm[i,j], where i is the redshift axis and j the mass axis.
+            Units: h^4 Mpc^{-3} Ms^{-1}.
+        """
+        return self.dn_dm_fsigmanu(z, M, self.f_sigma_nu(z, M))
