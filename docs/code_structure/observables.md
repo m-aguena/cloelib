@@ -750,7 +750,20 @@ Just make sure it runs `HaloAbundanceBase.__init__` internally.
 > Note: If you don't need extra arguments, a `__init__` function
 > does not have to be defined in your class.
 
-#### Step 3: Write Tests
+#### Step 3: Add to Package
+
+Update `cloelib/observables/clusters/halo_abundance/__init__.py`:
+
+```python
+from cloelib.observables.my_new_tracer import MyHaloAbundance
+
+__all__ = [
+    # ... existing exports
+    "MyHaloAbundance",
+]
+```
+
+#### Step 4: Write Tests
 
 ```python
 # tests/test_my_cluster_halo_abundance.py
@@ -758,11 +771,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
-from cloelib.auxiliary.cluster_helpers import convert_to_Delta_crit
-from cloelib.observables.clusters.halo_abundance import (
-    CastroHaloAbundance,
-    TinkerHaloAbundance,
-)
+from cloelib.observables.clusters.halo_abundance import MyHaloAbundance
 from cloelib.observables.clusters.common_halo_properties import CommonHaloProperties
 
 def test_my_halo_abundance():
@@ -770,7 +779,7 @@ def test_my_halo_abundance():
     pert = CAMBLinearPerturbations(bg, np.linspace(0.0, 2.0, 100))
 
     common_prop = CommonHaloProperties(perturbations)
-    halo_abundance = CastroHaloAbundance(common_prop)
+    halo_abundance = MyHaloAbundance(common_prop)
 
     z = np.linspace(0.01, 1.0, 10)
     M = np.logspace(14, 15, 5) # in Msun
