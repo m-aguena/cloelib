@@ -244,7 +244,8 @@ class ClusterWeakLensing:
         """
         Correction for the weak lensing optical selection bias to account for
         miscentering and projection effects. To be multiplied directly to the WL
-        profile integrated in observed richness and redshift.
+        profile integrated in observed richness and redshift. Effect measured in
+        Ingrao et al. 2026 (https://doi.org/10.48550/arXiv.2605.02723).
 
         Parameters
         ----------
