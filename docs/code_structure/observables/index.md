@@ -6,7 +6,7 @@ This module handles the transformation from theoretical quantities to observable
 
 ## Overview
 
-This module computes survey-specific  large scale structure (selection functions, window functions, and bias parameters) and galaxy cluster (halo mass function) quantities that distinguish real observations from idealized theoretical predictions.
+This module computes survey-specific large scale structure (selection functions, window functions, and bias parameters) and galaxy cluster (halo mass function) quantities that distinguish real observations from idealized theoretical predictions.
 
 This module addresses:
 
@@ -20,10 +20,10 @@ This module addresses:
 **cloelib** has different types of observable protocols, each serving different purposes for:
 
 - Large Scale Structure
-  - **Tracer Protocol**: For photometric observables (angular correlations, weak lensing) - [Learn more about Tracer Protocol](photo.md)
-  - **SpectroPower Protocol**: For spectroscopic observables (3D clustering, redshift-space distortions) - [Learn more about SpectroPower Protocol](spectro.md)
+  - [**Tracer Protocol**](photo.md): For photometric observables (angular correlations, weak lensing).
+  - [**SpectroPower Protocol**](spectro.md): For spectroscopic observables (3D clustering, redshift-space distortions).
 - Galaxy Clusters
-  - **HaloAbundance Protocol**: For halo mass function and halo bias - [Learn more about Halo Abundance](halo_abundance.md)
+  - [**HaloAbundance Protocol**](halo_abundance.md): For halo mass function and halo bias.
 
 ## Next Steps
 
