@@ -5,6 +5,7 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 
 from cloelib.observables.clusters.halo_mass_observable import (
     LognormalPowerLawHaloMassObservable,
+    ShiftedPoissonHaloMassObservable,
 )
 from cloelib.observables.clusters.selection_function import (
     GaussianSelectionFunction,
@@ -38,9 +39,65 @@ def _get_test_gaussian_sf():
     )
 
 
+
+def test_shifted_poisson_scaling_relation():
+    _lambda_true_dist_pars = dict(
+        Mmin=10.**11.073,
+        M1=10.**12.191,
+        alpha=0.879,
+        epsilon=0.955,
+        sigma_lnltr=0.208,
+    )
+    halo_mass_observable=ShiftedPoissonHaloMassObservable(
+        **_lambda_true_dist_pars
+        )
+
+    z_test = np.linspace(0.1,2.0,3)
+    l_test = np.linspace(1.,300,5)
+    M_test = np.array([5.0e13,1.0e14,1.0e15]) 
+
+    _mean_l_given_M_z_ref = np.array([[ 12.43029063,  22.04335889, 160.41228422],
+       [ 21.71343835,  39.13379127, 289.87948941],
+       [ 30.79737845,  55.85747907, 416.56845029]])
+    assert_allclose(
+        halo_mass_observable._mean_richness(z_test[:,np.newaxis], M_test[np.newaxis,:]),
+        _mean_l_given_M_z_ref,
+        rtol=1e-05,
+    )
+
+    _pdf_richness_ref=np.array([[[9.31712100e-004, 1.14711919e-028, 6.32575647e-091,
+         1.94982998e-169, 1.13155990e-258],
+        [9.67464862e-005, 2.17378363e-013, 1.74149291e-051,
+         1.95688543e-104, 1.70335514e-167],
+        [3.15527361e-007, 6.32290921e-004, 1.08547001e-002,
+         2.12307489e-003, 6.09230231e-006]],
+       [[1.02518156e-004, 1.03563752e-013, 2.05956996e-052,
+         5.04460672e-106, 9.02356502e-170],
+        [1.21920167e-005, 8.83209590e-005, 1.84563306e-022,
+         8.75846707e-052, 1.21736553e-089],
+        [1.13664500e-007, 1.64515024e-005, 5.22810128e-004,
+         3.75950249e-003, 6.29715817e-003]],
+       [[2.79285980e-005, 1.64854977e-007, 5.60207210e-033,
+         1.09427351e-071, 9.56465901e-120],
+        [3.98030558e-006, 9.91679205e-003, 2.02201863e-011,
+         7.06171058e-029, 3.19097596e-053],
+        [6.66429303e-008, 2.61175346e-006, 4.88156709e-005,
+         4.38317806e-004, 1.90420737e-003]]])
+    assert_allclose(
+        halo_mass_observable.pdf_richness(z_test, M_test, l_test),
+        _pdf_richness_ref,
+        rtol=1e-05,
+    )
+
+
 def test_gaussian_selectionfunction():
     print("# SelectionFunction")
     selection_function = _get_test_gaussian_sf()
+
+    new_pars = dict(A_l=0.5, B_l=0.6, C_l=0.5,
+                     sig_A_l=0.1, sig_B_l=0.0, sig_C_l=0.0)
+    for key, val in new_pars.items():
+        setattr(selection_function.halo_mass_observable, key, val)
 
     # tests
     z_test = np.linspace(0.01, 1.0, 5)
