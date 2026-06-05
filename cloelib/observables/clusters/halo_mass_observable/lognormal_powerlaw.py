@@ -26,7 +26,7 @@ class LognormalPowerLawHaloMassObservable:
         ----------
         A_l : float
             Amplitude of the proxy - mass scaling relation. The natural logarithm
-           of this parameter, i.e. `np.log(A_l)`, is used in the scaling relation.
+            of this parameter, i.e. `np.log(A_l)`, is used in the scaling relation.
         B_l : float
             Mass slope of the proxy - mass scaling relation
         C_l : float
