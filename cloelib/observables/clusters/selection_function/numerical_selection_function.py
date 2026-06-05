@@ -235,8 +235,10 @@ class NumericalSelectionFunction:
         )
         for ztab, z_slice in enumerate(prob_data["z_obs_bins_slices"]):
             for ltab, l_slice in enumerate(prob_data["lambda_obs_bins_slices"]):
-                window_ltrue[ztab, ltab, :, :] = integrate.simpson(
-                    integrate.simpson(
+        #         window_ltrue[ztab, ltab, :, :] = integrate.simpson(
+        #             integrate.simpson(
+                window_ltrue[ztab, ltab, :, :] = np.trapz(
+                    np.trapz(
                         integrand[z_slice, l_slice, :, :],
                         x=prob_data["z_obs"][z_slice],
                         axis=0,
@@ -261,15 +263,176 @@ class NumericalSelectionFunction:
 
         return interpolators
 
+#     def _window_redshift_richness_observed_by_lambda_true(
+#         self, z_obs_edges, lambda_obs_edges, z_true, lambda_true
+#     ):
+#         r"""Computes the integral over z_obs_edges and lambda_obs_edges of
+#         Prob(lambda_obs, z_obs)*completeness/purity*Omega_alpha/Omega_tot using interpolated functions.
+
+#         ..math:
+#             W_{\Delta\lambda_{\rm obs}, \Delta z_{\rm obs}}(\lambda_{\rm true}, z_{\rm true}) =
+#             \int_{\Delta\lambda_{\rm obs}}d\lambda_{\rm obs}
+#             \int_{\Delta z_{\rm obs}}d z_{\rm obs}
+#             P(\lambda_{\rm obs}, z_{\rm obs}|\lambda_{\rm true}, z_{\rm true})
+#             \frac{c(\lambda_{\rm true}, z_{\rm true})}{p(\rm obs}, z_{\rm obs})}
+
+#         Parameters
+#         ----------
+#         z_obs_edges : numpy.ndarray
+#             Edges of redshift bins for the integration.
+#         lambda_obs_edges : numpy.ndarray
+#             Edges of richness bins for the integration.
+#         z_true : numpy.ndarray
+#             True redshift to compute the window.
+#         lambda_true : numpy.ndarray
+#             True richness to compute the window.
+
+#         Returns
+#         -------
+#         window_lambda_true : numpy.ndarray
+#             Window function for observed redshift and richness bins.
+#             Dimensions: (z_obs_edges, lambda_obs_edges, z_true, lambda_true)
+#         """
+#         interpolators = self._build_windows_interpolators(z_obs_edges, lambda_obs_edges)
+
+#         window_lambda_true = np.zeros(
+#             (
+#                 len(z_obs_edges) - 1,
+#                 len(lambda_obs_edges) - 1,
+#                 z_true.size,
+#                 lambda_true.size,
+#             )
+#         )
+#         for ztab, interp_zobs in enumerate(interpolators):
+#             for ltab, interp_zobs_lobs in enumerate(interp_zobs):
+#                 window_lambda_true[ztab, ltab] = interp_zobs_lobs(z_true, lambda_true)
+
+#         return window_lambda_true
+
+#     def window_redshift_richness_observed(
+#         self, z_obs_edges, lambda_obs_edges, z_true, mass, lambda_true
+#     ):
+#         r"""Computes the window function for observed redshift and richness bins, i. e.:
+
+#         ..math:
+#             W_{\Delta\lambda_{\rm obs}, \Delta z_{\rm obs}}(M, z_{\rm true}) =
+#             \int_{0}^{\infty}d\lambda_{\rm true}
+#             P(\lambda_{\rm true}|M, z_{\rm true})
+#             \int_{\Delta\lambda_{\rm obs}}d\lambda_{\rm obs}
+#             \int_{\Delta z_{\rm obs}}d z_{\rm obs}
+#             P(\lambda_{\rm obs}, z_{\rm obs}|\lambda_{\rm true}, z_{\rm true})
+#             \frac{c(\lambda_{\rm true}, z_{\rm true})}{p(\rm obs}, z_{\rm obs})}
+
+#         Parameters
+#         ----------
+#         z_obs_edges : numpy.ndarray
+#             Edges of redshift bins for the integration.
+#         lambda_obs_edges : numpy.ndarray
+#             Edges of richness bins for the integration.
+#         z_true : numpy.ndarray
+#             True redshift to compute the window.
+#         mass : numpy.ndarray
+#             Mass to compute the window.
+#         lambda_true : numpy.ndarray
+#             Values to be used for marginalization over true richness.
+
+#         Returns
+#         -------
+#         numpy.ndarray
+#             Window function for observed redshift and richness bins.
+#             Dimensions: (z_obs_edges, lambda_obs_edges, z_true, mass)
+#         """
+#         # Dimensions: (z, M, lambda_true)
+#         pdf_mass_richness_scaling = self.halo_mass_observable.pdf_richness(
+#             z_true, mass, lambda_true
+#         )
+
+#         # Dimensions: (z_obs, lambda_obs, z, lambda_true)
+#         window_lambda_true = self._window_redshift_richness_observed_by_lambda_true(
+#             z_obs_edges, lambda_obs_edges, z_true, lambda_true
+#         )
+
+#         # return simpson(
+#         return np.trapz( # se uso trapz qui non migliora il match con il mio codice
+#             pdf_mass_richness_scaling[np.newaxis, np.newaxis, :, :, :]
+#             * window_lambda_true[:, :, :, np.newaxis, :],
+#             x=lambda_true,
+#             axis=-1,
+#         )
+
+#     def window_z_observed(self, z_obs_edges, lambda_obs_edges, z_true, lambda_true):
+#         r"""Compute the window function of each observed redshift bin, given by:
+
+#         ..math:
+#             W_{\Delta z_{\rm obs}}(\lambda_{\rm obs}, z_{\rm true}) =
+#               \int_{\Delta z_{\rm obs}}dz_{\rm obs} P(z_{\rm obs}|\lambda_{\rm obs}, z_{\rm true})
+
+#         Parameters
+#         ----------
+#         z_obs_edges : numpy.ndarray
+#             Edges of redshift bins for the integration.
+#         lambda_obs_edges : numpy.ndarray
+#             Edges of richness bins for the integration.
+#         z_true : numpy.ndarray
+#             True redshift to compute the window.
+
+#         Returns
+#         -------
+#         window_z_obs : numpy.ndarray
+#             Integral of P(z_obs|lambda_obs, z_true) in z_obs bins.
+#             Dimensions: (z_obs_edges, lambda_obs_edges, z_true).
+#         """
+#         window_lambda_true = self._window_redshift_richness_observed_by_lambda_true(
+#             z_obs_edges, lambda_obs_edges, z_true, lambda_true
+#         )  # (z_obs, lambda_obs, z, lambda_true)
+
+#         return simpson(window_lambda_true, x=lambda_true, axis=-1)
+
+#     def window_richness_observed(
+#         self,
+#         lambda_obs_edges,
+#         z_true,
+#         mass,
+#         lambda_true,
+#     ):
+#         r"""Compute the window function of each observed richness bin, given by:
+
+#         ..math:
+#             W_{\Delta\lambda_{\rm obs}}(M, z_{\rm true}) =
+#             \int_{0}^{\infty}d\lambda_{\rm true}
+#             P(\lambda_{\rm true}|M, z_{\rm true})
+#             \int_{\Delta\lambda_{\rm obs}}d\lambda_{\rm obs}
+#             P(\lambda_{\rm obs}|\lambda_{\rm true}, z_{\rm true})
+
+#         Parameters
+#         ----------
+#         lambda_obs_edges : numpy.ndarray
+#             Edges of richness bins for the integration.
+#         z_true : numpy.ndarray
+#             True redshift to compute the window.
+#         mass : numpy.ndarray
+#             Mass to compute the window.
+#         lambda_true : numpy.ndarray
+#             Values to be used for marginalization over true richness.
+
+#         Returns
+#         -------
+#         window_lambda_obs : numpy.ndarray
+#             Integral of P(lambda_obs|\lambda_{\rm true}, z_true) in lambda_obs bins.
+#             Dimensions: (lambda_obs_edges, z_true, M).
+#         """
+#         _z_obs_edges = self._sel_cl_data["arrays"]["z_obs"][[0, -1]]
+#         return self.window_redshift_richness_observed(
+#             _z_obs_edges, lambda_obs_edges, z_true, mass, lambda_true
+#         )[0]
+
     def _window_redshift_richness_observed_by_lambda_true(
-        self, z_obs_edges, lambda_obs_edges, z_true, lambda_true
-    ):
-        r"""Computes the window function for observed redshift and richness bins, i. e.:
+            self, z_obs_edges, lambda_obs_edges):
+        r"""Computes the integral over z_obs_edges and lambda_obs_edges of
+        Prob(lambda_obs, z_obs|lambda_true, z_true)*completeness/purity*Omega_alpha/Omega_tot.
 
         ..math:
-            W_{\Delta\lambda_{\rm obs}, \Delta z_{\rm obs}}(M, z_{\rm true}) =
-            \int_{0}^{\infty}d\lambda_{\rm true}
-            P(\lambda_{\rm true}|M, z_{\rm true})
+            W_{\Delta\lambda_{\rm obs}, \Delta z_{\rm obs}}(\lambda_{\rm true}, z_{\rm true}) =
             \int_{\Delta\lambda_{\rm obs}}d\lambda_{\rm obs}
             \int_{\Delta z_{\rm obs}}d z_{\rm obs}
             P(\lambda_{\rm obs}, z_{\rm obs}|\lambda_{\rm true}, z_{\rm true})
@@ -277,92 +440,129 @@ class NumericalSelectionFunction:
 
         Parameters
         ----------
-        z_obs_edges : numpy.ndarray
-            Edges of redshift bins for the integration.
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
-        z_true : numpy.ndarray
-            True redshift to compute the window.
-        lambda_true : numpy.ndarray
-            True richness to compute the window.
-
-        Returns
-        -------
-        window_lambda_true : numpy.ndarray
-            Window function for observed redshift and richness bins.
-            Dimensions: (z_obs_edges, lambda_obs_edges, z_true, lambda_true)
-        """
-        interpolators = self._build_windows_interpolators(z_obs_edges, lambda_obs_edges)
-
-        window_lambda_true = np.zeros(
-            (
-                len(z_obs_edges) - 1,
-                len(lambda_obs_edges) - 1,
-                z_true.size,
-                lambda_true.size,
-            )
-        )
-        for ztab, interp_zobs in enumerate(interpolators):
-            for ltab, interp_zobs_lobs in enumerate(interp_zobs):
-                window_lambda_true[ztab, ltab] = interp_zobs_lobs(z_true, lambda_true)
-
-        return window_lambda_true
-
-    def window_redshift_richness_observed(
-        self, z_obs_edges, lambda_obs_edges, z_true, mass, lambda_true
-    ):
-        r"""Computes the window function for observed redshift and richness bins, i. e.:
-
-        ..math:
-            W_{\Delta\lambda_{\rm obs}, \Delta z_{\rm obs}}(M, z_{\rm true}) =
-            \int_{0}^{\infty}d\lambda_{\rm true}
-            P(\lambda_{\rm true}|M, z_{\rm true})
-            \int_{\Delta\lambda_{\rm obs}}d\lambda_{\rm obs}
-            \int_{\Delta z_{\rm obs}}d z_{\rm obs}
-            P(\lambda_{\rm obs}, z_{\rm obs}|\lambda_{\rm true}, z_{\rm true})
-            \frac{c(\lambda_{\rm true}, z_{\rm true})}{p(\rm obs}, z_{\rm obs})}
-
-        Parameters
-        ----------
         z_obs_edges : numpy.ndarray
             Edges of redshift bins for the integration.
-        lambda_obs_edges : numpy.ndarray
-            Edges of richness bins for the integration.
-        z_true : numpy.ndarray
-            True redshift to compute the window.
-        mass : numpy.ndarray
-            Mass to compute the window.
-        lambda_true : numpy.ndarray
-            Values to be used for marginalization over true richness.
 
         Returns
         -------
         numpy.ndarray
             Window function for observed redshift and richness bins.
-            Dimensions: (z_obs_edges, lambda_obs_edges, z_true, mass)
+            Dimensions: (z_obs_edges, lambda_obs_edges, z_true, lambda_true)
         """
+
+        if self._extrapolate is None:
+            err = []
+            if z_obs_edges[0] < self._sel_cl_data["arrays"]["z_obs"][0]:
+                err.append("lower z_obs_edges")
+            if z_obs_edges[-1] > self._sel_cl_data["arrays"]["z_obs"][-1]:
+                err.append("upper z_obs_edges")
+            if lambda_obs_edges[0] < self._sel_cl_data["arrays"]["lambda_obs"][0]:
+                err.append("lower lambda_obs_edges")
+            if lambda_obs_edges[-1] > self._sel_cl_data["arrays"]["lambda_obs"][-1]:
+                err.append("upper lambda_obs_edges")
+            if len(err) > 0:
+                err = ",".join(err)
+                raise ValueError(f"Cannot use these bins: {err} out of bounds.")
+
+        # Prob*completeness/purity formatted with obs bins
+        prob_data = self._compute_prob_comp_pur(z_obs_edges, lambda_obs_edges)
+
+        # Integrate with Omega_alpha/Sum(Omega_alpha)
+
+        integrand = (
+            np.expand_dims(self._sel_cl_data["area_tile"], axis=(1, 2, 3, 4))
+            * prob_data["prob_comp_pur"]
+        ).sum(axis=0) / self._sel_cl_data["area_tile"].sum()
+
+        window_ltrue = np.zeros(
+            (
+                len(z_obs_edges) - 1,
+                len(lambda_obs_edges) - 1,
+                len(self._sel_cl_data["arrays"]["z_true"]),
+                len(self._sel_cl_data["arrays"]["lambda_true"]),
+            )
+        )
+
+        for ztab, z_slice in enumerate(prob_data["z_obs_bins_slices"]):
+            for ltab, l_slice in enumerate(prob_data["lambda_obs_bins_slices"]):
+                window_ltrue[ztab, ltab, :, :] = np.trapz(
+                    np.trapz(
+        #         window_ltrue[ztab, ltab, :, :] = integrate.simpson(
+        #             integrate.simpson(
+                        integrand[z_slice, l_slice, :, :],
+                        x=prob_data["z_obs"][z_slice],
+                        axis=0,
+                    ),
+                    x=prob_data["lambda_obs"][l_slice],
+                    axis=0,
+                )
+        return window_ltrue
+
+    def window_redshift_richness_observed(
+        self,
+        z_obs_edges,
+        lambda_obs_edges,
+        z_true = None,
+        mass = None, # Note: to keep the order of the parameters consistent with other window_redshift_richness_observed mass is set to None, even if the value of the parameter is needed by the function
+        lambda_true = None
+    ):
+        r"""Computes the window function for observed redshift and richness bins, i. e.:
+
+        ..math:
+            W_{\Delta\lambda_{\rm obs}, \Delta z_{\rm obs}}(M, z_{\rm true}) =
+            \int_{0}^{\infty}d\lambda_{\rm true}
+            P(\lambda_{\rm true}|M, z_{\rm true})
+            \int_{\Delta\lambda_{\rm obs}}d\lambda_{\rm obs}
+            \int_{\Delta z_{\rm obs}}d z_{\rm obs}
+            P(\lambda_{\rm obs}, z_{\rm obs}|\lambda_{\rm true}, z_{\rm true})
+            \frac{c(\lambda_{\rm true}, z_{\rm true})}{p(\rm obs}, z_{\rm obs})}
+
+        Parameters
+        ----------
+        z_obs_edges : numpy.ndarray
+            Edges of redshift bins for the integration.
+        lambda_obs_edges : numpy.ndarray
+            Edges of richness bins for the integration.
+        mass : numpy.ndarray
+            Mass to compute the window.
+
+        Returns
+        -------
+        numpy.ndarray
+            Window function for observed redshift and richness bins.
+            Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, mass)
+        """
+        if mass is None:
+            raise ValueError(f"You need to provide a value for M")
+
+        z_true = np.array(self._sel_cl_data["arrays"]["z_true"],)
+        lambda_true = np.array(self._sel_cl_data["arrays"]["lambda_true"])
         # Dimensions: (z, M, lambda_true)
         pdf_mass_richness_scaling = self.halo_mass_observable.pdf_richness(
             z_true, mass, lambda_true
         )
-
-        # Dimensions: (z_obs, lambda_obs, z, lambda_true)
+        # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, lambda_true)
         window_lambda_true = self._window_redshift_richness_observed_by_lambda_true(
-            z_obs_edges, lambda_obs_edges, z_true, lambda_true
+            z_obs_edges, lambda_obs_edges
         )
-
-        return simpson(
+        # return simpson(
+        return np.trapezoid( # se uso trapz qui non migliora il match con il mio codice
             pdf_mass_richness_scaling[np.newaxis, np.newaxis, :, :, :]
             * window_lambda_true[:, :, :, np.newaxis, :],
             x=lambda_true,
             axis=-1,
         )
 
-    def window_z_observed(self, z_obs_edges, lambda_obs_edges, z_true, lambda_true):
+    def window_z_observed(self, z_obs_edges, lambda_obs_edges,
+                          z_true = None, lambda_true = None):
         r"""Compute the window function of each observed redshift bin, given by:
 
         ..math:
-            W_{\Delta z_{\rm obs}}(\lambda_{\rm obs}, z_{\rm true}) = \int_{\Delta z_{\rm obs}}dz_{\rm obs} P(z_{\rm obs}|\lambda_{\rm obs}, z_{\rm true})
+            W_{\Delta z_{\rm obs}}(\lambda_{\rm true}, z_{\rm true}) =
+              \int_{\Delta z_{\rm obs}}dz_{\rm obs} P(z_{\rm obs}|\lambda_{\rm true}, z_{\rm true}) =
+              \int_{\Delta z_{\rm obs}}dz_{\rm obs} \int_0^\infty P(\lambda_{\rm obs}, z_{\rm obs}|\lambda_{\rm true}, z_{\rm true})
 
         Parameters
         ----------
@@ -370,27 +570,36 @@ class NumericalSelectionFunction:
             Edges of redshift bins for the integration.
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
-        z_true : numpy.ndarray
-            True redshift to compute the window.
 
         Returns
         -------
         window_z_obs : numpy.ndarray
-            Integral of P(z_obs|lambda_obs, z_true) in z_obs bins.
-            Dimensions: (z_obs_edges, lambda_obs_edges, z_true).
+            Integral of P(z_obs|lambda_true, z_true) in z_obs bins.
+            Dimensions: (z_obs_edges-1, z_true, lambda_true).
         """
-        window_lambda_true = self._window_redshift_richness_observed_by_lambda_true(
-            z_obs_edges, lambda_obs_edges, z_true, lambda_true
-        )  # (z_obs, lambda_obs, z, lambda_true)
 
-        return simpson(window_lambda_true, x=lambda_true, axis=-1)
+        # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, lambda_true)
+        window_Dlob_Dzob__ztr_ltr = self._window_redshift_richness_observed_by_lambda_true(
+            z_obs_edges, lambda_obs_edges
+        )
+        # Dimensions: (z_obs_edges-1, z_true, lambda_true) -> (z_obs_edges-1, lambda_true, z_true)
+        window_Dzob__ztr_ltr = np.sum(window_Dlob_Dzob__ztr_ltr, axis=1).transpose(0,2,1)
+        
+        # For consistency with the gaussian_sf.window_z_observed, which is computed at 
+        # lambda_obs = lambda_obs_edges[:-1], I pick the lambda_true values closer to lambda_obs_edges[:-1]
+        # IN FUTURE WE NEED TO CHANGE THIS FUNCTION DEPENDING ON THE ACTUAL DEPENDENCY OF P(zob): 
+        lambda_true = np.array(self._sel_cl_data["arrays"]["lambda_true"])
+        idx_ltr = [np.argmin(np.abs(lambda_obs_edges[i]-lambda_true))
+                    for i in range(lambda_obs_edges.size-1)]
+
+        return window_Dzob__ztr_ltr[:,idx_ltr,:]
 
     def window_richness_observed(
         self,
         lambda_obs_edges,
-        z_true,
-        mass,
-        lambda_true,
+        z_true = None,
+        mass = None,
+        lambda_true = None,
     ):
         r"""Compute the window function of each observed richness bin, given by:
 
@@ -416,12 +625,13 @@ class NumericalSelectionFunction:
         -------
         window_lambda_obs : numpy.ndarray
             Integral of P(lambda_obs|\lambda_{\rm true}, z_true) in lambda_obs bins.
-            Dimensions: (lambda_obs_edges, z_true, M).
+            Dimensions: (lambda_obs_edges-1, z_true, M).
         """
         _z_obs_edges = self._sel_cl_data["arrays"]["z_obs"][[0, -1]]
-        return self.window_redshift_richness_observed(
-            _z_obs_edges, lambda_obs_edges, z_true, mass, lambda_true
-        )[0]
+        window_M= self.window_redshift_richness_observed(_z_obs_edges, lambda_obs_edges, mass=mass)
+        return window_M[0]
+
+
 
     #######
     # Utils
