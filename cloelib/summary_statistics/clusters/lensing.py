@@ -266,12 +266,10 @@ class ClusterWeakLensing:
         Retruns
         -------
             Correction for WL optical selection bias. Dimension (z_obs_bins, lambda_obs_bins)
-
-        Note
-        ----
-        Reasonable values for the parameters are: R0=1.20cMpc/h, A=0.20, alpha=4.0,
-        beta=−0.3 , gamma=1.6
         """
+        # Note:
+        # Reasonable values for the parameters are: R0=1.20cMpc/h, A=0.20, alpha=4.0,
+        # beta=−0.3 , gamma=1.6
         return (
             A * (R / R0) ** alpha * (1 + (R / R0**gamma)) ** ((alpha - beta) / gamma)
             + 1
