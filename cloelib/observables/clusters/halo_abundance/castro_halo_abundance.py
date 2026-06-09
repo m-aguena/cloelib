@@ -43,7 +43,7 @@ class CastroHaloAbundance(HaloAbundanceBase):
             f_sigma_nu[i,j], where i is the redshift axis and j the mass axis
         """
         # compute inputs
-        Omega_m = self.common_halo_properties.background.Omega_cb(z)
+        Omega_m = self.halo_model_properties.background.Omega_cb(z)
         dlnsigmadlnM = self.dlns_dlnM(z, M)
         nu = self.nu_z_M(z, M)
 
@@ -115,7 +115,7 @@ class CastroHaloAbundance(HaloAbundanceBase):
             M = np.append(M, M[-1] * np.arange(2, 6))
 
         # compute inputs
-        Omega_m = self.common_halo_properties.background.Omega_cb(z)
+        Omega_m = self.halo_model_properties.background.Omega_cb(z)
         delta_c = self.delta_c(z)
         dlnsigmadlnM = self.dlns_dlnM(z, M)
         nu = self.nu_z_M(z, M)
@@ -127,7 +127,7 @@ class CastroHaloAbundance(HaloAbundanceBase):
         # Compute main quantities
         dlnsigmadlnR = 3 * dlnsigmadlnM
         fsigmanu = self.f_sigma_nu(z, M)
-        S8 = self.sigma8_0 * np.sqrt(self.common_halo_properties.Omega_cb_0 / 0.3)
+        S8 = self.sigma8_0 * np.sqrt(self.halo_model_properties.Omega_cb_0 / 0.3)
 
         dlnfsigmanu_dlnnu = np.zeros(fsigmanu.shape)
         for i in range(len(Omega_m)):

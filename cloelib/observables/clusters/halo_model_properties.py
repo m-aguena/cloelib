@@ -14,7 +14,7 @@ def _bessel_j2(x):
     return 2.0 / x * j1(x) - j0(x)
 
 
-class CommonHaloProperties:
+class HaloModelProperties:
     def __init__(
         self,
         perturbations: Perturbations,

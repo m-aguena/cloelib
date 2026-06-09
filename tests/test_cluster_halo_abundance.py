@@ -9,10 +9,10 @@ from cloelib.observables.clusters.halo_abundance import (
     CastroHaloAbundance,
     TinkerHaloAbundance,
 )
-from cloelib.observables.clusters.common_halo_properties import CommonHaloProperties
+from cloelib.observables.clusters.halo_model_properties import HaloModelProperties
 
 
-def test_CommonHaloProperties():
+def test_HaloModelProperties():
     # Cosmology parameters
     print("# Cosmology parameters")
     _H0 = 67.7
@@ -36,9 +36,9 @@ def test_CommonHaloProperties():
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 
-    # CommonHaloProperties
-    print("# CommonHaloProperties")
-    HS = CommonHaloProperties(perturbations)
+    # HaloModelProperties
+    print("# HaloModelProperties")
+    HS = HaloModelProperties(perturbations)
     HS_tinker = TinkerHaloAbundance(HS)
     HS_castro = CastroHaloAbundance(HS)
 
