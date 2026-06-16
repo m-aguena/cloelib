@@ -25,11 +25,19 @@ class LognormalPowerLawHaloMassObservable:
         Parameters
         ----------
         A_l : float
-            Amplitude of the proxy - mass scaling relation
+            Amplitude of the proxy - mass scaling relation. The natural logarithm
+            of this parameter, i.e. `np.log(A_l)`, is used in the scaling relation.
         B_l : float
             Mass slope of the proxy - mass scaling relation
         C_l : float
             Redshift slope of the proxy - mass scaling relation
+        sig_A_l : float
+            Natural-logarithm amplitude of the intrinsic scatter.
+            Unlike `A_l`, this parameter is logarithmic.
+        sig_B_l : float
+            Mass slope of the intrinsic scatter
+        sig_C_l : float
+            Redshift slope of the intrinsic scatter
         M_piv: float
             Mass pivot in the proxy - mass relation, in h^{-1} Msun
         z_piv: float

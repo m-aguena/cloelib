@@ -906,10 +906,6 @@ class JAXNonLinearPerturbations:
             and redshift
         """
         raise NotImplementedError("Not implemented for jax.")
-    def sigma8_0(self) -> float:
-        """Retrieve sigma8 at z=0."""
-
-        return self.background.interface_args["JAXparams"]["sigma_8"]
 
     def sigma8_0(self) -> float:
         """Retrieve sigma8 at z=0."""

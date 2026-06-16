@@ -7,3 +7,11 @@ P(lambda_obs|M) = P(lambda_obs|lambda_true)P(lambda_true|M)
 from .halo_mass_observable import HaloMassObservable
 from .lognormal_powerlaw import LognormalPowerLawHaloMassObservable
 from .shifted_poisson import ShiftedPoissonHaloMassObservable
+
+
+__all__ = [
+    "HaloMassObservable",
+    "LognormalPowerLawHaloMassObservable",
+    "ShiftedPoissonHaloMassObservable",
+]
+
