@@ -90,7 +90,7 @@ class HaloCovariance:
             * simpson(
                 rvec**2.0
                 * np.array(
-                    [spherical_jn(l, kr, derivative=False) for l in range(self.L + 1)]
+                    [spherical_jn(_l, kr, derivative=False) for _l in range(self.L + 1)]
                 ),
                 x=rvec,
                 axis=-1,

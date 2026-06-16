@@ -6,7 +6,6 @@ from .halo_profile_core import HaloProfileCore
 
 
 class BMOHaloProfile:
-
     def __init__(
         self,
         matter_statistics: MatterStatistics,
@@ -253,12 +252,9 @@ class BMOHaloProfile:
 
         F = np.vectorize(self._f_term)(x)
         term2 = 2.0 * (tau**2.0 + 1.0 + 4.0 * (x**2.0 - 1.0)) * F
-
-        G = np.vectorize(self._g_term)(x)
         term3 = (
             np.pi * (3.0 * tau**2.0 - 1.0) + 2.0 * tau * (tau**2.0 - 3.0) * np.log(tau)
         ) / tau
-
         term4 = tau**3.0 * np.sqrt(tau**2.0 + x**2.0)
         term5 = -(tau**3.0) * np.pi * (4.0 * (tau**2.0 + x**2.0) - tau**2.0 - 1.0)
         term6 = -(tau**2.0) * (tau**4.0 - 1.0) + +(tau**2.0 + x**2.0) * (

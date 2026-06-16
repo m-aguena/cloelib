@@ -1,12 +1,13 @@
+"""
+Protocol for the halo mass density profiles.
+"""
+
 # General imports
 from typing import Protocol, TypeVar, Union, runtime_checkable
 
 import jax.numpy as jnp
 import numpy as np  # type: ignore
 
-"""
-Protocol for the halo mass density profiles.
-"""
 
 T = TypeVar("T", bound=Union[jnp.ndarray, np.ndarray])
 

@@ -7,56 +7,45 @@ on:
       - cluster_structure
   pull_request:
 
-
 jobs:
+  style:
+    name: Style (pre-commit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - name: Run pre-commit checks
+        run: pre-commit run --all-files --show-diff-on-failure
 
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        python-version: '3.13'
-    - name: Install prereq using pip
-      run: |
-        pip install astropy cython
-        pip install camb classy jax
-        pip install pyinstrument
-    - name: Install the package
-      run: |
-        pip install .
-    - name: Run the unit tests
-      run: |
-        pip install pytest pytest-cov
-        pytest tests_cluster/ --cov=cloelib/ --ignore=tests_cluster/benchmark_values.py
-      env:
-        DISPLAY: test
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.13"
+      - name: Install prereq using pip
+        run: |
+          pip install astropy cython
+          pip install camb classy jax
+          pip install pyinstrument
+      - name: Install the package
+        run: |
+          pip install .
+      - name: Run the unit tests
+        run: |
+          pip install pytest pytest-cov
+          pytest tests_cluster/ --cov=cloelib/ --ignore=tests_cluster/benchmark_values.py
+        env:
+          DISPLAY: test
 
-  check-formatting:
-    name: Check code formatting
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        python-version: '3.13'
-    - name: Analysing the code formatting with black
-      run: |
-        pip install black black-configparser
-        black --check --diff cloelib/observables/clusters/
-        black --check --diff tests_cluster/
-        black --check --diff notebooks/
-    - name: Analysing the code import order with isort
-      run: |
-        pip install isort
-        isort --check --diff cloelib/observables/clusters/
-        isort --check --diff tests_cluster/
-#    - name: Install Sphinx prereq
-#      run: |
-#        conda install -c conda-forge sphinx sphinx_rtd_theme nbconvert pandoc ipython ipython_genutils
-#
   check-code-version:
     name: Code version number
     runs-on: ubuntu-latest
@@ -66,8 +55,8 @@ jobs:
       - name: Check out the code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0    # fetch all history
-          fetch-tags: true  # IMPORTANT: fetch tags too
+          fetch-depth: 0 # fetch all history
+          fetch-tags: true # IMPORTANT: fetch tags too
       - name: Get version from current branch
         id: current_version
         run: |
@@ -82,7 +71,7 @@ jobs:
           echo "cloe-org tag: $CLOE_ORG_TAG"
           echo "CLOE_ORG_TAG=$CLOE_ORG_TAG" >> $GITHUB_ENV
       # Get PR title to be updated with version
-      - name : Get PR title and clean version number from it
+      - name: Get PR title and clean version number from it
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
@@ -163,7 +152,7 @@ jobs:
           echo "ERROR=$ERROR" >> $GITHUB_ENV
 
       # Add version number to PR title
-      - name : Make new title for PR
+      - name: Make new title for PR
         run: |
           if [ "$(printf "%s\n%s" "$CURRENT_VERSION" "$MAIN_VERSION" | sort -V | tail -n 1)" == "$CURRENT_VERSION" ]; then
             NEW_TITLE="${NEW_TITLE} [cluster-version:$CURRENT_VERSION] [cloe-org:$CLOE_ORG_TAG - $CLOE_ORG_SHA]"
@@ -198,43 +187,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        python-version: '3.13'
-    - name: Install prereq using pip
-      run: |
-        #python -m pip install --upgrade pip
-        pip install astropy cython
-        pip install camb classy jax
-        pip install pyinstrument
-        pip install matplotlib
-    - name: Install the package and nb kernel
-      run: |
-        pip install .
-        pip install jupyter nbconvert ipykernel
-    - name: Debug python environment
-      run: |
-        which python
-        python --version
-        python -c "import sys; print(sys.executable)"
-        pip show cloelib
-    - name: Download validation data
-      working-directory: notebooks
-      run: |
-        FILE_ID="1K0CiK3hZ-jBfJOTczvu3BT8G9Bs2Q_ky"
-        wget --quiet --save-cookies cookies.txt --keep-session-cookies \
-          "https://drive.google.com/uc?export=download&id=${FILE_ID}" -O- \
-          | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1/p' \
-          | wget --load-cookies cookies.txt \
-              "https://drive.google.com/uc?export=download&confirm=\1&id=${FILE_ID}" \
-              -O "data.zip"
-        unzip data.zip
-    - name: Run notebooks
-      working-directory: notebooks
-      run: |
-        jupyter nbconvert \
-          --to notebook \
-          --execute \
-          --ExecutePreprocessor.timeout=600 \
-          *.ipynb
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.13"
+      - name: Install prereq using pip
+        run: |
+          #python -m pip install --upgrade pip
+          pip install astropy cython
+          pip install camb classy jax
+          pip install pyinstrument
+          pip install matplotlib
+      - name: Install the package and nb kernel
+        run: |
+          pip install .
+          pip install jupyter nbconvert ipykernel
+      - name: Debug python environment
+        run: |
+          which python
+          python --version
+          python -c "import sys; print(sys.executable)"
+          pip show cloelib
+      - name: Download validation data
+        working-directory: notebooks
+        run: |
+          FILE_ID="1K0CiK3hZ-jBfJOTczvu3BT8G9Bs2Q_ky"
+          wget --quiet --save-cookies cookies.txt --keep-session-cookies \
+            "https://drive.google.com/uc?export=download&id=${FILE_ID}" -O- \
+            | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1/p' \
+            | wget --load-cookies cookies.txt \
+                "https://drive.google.com/uc?export=download&confirm=\1&id=${FILE_ID}" \
+                -O "data.zip"
+          unzip data.zip
+      - name: Run notebooks
+        working-directory: notebooks
+        run: |
+          jupyter nbconvert \
+            --to notebook \
+            --execute \
+            --ExecutePreprocessor.timeout=600 \
+            *.ipynb

@@ -3,7 +3,6 @@ import numpy as np
 from scipy.integrate import simpson
 from scipy.special import spherical_jn
 
-from cloelib.auxiliary import units
 from cloelib.cosmology.cosmology import Background
 from cloelib.observables.clusters.auxiliary import (
     isotropic_volume_distance,
@@ -119,9 +118,6 @@ class HaloClusteringCore:
            Redshift
         k: np.ndarray
            Wavenumber used to evaluate power spectrum, in h Mpc^{-1}
-        pk: np.ndarray
-           Linear matter power spectrum at different redshifts in (Mpc/h)^3
-           Shape (z.size, k.size)
         z_obs_scatter: float, numpy.ndarray
             Observed redshift scatter. If array, first dimension must be z.
         b_eff: np.ndarray
@@ -143,9 +139,6 @@ class HaloClusteringCore:
         photoz_corr0, photoz_corr1, photoz_corr2 = photoz_rsd_correction(
             self.matter_statistics.background, z, k, z_obs_scatter
         )
-
-        # dark matter power spectrum (z, k)
-        pk = self.matter_statistics.matter_power_spectrum_cb(z, k)
 
         # halo correction (z, k, ...)
         b_eff_reshaped = b_eff[:, np.newaxis]  # add k axis in position 1
@@ -225,7 +218,7 @@ class HaloClusteringCore:
                                 / lamb**2
                             )
                             * Pk[:, (abs(qlog - klog) < 4.0 * lamb)]
-                            / P_EH[:, ((abs(qlog - klog) < 4.0 * lamb))],
+                            / P_EH[:, (abs(qlog - klog) < 4.0 * lamb)],
                             axis=1,
                         )
                     )

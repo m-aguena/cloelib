@@ -1,13 +1,7 @@
 # import jax.numpy as np
 import numpy as np
-from scipy.integrate import simpson as simps
-from scipy.special import spherical_jn
 
-from cloelib.auxiliary import units
 from cloelib.cosmology.cosmology import Background
-from cloelib.observables.clusters.auxiliary import (
-    photoz_rsd_correction,
-)
 from cloelib.observables.clusters.halo_clustering.halo_clustering_core import (
     HaloClusteringCore,
 )
@@ -20,7 +14,6 @@ class TwoPoint3DHaloClustering:
         matter_statistics: MatterStatistics,
         background_fid: Background,
     ):
-
         self.core = HaloClusteringCore(matter_statistics, background_fid)
 
     def power_spectrum_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
