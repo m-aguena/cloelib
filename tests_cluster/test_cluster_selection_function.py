@@ -84,11 +84,6 @@ def test_gaussian_selectionfunction():
     print("# SelectionFunction")
     selection_function = _get_test_gaussian_sf()
 
-    new_pars = dict(A_l=0.5, B_l=0.6, C_l=0.5,
-                     sig_A_l=0.1, sig_B_l=0.0, sig_C_l=0.0)
-    for key, val in new_pars.items():
-        setattr(selection_function.halo_mass_observable, key, val)
-
     # tests
     z_test = np.linspace(0.01, 1.0, 5)
     zob_test = np.linspace(0.1, 1.1, 5)
