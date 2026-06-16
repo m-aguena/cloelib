@@ -59,7 +59,7 @@ class ShiftedPoissonHaloMassObservable:
         the requested true redshift and mass points.
 
         .. math::
-            \lambda_{\rm true}(z, M) = 1 + \left(\frac{M - M_{\text{min}}}{M_1 - M_{\text{min}}}\right)^{\alpha} 
+            \lambda_{\rm true}(z, M) = 1 + \left(\frac{M - M_{\text{min}}}{M_1 - M_{\text{min}}}\right)^{\alpha}
             \left(\frac{1 + z}{1 + z_{\text{piv}}}\right)^{\epsilon}
 
         Parameters
@@ -76,9 +76,10 @@ class ShiftedPoissonHaloMassObservable:
             operation z x M.
         """
 
-        lsat = (((M-self.Mmin)/(self.M1-self.Mmin))**self.alpha
-                *((1.+z)/(1.+self.z_piv))**self.epsilon)
-        return (1. + lsat)
+        lsat = ((M - self.Mmin) / (self.M1 - self.Mmin)) ** self.alpha * (
+            (1.0 + z) / (1.0 + self.z_piv)
+        ) ** self.epsilon
+        return 1.0 + lsat
 
     def scatter_richness(self, z, M):
         r"""
@@ -105,8 +106,7 @@ class ShiftedPoissonHaloMassObservable:
             operation z x M.
         """
 
-        return self.sigma_lnltr*(self._mean_richness(z,M)-1.)
-        
+        return self.sigma_lnltr * (self._mean_richness(z, M) - 1.0)
 
     def _pdf_richness(self, z, M, lambda_true):
         r"""
@@ -135,12 +135,12 @@ class ShiftedPoissonHaloMassObservable:
             PDF of richness.
         """
 
-        m=self._mean_richness(z,M) - 1. # lsat
-        std=np.sqrt(m+(self.scatter_richness(z, M))**2.)
-        x=lambda_true+(self.scatter_richness(z, M))**2.
-        lam=std**2.
-        ln_gamma_fun=spc.gammaln(x)
-        return np.exp(-lam+(x-1.)*np.log(lam)-ln_gamma_fun,dtype='float128')
+        m = self._mean_richness(z, M) - 1.0  # lsat
+        std = np.sqrt(m + (self.scatter_richness(z, M)) ** 2.0)
+        x = lambda_true + (self.scatter_richness(z, M)) ** 2.0
+        lam = std**2.0
+        ln_gamma_fun = spc.gammaln(x)
+        return np.exp(-lam + (x - 1.0) * np.log(lam) - ln_gamma_fun, dtype="float128")
 
     def pdf_richness(self, z, M, lambda_true):
         r"""
