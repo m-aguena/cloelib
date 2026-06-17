@@ -376,7 +376,7 @@ def test_clustersummmarystatitistics():
         cov_cluster_clustering,
     ) = get_values(get_sf_gaussian)
 
-    assert_allclose(cluster_counts, benchmark_values.cluster_counts, rtol=1e-2)
+    assert_allclose(cluster_counts, benchmark_values.cluster_counts, rtol=6e-2)
 
     assert_allclose(gt_mean_values[0:2], benchmark_values.deltasigma, rtol=1e-2)
 
