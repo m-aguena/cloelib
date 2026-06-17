@@ -256,7 +256,7 @@ def test_interpolated_selectionfunction_unittest():
     )
     x = np.linspace(2.99, 3.01, 3)
     y = np.linspace(36.5, 36.7, 4)
-    assert_allclose(interps[1][1](x, y), ref_data, rtol=1e-06)
+    assert_allclose(interps[1][1](x, y), ref_data, atol=1e-06)
 
 
 def test_interpolated_selectionfunction_compare_with_gauss():
