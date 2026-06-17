@@ -1,8 +1,7 @@
 # General imports
-# import jax.numpy as np  # type: ignore
-import numpy as np  # type: ignore
-from scipy import integrate, interpolate
-from scipy.integrate import simpson
+# import jax.numpy as np
+import numpy as np
+from scipy import interpolate
 
 from cloelib.observables.clusters.halo_mass_observable import (
     HaloMassObservable,
@@ -234,8 +233,8 @@ class NumericalSelectionFunction:
         )
         for ztab, z_slice in enumerate(prob_data["z_obs_bins_slices"]):
             for ltab, l_slice in enumerate(prob_data["lambda_obs_bins_slices"]):
-        #         window_ltrue[ztab, ltab, :, :] = integrate.simpson(
-        #             integrate.simpson(
+                #         window_ltrue[ztab, ltab, :, :] = integrate.simpson(
+                #             integrate.simpson(
                 window_ltrue[ztab, ltab, :, :] = np.trapezoid(
                     np.trapezoid(
                         integrand[z_slice, l_slice, :, :],
@@ -263,7 +262,8 @@ class NumericalSelectionFunction:
         return interpolators
 
     def _window_redshift_richness_observed_by_lambda_true(
-            self, z_obs_edges, lambda_obs_edges):
+        self, z_obs_edges, lambda_obs_edges
+    ):
         r"""Computes the integral over z_obs_edges and lambda_obs_edges of
         Prob(lambda_obs, z_obs|lambda_true, z_true)*completeness/purity*Omega_alpha/Omega_tot.
 
@@ -338,9 +338,9 @@ class NumericalSelectionFunction:
         self,
         z_obs_edges,
         lambda_obs_edges,
-        z_true = None,
-        mass = None, # Note: to keep the order of the parameters consistent with other window_redshift_richness_observed mass is set to None, even if the value of the parameter is needed by the function
-        lambda_true = None
+        z_true=None,
+        mass=None,  # Note: to keep the order of the parameters consistent with other window_redshift_richness_observed mass is set to None, even if the value of the parameter is needed by the function
+        lambda_true=None,
     ):
         r"""Computes the window function for observed redshift and richness bins, i. e.:
 
@@ -369,9 +369,11 @@ class NumericalSelectionFunction:
             Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, mass)
         """
         if mass is None:
-            raise ValueError(f"You need to provide a value for M")
+            raise ValueError("You need to provide a value for M")
 
-        z_true = np.array(self._sel_cl_data["arrays"]["z_true"],)
+        z_true = np.array(
+            self._sel_cl_data["arrays"]["z_true"],
+        )
         lambda_true = np.array(self._sel_cl_data["arrays"]["lambda_true"])
         # Dimensions: (z, M, lambda_true)
         pdf_mass_richness_scaling = self.halo_mass_observable.pdf_richness(
@@ -382,15 +384,16 @@ class NumericalSelectionFunction:
             z_obs_edges, lambda_obs_edges
         )
         # return simpson(
-        return np.trapezoid( # se uso trapz qui non migliora il match con il mio codice
+        return np.trapezoid(  # se uso trapz qui non migliora il match con il mio codice
             pdf_mass_richness_scaling[np.newaxis, np.newaxis, :, :, :]
             * window_lambda_true[:, :, :, np.newaxis, :],
             x=lambda_true,
             axis=-1,
         )
 
-    def window_z_observed(self, z_obs_edges, lambda_obs_edges,
-                          z_true = None, lambda_true = None):
+    def window_z_observed(
+        self, z_obs_edges, lambda_obs_edges, z_true=None, lambda_true=None
+    ):
         r"""Compute the window function of each observed redshift bin, given by:
 
         ..math:
@@ -413,27 +416,33 @@ class NumericalSelectionFunction:
         """
 
         # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, lambda_true)
-        window_Dlob_Dzob__ztr_ltr = self._window_redshift_richness_observed_by_lambda_true(
-            z_obs_edges, lambda_obs_edges
+        window_Dlob_Dzob__ztr_ltr = (
+            self._window_redshift_richness_observed_by_lambda_true(
+                z_obs_edges, lambda_obs_edges
+            )
         )
         # Dimensions: (z_obs_edges-1, z_true, lambda_true) -> (z_obs_edges-1, lambda_true, z_true)
-        window_Dzob__ztr_ltr = np.sum(window_Dlob_Dzob__ztr_ltr, axis=1).transpose(0,2,1)
-        
-        # For consistency with the gaussian_sf.window_z_observed, which is computed at 
-        # lambda_obs = lambda_obs_edges[:-1], I pick the lambda_true values closer to lambda_obs_edges[:-1]
-        # IN FUTURE WE NEED TO CHANGE THIS FUNCTION DEPENDING ON THE ACTUAL DEPENDENCY OF P(zob): 
-        lambda_true = np.array(self._sel_cl_data["arrays"]["lambda_true"])
-        idx_ltr = [np.argmin(np.abs(lambda_obs_edges[i]-lambda_true))
-                    for i in range(lambda_obs_edges.size-1)]
+        window_Dzob__ztr_ltr = np.sum(window_Dlob_Dzob__ztr_ltr, axis=1).transpose(
+            0, 2, 1
+        )
 
-        return window_Dzob__ztr_ltr[:,idx_ltr,:]
+        # For consistency with the gaussian_sf.window_z_observed, which is computed at
+        # lambda_obs = lambda_obs_edges[:-1], I pick the lambda_true values closer to lambda_obs_edges[:-1]
+        # IN FUTURE WE NEED TO CHANGE THIS FUNCTION DEPENDING ON THE ACTUAL DEPENDENCY OF P(zob):
+        lambda_true = np.array(self._sel_cl_data["arrays"]["lambda_true"])
+        idx_ltr = [
+            np.argmin(np.abs(lambda_obs_edges[i] - lambda_true))
+            for i in range(lambda_obs_edges.size - 1)
+        ]
+
+        return window_Dzob__ztr_ltr[:, idx_ltr, :]
 
     def window_richness_observed(
         self,
         lambda_obs_edges,
-        z_true = None,
-        mass = None,
-        lambda_true = None,
+        z_true=None,
+        mass=None,
+        lambda_true=None,
     ):
         r"""Compute the window function of each observed richness bin, given by:
 
@@ -462,10 +471,10 @@ class NumericalSelectionFunction:
             Dimensions: (lambda_obs_edges-1, z_true, M).
         """
         _z_obs_edges = self._sel_cl_data["arrays"]["z_obs"][[0, -1]]
-        window_M= self.window_redshift_richness_observed(_z_obs_edges, lambda_obs_edges, mass=mass)
+        window_M = self.window_redshift_richness_observed(
+            _z_obs_edges, lambda_obs_edges, mass=mass
+        )
         return window_M[0]
-
-
 
     #######
     # Utils
