@@ -316,7 +316,7 @@ def test_interpolated_selectionfunction_compare_with_gauss():
 def test_interpolated_selectionfunction_compare_with_tabulated_values():
 
     # I don't know where is the correct place to store this mock data
-    path = '/home/costanzi/codici/Euclid_cluster/Euclid_likelihood/'
+    path = './tests_cluster/'
     pdf_path = path + 'pdf_lob_zob_ltr_ztr.npy'
     axes_path = path + 'pdf_axes.npz'
     purity_path = path + 'purity_lob_zob.npy'
