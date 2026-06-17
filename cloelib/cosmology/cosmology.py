@@ -164,7 +164,3 @@ class Perturbations(Protocol):
     def sigma8_0(self) -> float:
         """Retrieve sigma8 at z=0."""
         ...
-
-    def sigma8_0(self) -> float:
-        """Retrieve sigma8 at z=0."""
-        ...

@@ -36,3 +36,4 @@ repos:
           - "cloelib/cosmology/camb_cosmology.py"
           - "cloelib/cosmology/class_cosmology.py"
           - "cloelib/cosmology/jax_cosmology.py"
+exclude: tests_cluster/
