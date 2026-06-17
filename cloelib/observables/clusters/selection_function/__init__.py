@@ -7,4 +7,5 @@ __all__ = [
     "GaussianSelectionFunction",
     "NumericalSelectionFunction",
     "SelectionFunction",
+    "AnalyticSelectionFunction",
 ]
