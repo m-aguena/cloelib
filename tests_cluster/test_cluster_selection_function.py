@@ -264,7 +264,7 @@ def test_interpolated_selectionfunction_compare_with_gauss():
     test_arrays = {
         "z_true": np.linspace(0, 3, 31),
         "lambda_true": np.linspace(5, 300, 29),
-        "z_obs": np.linspace(0.3, 1.5, 25),
+        "z_obs": np.linspace(0.3, 1.5, 50),
         "lambda_obs": np.linspace(25, 200, 270),
     }
     print("Test with gaussian input data")
