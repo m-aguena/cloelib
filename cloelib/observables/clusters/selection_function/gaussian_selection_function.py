@@ -284,7 +284,7 @@ class GaussianSelectionFunction:
         )
 
         # return simpson(
-        return np.trapz(
+        return np.trapezoid(
             pdf_mass_richness_scaling[np.newaxis, :, :, :]  # (1, z, M, ltr)
             * windows_lambda_obs_lambda_true[:, :, np.newaxis, :],  # (lobs, z, 1, ltr)
             x=lambda_true,
