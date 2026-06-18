@@ -176,7 +176,7 @@ class GaussianSelectionFunction:
         -------
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_obs, z_true) in z_obs bins.
-            Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true).
+            Dimensions: (len(z_obs_edges)-1, len(lambda_obs_edges)-1, len(z_true)).
         """
 
         z_obs_bins_size = len(z_obs_edges) - 1
@@ -237,7 +237,7 @@ class GaussianSelectionFunction:
         -------
         window_lambda_obs : numpy.ndarray
             Integral of P(lambda_obs|\lambda_{\rm true}, z_true) in lambda_obs bins.
-            Dimensions: (lambda_obs_edges-1, z_true, \lambda_{\rm true}).
+            Dimensions: (len(lambda_obs_edges)-1, len(z_true), len(lambda_true)).
         """
 
         lambda_obs_bins_size = len(lambda_obs_edges) - 1
@@ -329,16 +329,15 @@ class GaussianSelectionFunction:
         -------
         numpy.ndarray
             Window function for observed redshift and richness bins.
-            Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, mass)
+            Dimensions: (len(z_obs_edges)-1, len(lambda_obs_edges)-1, len(z_true), len(mass))
         """
 
-        # Dimensions: (z_obs_edges, lambda_obs_edges, z_true, mass)
         window_lambda_true = (
-            # Dimensions: (z_obs_edges, lambda_obs_edges, z_true, 1).
+            # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, 1).
             self.window_z_observed(z_obs_edges, lambda_obs_edges, z_true)[
                 :, :, :, np.newaxis
             ]
-            # Dimensions: (1, lambda_obs_edges, z_true, M)
+            # Dimensions: (1, lambda_obs_edges-1, z_true, M)
             * self.window_richness_observed(
                 lambda_obs_edges,
                 z_true,

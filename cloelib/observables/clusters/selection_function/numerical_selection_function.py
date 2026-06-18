@@ -285,7 +285,7 @@ class NumericalSelectionFunction:
         -------
         numpy.ndarray
             Window function for observed redshift and richness bins.
-            Dimensions: (z_obs_edges, lambda_obs_edges, z_true, lambda_true)
+            Dimensions: (len(z_obs_edges)-1, len(lambda_obs_edges)-1, len(z_true), len(lambda_true))
         """
 
         if self._extrapolate is None:
@@ -339,7 +339,7 @@ class NumericalSelectionFunction:
         z_obs_edges,
         lambda_obs_edges,
         z_true=None,
-        mass=None,  # Note: to keep the order of the parameters consistent with other window_redshift_richness_observed mass is set to None, even if the value of the parameter is needed by the function
+        mass=None,
         lambda_true=None,
     ):
         r"""Computes the window function for observed redshift and richness bins, i. e.:
@@ -360,13 +360,16 @@ class NumericalSelectionFunction:
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
         mass : numpy.ndarray
-            Mass to compute the window.
+            Mass to compute the window. 
+            Note: to keep the order of the parameters consistent
+            with other window_redshift_richness_observed mass is
+            set to None, even if the value of the parameter is needed by the function
 
         Returns
         -------
         numpy.ndarray
             Window function for observed redshift and richness bins.
-            Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, mass)
+            Dimensions: (len(z_obs_edges)-1, len(lambda_obs_edges)-1, len(z_true), len(mass))
         """
         if mass is None:
             raise ValueError("You need to provide a value for M")
@@ -412,7 +415,7 @@ class NumericalSelectionFunction:
         -------
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_true, z_true) in z_obs bins.
-            Dimensions: (z_obs_edges-1, z_true, lambda_true).
+            Dimensions: (len(z_obs_edges)-1, len(z_true), len(lambda_true)).
         """
 
         # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, lambda_true)
@@ -468,7 +471,7 @@ class NumericalSelectionFunction:
         -------
         window_lambda_obs : numpy.ndarray
             Integral of P(lambda_obs|\lambda_{\rm true}, z_true) in lambda_obs bins.
-            Dimensions: (lambda_obs_edges-1, z_true, M).
+            Dimensions: (len(lambda_obs_edges)-1, len(z_true), len(mass)).
         """
         _z_obs_edges = self._sel_cl_data["arrays"]["z_obs"][[0, -1]]
         window_M = self.window_redshift_richness_observed(
