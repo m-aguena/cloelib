@@ -17,9 +17,8 @@ class ShiftedPoissonHaloMassObservable:
         z_piv: float = 1.25,
     ):
         r"""
-        Class defining the selection function of galaxy clusters, including
-        sample purity, completeness, mass-observable relation, and
-        uncertainties on observed quantities.
+        Class defining the observable-mass relation as
+        a shifted continuos Poisson distribution.
 
         Parameters
         ----------
@@ -30,7 +29,9 @@ class ShiftedPoissonHaloMassObservable:
         alpha : float
             Mass slope of the proxy - mass scaling relation
         epsilon : float
-            Redshift evolution of the poxy-mass scaling relation
+            Redshift evolution of the proxy-mass scaling relation
+        sigma_lnltr: float
+            Variance of the proxy-mass scaling relation
         z_piv: float
             Redshift pivot in the proxy - mass relation
         """
