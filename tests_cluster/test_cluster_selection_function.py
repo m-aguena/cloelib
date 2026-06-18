@@ -2,7 +2,7 @@
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
-
+import benchmark_values_sel_fun
 from cloelib.observables.clusters.halo_mass_observable import (
     LognormalPowerLawHaloMassObservable,
 )
@@ -169,20 +169,11 @@ def _gen_gaussian_selcl_data(gaussian_sf, arrays):
 
     return sel_cl_data
 
-def _gen_kde_selcl_data(pdf_path="pdf_lob_zob_ltr_ztr.npy",
-                        axes_path="pdf_axes.npz",
-                        purity_path="purity_lob_zob.npy"):
+def _gen_kde_selcl_data():
 
-    axes = np.load(axes_path)
-    pdf  = np.load(pdf_path)       # shape: (n_ltr, n_ztr, n_lob, n_zob)
-    purity = np.load(purity_path)  # shape: (n_lob, n_zob)
-
-    arrays = {
-        "z_true":      axes["z_true"],
-        "lambda_true": axes["lambda_true"],
-        "z_obs":       axes["z_obs"],
-        "lambda_obs":  axes["lambda_obs"],
-    }
+    pdf = benchmark_values_sel_fun.pdf          # shape: (n_ltr, n_ztr, n_lob, n_zob)
+    purity = benchmark_values_sel_fun.purity    # shape: (n_lob, n_zob)
+    arrays = benchmark_values_sel_fun.axes
 
     sel_cl_data = {"arrays": arrays}
 
@@ -315,12 +306,7 @@ def test_interpolated_selectionfunction_compare_with_gauss():
 
 def test_interpolated_selectionfunction_compare_with_tabulated_values():
 
-    # I don't know where is the correct place to store this mock data
-    path = './tests_cluster/'
-    pdf_path = path + 'pdf_lob_zob_ltr_ztr.npy'
-    axes_path = path + 'pdf_axes.npz'
-    purity_path = path + 'purity_lob_zob.npy'
-    sel_cl_data = _gen_kde_selcl_data(pdf_path,axes_path,purity_path)
+    sel_cl_data = _gen_kde_selcl_data()
 
     sfn = NumericalSelectionFunction(
         halo_mass_observable=LognormalPowerLawHaloMassObservable(
