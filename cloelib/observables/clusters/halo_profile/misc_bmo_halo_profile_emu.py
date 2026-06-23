@@ -294,7 +294,6 @@ class MiscBMOHaloProfileEmu:
         z = np.atleast_1d(np.asarray(z, dtype=float))  # (Nz,)
         M = np.atleast_1d(np.asarray(M, dtype=float))  # (NM,)
 
-        # Ez2 = (Omega_m*(1.+z)**3.+(1.-Omega_m))  # (Nz,) Replace with native function
         Ez2 = (
             self.core.matter_statistics.background.hubble_parameter(z) / (h * 100.0)
         ) ** 2.0
