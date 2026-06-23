@@ -6,6 +6,7 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 from cloelib.observables.clusters.halo_profile import BMOHaloProfile, NFWHaloProfile
+from cloelib.observables.clusters.halo_profile import MiscBMOHaloProfileEmu
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
@@ -222,3 +223,121 @@ def test_profiles():
     )
     profile_bmo = BMOHaloProfile(_get_matter_statistics(), **_prof_kwargs)
     _test_profile(profile_bmo, _reference_vals)
+
+def _test_misc_profile(profile, reference_vals):
+    r"""
+    Test miscentered Sigma_off and DeltaSigma_off profiles against benchmark
+    values.
+ 
+    Parameters
+    ----------
+    profile : MiscBMOHaloProfileEmu
+        Instantiated emulator profile object.
+    reference_vals : dict
+        Dictionary with keys ``"surface_mass_density"`` and
+        ``"excess_surface_mass_density"``, each containing ``"desired"``
+        (h Msun / pc²) and ``"rtol"``.
+    """
+    # Input grid matching the benchmark generation
+    R_test = 10.0 ** np.arange(2.0, 4.5, 0.05) / 1.0e3  # physical Mpc/h, (50,)
+    z_test = np.array([1.0])                               # (1,)
+    M_test = np.array([1.0e14])                            # Msun/h, (1,)
+    c_test = 2.0
+    sigma_off_test = 0.4                                   # physical Mpc/h
+ 
+    out_shape = (z_test.size, M_test.size, R_test.size)   # (1, 1, 50)
+ 
+    print("    surface_mass_density (misc)")
+    Sigma_off = profile.surface_mass_density(
+        R_test, z_test, M_test, c_test, sigma_off_test
+    )
+    assert Sigma_off.shape == out_shape, (
+        f"surface_mass_density shape mismatch: got {Sigma_off.shape}, "
+        f"expected {out_shape}"
+    )
+    assert_allclose(Sigma_off[0, 0, :], **reference_vals["surface_mass_density"])
+ 
+    print("    excess_surface_mass_density (misc)")
+    DeltaSigma_off = profile.excess_surface_mass_density(
+        R_test, z_test, M_test, c_test, sigma_off_test
+    )
+    assert DeltaSigma_off.shape == out_shape, (
+        f"excess_surface_mass_density shape mismatch: got {DeltaSigma_off.shape}, "
+        f"expected {out_shape}"
+    )
+    assert_allclose(
+        DeltaSigma_off[0, 0, :], **reference_vals["excess_surface_mass_density"]
+    )
+ 
+ 
+def test_misc_profile():
+    r"""
+    Integration test for MiscBMOHaloProfileEmu.
+ 
+    Benchmark arrays were produced at:
+        M = 1e14 Msun/h,  z = 1.0,  c = 2.0,  sigma_off = 0.4 Mpc/h,
+        H0 = 67.7,  omch2 = 0.120,  ombh2 = 0.022
+        R = 10^arange(2, 4.5, 0.05) / 1e3  physical Mpc/h.
+ 
+    The benchmark values are in units of Msun h / physical Mpc², which
+    convert to h Msun / pc² via the factor 1e-12
+    (1 Mpc = 1e6 pc  →  1/Mpc² = 1e-12/pc²).
+ 
+    Weights are loaded automatically from EmuNetWeights (no path arguments
+    required).
+    """
+    print("# MiscBMOHaloProfileEmu")
+ 
+    # Benchmark in Msun h / physical Mpc²; convert to h Msun / pc² via 1e-12.
+    _sigma_off_mpc2 = np.array([
+        1.03437782e+14, 1.02892023e+14, 1.02208253e+14, 1.01353450e+14,
+        1.00287558e+14, 9.89624947e+13, 9.73213312e+13, 9.52978910e+13,
+        9.28171457e+13, 8.97969655e+13, 8.61519774e+13, 8.18004608e+13,
+        7.66752572e+13, 7.07393939e+13, 6.40062278e+13, 5.65620751e+13,
+        4.85863345e+13, 4.03605128e+13, 3.22550638e+13, 2.46848866e+13,
+        1.80343758e+13, 1.25710012e+13, 8.38335067e+12, 5.37794615e+12,
+        3.33890203e+12, 2.01484296e+12, 1.18579349e+12, 6.81083267e+11,
+        3.82348622e+11, 2.10344854e+11, 1.13748288e+11, 6.06457586e+10,
+        3.19638895e+10, 1.66916789e+10, 8.65202212e+09, 4.45809141e+09,
+        2.28611968e+09, 1.16779650e+09, 5.94661984e+08, 3.02036626e+08,
+        1.53086286e+08, 7.74570941e+07, 3.91348831e+07, 1.97492122e+07,
+        9.95643275e+06, 5.01528637e+06, 2.52454382e+06, 1.27002555e+06,
+        6.38591907e+05, 3.20958012e+05,
+    ])
+ 
+    _dsigma_off_mpc2 = np.array([
+        1.21628769e+12, 1.49424755e+12, 1.84603967e+12, 2.26596256e+12,
+        2.79707329e+12, 3.44687095e+12, 4.25073964e+12, 5.24109630e+12,
+        6.42031402e+12, 7.83788536e+12, 9.52616609e+12, 1.14948945e+13,
+        1.37443295e+13, 1.62413303e+13, 1.89310467e+13, 2.17273282e+13,
+        2.44462940e+13, 2.68214658e+13, 2.84883561e+13, 2.93805054e+13,
+        2.92776593e+13, 2.81449114e+13, 2.60604369e+13, 2.33498010e+13,
+        2.03703578e+13, 1.73444167e+13, 1.45191592e+13, 1.19739835e+13,
+        9.78197961e+12, 7.91753709e+12, 6.37809774e+12, 5.11051992e+12,
+        4.08501406e+12, 3.25849912e+12, 2.59579994e+12, 2.06687228e+12,
+        1.64387867e+12, 1.30401149e+12, 1.04122801e+12, 8.23317572e+11,
+        6.55088494e+11, 5.19934196e+11, 4.13581168e+11, 3.28310063e+11,
+        2.60977427e+11, 2.07169421e+11, 1.64662861e+11, 1.30755777e+11,
+        1.03861854e+11, 8.25733749e+10,
+    ])
+ 
+    _reference_vals = {
+        "surface_mass_density": {
+            "desired": _sigma_off_mpc2 * 1.0e-12,   # h Msun / pc²
+            "rtol": 1e-2,                            # emulator-level accuracy (~1%)
+        },
+        "excess_surface_mass_density": {
+            "desired": _dsigma_off_mpc2 * 1.0e-12,  # h Msun / pc²
+            "rtol": 1.5e-2,
+        },
+    }
+ 
+    _prof_kwargs = dict(
+        trunc_fact=3.0,
+        zs_max=2.0,
+        mean_nz=0.4,
+        sigma_nz=0.3,
+        alpha_nz=0.4,
+    )
+    profile_misc = MiscBMOHaloProfileEmu(_get_matter_statistics(), **_prof_kwargs)
+    _test_misc_profile(profile_misc, _reference_vals)
