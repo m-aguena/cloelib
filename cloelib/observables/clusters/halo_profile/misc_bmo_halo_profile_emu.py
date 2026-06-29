@@ -133,6 +133,11 @@ class MiscBMOHaloProfileEmu:
     computed analytically from mass, concentration, and redshift (see
     :meth:`_rho_s_bmo`).
 
+    The emulater has been trained setting tau_vir = 3.0 within these boundaries
+    # Bounds #log10R [cMpc/h] # log10 Rvir [pMpc/h] # c # sigma_off
+    lower_bounds = [-4., np.log10(0.15), 0.5, 0.05]
+    upper_bounds = [np.log10(30.), np.log10(2.2), 10., 0.8]
+
     Parameters
     ----------
     matter_statistics : MatterStatistics
