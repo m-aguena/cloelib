@@ -42,8 +42,8 @@ def _get_test_gaussian_sf():
 
 def test_shifted_poisson_scaling_relation():
     _lambda_true_dist_pars = dict(
-        Mmin=10.**11.073,
-        M1=10.**12.191,
+        M_min_cen=10.**11.073,
+        M_min_sat=10.**12.191,
         alpha=0.879,
         epsilon=0.955,
         sigma_lnltr=0.208,

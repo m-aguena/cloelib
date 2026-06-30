@@ -9,8 +9,8 @@ from cloelib.observables.clusters.auxiliary import tabulated_return
 class ShiftedPoissonHaloMassObservable:
     def __init__(
         self,
-        Mmin: float,
-        M1: float,
+        M_min_cen: float,
+        M_min_sat: float,
         alpha: float,
         epsilon: float,
         sigma_lnltr: float,
@@ -22,9 +22,9 @@ class ShiftedPoissonHaloMassObservable:
 
         Parameters
         ----------
-        Mmin : float
+        M_min_cen : float
             Minimum halo mass to host a central galaxy
-        M1 : float
+        M_min_sat : float
             Minimum halo mass to host one satellite galaxy
         alpha : float
             Mass slope of the proxy - mass scaling relation
@@ -35,8 +35,8 @@ class ShiftedPoissonHaloMassObservable:
         z_piv: float
             Redshift pivot in the proxy - mass relation
         """
-        self.Mmin = Mmin
-        self.M1 = M1
+        self.M_min_cen = M_min_cen
+        self.M_min_sat = M_min_sat
         self.alpha = alpha
         self.epsilon = epsilon
         self.sigma_lnltr = sigma_lnltr
@@ -77,7 +77,7 @@ class ShiftedPoissonHaloMassObservable:
             operation z x M.
         """
 
-        lsat = ((M - self.Mmin) / (self.M1 - self.Mmin)) ** self.alpha * (
+        lsat = ((M - self.M_min_cen) / (self.M_min_sat - self.M_min_cen)) ** self.alpha * (
             (1.0 + z) / (1.0 + self.z_piv)
         ) ** self.epsilon
         return 1.0 + lsat
