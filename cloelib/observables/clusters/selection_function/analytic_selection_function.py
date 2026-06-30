@@ -548,17 +548,6 @@ class AnalyticSelectionFunction:
                 f" ({len(self.lambda_tab_integ)}) setup!"
             )
 
-        lambda_obs_tabs = np.array(
-            [
-                np.linspace(
-                    lambda_obs_edges[i],
-                    lambda_obs_edges[i + 1],
-                    self.lambda_tab_integ[i],
-                )
-                for i in range(lambda_obs_bins_size)
-            ]
-        )
-
         # output: (z_obs_bins, lambda_obs_bins, z_true, lambda_true)
         window = np.zeros(
             (
@@ -570,7 +559,11 @@ class AnalyticSelectionFunction:
         )
 
         for i_lob in range(lambda_obs_bins_size):
-            lob_tab = lambda_obs_tabs[i_lob]  # (n_tab,)
+            lob_tab = np.linspace(
+                lambda_obs_edges[i_lob],
+                lambda_obs_edges[i_lob + 1],
+                self.lambda_tab_integ[i_lob],
+            )  # (n_tab,)
 
             # # w_zob at each lambda_obs quadrature point
             # # shape: (n_tab, z_obs_bins, z_true, lambda_true)
