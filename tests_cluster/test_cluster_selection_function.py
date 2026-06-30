@@ -317,7 +317,7 @@ def test_analytical_selectionfunction_compare_with_tabulated_values():
     mass             = np.array([5.0e13, 1.0e14, 5.0e14])
 
     # --- test window_redshift_richness_observed_given_lambda_true ---
-    wf_ltr = sf.window_z_lambda_observed(
+    wf_ltr = sf.window_redshift_lambda_observed(
         z_obs_edges=z_obs_edges,
         lambda_obs_edges=lambda_obs_edges,
         z_true=z_true,
@@ -340,7 +340,7 @@ def test_analytical_selectionfunction_compare_with_tabulated_values():
     assert_allclose(wf_ltr[0, 0, ::3, ::10], wf_ltr_ref, atol=1e-6)
 
     # sanity check: values should be in [0,1]
-    assert np.all(wf_ltr >= 0.), "window_z_lambda_observed has negative values"
+    assert np.all(wf_ltr >= 0.), "window_redshift_lambda_observed has negative values"
 
     # --- test window_redshift_richness_observed ---
     wf = sf.window_redshift_richness_observed(
