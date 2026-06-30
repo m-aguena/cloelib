@@ -216,7 +216,7 @@ jobs:
           use-mamba: true
       - name: Install cloelib and extras from pyproject.toml
         run: |
-          mamba run -n $ENV_NAME python -m pip install camb matplotlib jupyter nbconvert ipykernel
+          mamba run -n $ENV_NAME python -m pip install camb astropy matplotlib jupyter nbconvert ipykernel
           mamba run -n $ENV_NAME python -m pip install .
       - name: Download validation data
         working-directory: notebooks
