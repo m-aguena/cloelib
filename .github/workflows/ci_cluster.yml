@@ -33,9 +33,8 @@ jobs:
           python-version: "3.13"
       - name: Install prereq using pip
         run: |
-          pip install astropy cython
-          pip install camb classy jax
-          pip install pyinstrument
+          pip install --upgrade pip
+          pip install ".[camb,classy,euclidemu2,baccoemu,emantis,react,hiclassy]"
       - name: Install the package
         run: |
           pip install .
