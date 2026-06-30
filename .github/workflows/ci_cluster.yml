@@ -232,7 +232,7 @@ jobs:
       - name: Run notebooks
         working-directory: notebooks
         run: |
-          jupyter nbconvert \
+          mamba run -n $ENV_NAME jupyter nbconvert \
             --to notebook \
             --execute \
             --ExecutePreprocessor.timeout=600 \
