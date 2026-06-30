@@ -218,12 +218,6 @@ jobs:
         run: |
           mamba run -n $ENV_NAME python -m pip install matplotlib jupyter nbconvert ipykernel
           mamba run -n $ENV_NAME python -m pip install .
-      - name: Debug python environment
-        run: |
-          which python
-          python --version
-          python -c "import sys; print(sys.executable)"
-          pip show cloelib
       - name: Download validation data
         working-directory: notebooks
         run: |
