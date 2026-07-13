@@ -2,7 +2,7 @@ from .bmo_halo_profile import BMOHaloProfile
 from .halo_profile import HaloProfile
 from .halo_profile_core import HaloProfileCore
 from .nfw_halo_profile import NFWHaloProfile
-from .misc_bmo_halo_profile_emu import MiscBMOHaloProfileEmu
+from .emu_halo_profile_misc import EmuHaloProfileMisc
 
 
 __all__ = [
@@ -10,5 +10,5 @@ __all__ = [
     "HaloProfile",
     "HaloProfileCore",
     "NFWHaloProfile",
-    "MiscBMOHaloProfileEmu",
+    "EmuHaloProfileMisc",
 ]

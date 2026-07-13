@@ -15,9 +15,9 @@ from .halo_profile_core import HaloProfileCore
 from cloelib.cosmology import derived_cosmology
 
 
-class MiscBMOHaloProfileEmu:
+class EmuHaloProfileMisc:
     r"""
-    Miscentered BMO halo profile evaluated via neural-network emulators.
+    Miscentered halo profile evaluated via neural-network emulators.
 
     Two independent six-hidden-layer networks (one for :math:`\Sigma_\mathrm{off}`,
     one for :math:`\Delta\Sigma_\mathrm{off}`) replace the numerical integration
@@ -31,15 +31,6 @@ class MiscBMOHaloProfileEmu:
 
     as a function of the four input features
     :math:`[\log_{10} R,\, \log_{10} R_\mathrm{vir},\, c,\, \sigma_\mathrm{off}]`.
-
-    The characteristic density :math:`\rho_s` is the virial BMO amplitude
-    computed analytically from mass, concentration, and redshift (see
-    :meth:`_rho_s_bmo`).
-
-    The emulater has been trained setting tau_vir = 3.0 within these boundaries
-    # Bounds #log10R [cMpc/h] # log10 Rvir [pMpc/h] # c # sigma_off
-    lower_bounds = [-4., np.log10(0.15), 0.5, 0.05]
-    upper_bounds = [np.log10(30.), np.log10(2.2), 10., 0.8]
 
     Parameters
     ----------
@@ -65,10 +56,17 @@ class MiscBMOHaloProfileEmu:
 
     Notes
     -----
-    The emulators were trained following Eq. 8 of
+    The default case used in the implementation as for the BMO halo profile,
+    with the emulater trained setting tau_vir = 3.0 within these boundaries
+    # Bounds #log10R [cMpc/h] # log10 Rvir [pMpc/h] # c # sigma_off
+    lower_bounds = [-4., np.log10(0.15), 0.5, 0.05]
+    upper_bounds = [np.log10(30.), np.log10(2.2), 10., 0.8]
+
+    These emulators were trained following Eq. 8 of
     `Johnston et al. 2007 <https://arxiv.org/pdf/0709.1159.pdf>`_ for the
     miscentering PDF and the BMO truncated NFW profile of
     `Baltz et al. 2009 <https://ui.adsabs.harvard.edu/abs/2009JCAP...01..015B/abstract>`_.
+
     """
 
     def __init__(

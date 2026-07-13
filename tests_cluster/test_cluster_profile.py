@@ -6,7 +6,7 @@ from numpy.testing import assert_allclose, assert_equal, assert_raises
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 from cloelib.observables.clusters.halo_profile import BMOHaloProfile, NFWHaloProfile
-from cloelib.observables.clusters.halo_profile import MiscBMOHaloProfileEmu
+from cloelib.observables.clusters.halo_profile import EmuHaloProfileMisc
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
@@ -339,6 +339,6 @@ def test_misc_profile():
         sigma_nz=0.3,
         alpha_nz=0.4,
     )
-    profile_misc = MiscBMOHaloProfileEmu(_get_matter_statistics(), **_prof_kwargs)
+    profile_misc = EmuHaloProfileMisc(_get_matter_statistics(), **_prof_kwargs)
     profile_misc.load_weights()
     _test_misc_profile(profile_misc, _reference_vals)
