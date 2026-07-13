@@ -97,16 +97,9 @@ class MiscBMOHaloProfileEmu:
     def __init__(
         self,
         matter_statistics: MatterStatistics,
-        sigma_weights: dict = None,
-        delta_sigma_weights: dict = None,
-        sigma_min_params: np.ndarray = None,
-        sigma_max_params: np.ndarray = None,
-        delta_sigma_min_params: np.ndarray = None,
-        delta_sigma_max_params: np.ndarray = None,
         overdensity_type: str = "vir",
         overdensity: int = 200,
         trunc_fact: float = 3.0,
-        hidden_size: int = 512,
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         zs_max: float = 2.0,
         mean_nz: float = 0.4,
@@ -126,6 +119,16 @@ class MiscBMOHaloProfileEmu:
 
         self.trunc_fact = trunc_fact
 
+    def load_weights(
+        self,
+        sigma_weights: dict = None,
+        delta_sigma_weights: dict = None,
+        sigma_min_params: np.ndarray = None,
+        sigma_max_params: np.ndarray = None,
+        delta_sigma_min_params: np.ndarray = None,
+        delta_sigma_max_params: np.ndarray = None,
+        hidden_size: int = 512,
+    ):
         # Normalisation bounds — fall back to EmuNetWeights defaults
         self._sigma_min = np.asarray(
             sigma_min_params if sigma_min_params is not None else _DEFAULT_SIGMA_MIN

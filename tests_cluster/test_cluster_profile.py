@@ -340,4 +340,5 @@ def test_misc_profile():
         alpha_nz=0.4,
     )
     profile_misc = MiscBMOHaloProfileEmu(_get_matter_statistics(), **_prof_kwargs)
+    profile_misc.load_weights()
     _test_misc_profile(profile_misc, _reference_vals)
