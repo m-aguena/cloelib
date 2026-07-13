@@ -271,9 +271,9 @@ class MiscBMOHaloProfileEmu:
     def _predict(
         self,
         emu: ClusterEmuNet,
-        x_min: np.ndarray,
-        x_max: np.ndarray,
-        R: np.ndarray,
+        inputs_min: np.ndarray,
+        inputs_max: np.ndarray,
+        R_mpc: np.ndarray,
         R_vir: np.ndarray,
         c: float,
         sigma_off: float,
@@ -286,9 +286,9 @@ class MiscBMOHaloProfileEmu:
         ----------
         emu : ClusterEmuNet
             The emulator network to evaluate.
-        x_min, x_max : np.ndarray
+        inputs_min, inputs_max : np.ndarray
             Normalisation bounds, shape (4,).
-        R : np.ndarray
+        R_mpc : np.ndarray
             Projected radii (Mpc/h), shape ``(R.size,)``.
         R_vir : np.ndarray
             Virial radii (Mpc/h), shape ``(z.size, M.size)``.
@@ -304,38 +304,37 @@ class MiscBMOHaloProfileEmu:
         profile : np.ndarray
             Predicted profile (h Msun/pc²), shape ``(z.size, M.size, R.size)``.
         """
-        Nz, NM = R_vir.shape
-        NR = R.size
-
-        # Build feature array: (Nz * NM * NR, 4)
-        log10_R = np.log10(R)  # (NR,)
-        log10_Rvir = np.log10(R_vir)  # (Nz, NM)
-
-        # Broadcast to (Nz, NM, NR)
-        log10_R_grid = np.broadcast_to(
-            log10_R[np.newaxis, np.newaxis, :], (Nz, NM, NR)
-        ).reshape(-1)
-        log10_Rvir_grid = np.broadcast_to(
-            log10_Rvir[:, :, np.newaxis], (Nz, NM, NR)
-        ).reshape(-1)
-        c_grid = np.full(Nz * NM * NR, c)
-        sigma_off_grid = np.full(Nz * NM * NR, sigma_off)
-
-        X = np.column_stack(
-            [log10_R_grid, log10_Rvir_grid, c_grid, sigma_off_grid]
+        print(
+            np.log10(R_mpc).shape,
+            np.broadcast_to(np.log10(R_vir)[:, :, np.newaxis], R_mpc.shape)
+            .reshape(-1)
+            .shape,
+            np.full(R_mpc.size, c).shape,
+            np.full(R_mpc.size, sigma_off).shape,
         )  # (Nz*NM*NR, 4)
+        # Broadcast each quantity to (Nz, NM, NR)
+        inputs = np.column_stack(
+            [
+                np.log10(R_mpc).reshape(-1),
+                np.broadcast_to(np.log10(R_vir)[:, :, np.newaxis], R_mpc.shape).reshape(
+                    -1
+                ),
+                np.full(R_mpc.size, c),
+                np.full(R_mpc.size, sigma_off),
+            ]
+        )  # (Nz*NM*NR, 4)
+        print(inputs.shape)
 
-        X_norm = self._normalise(X, x_min, x_max)
-        Y_pred = emu.forward(X_norm).reshape(-1)  # (Nz*NM*NR,)
+        inputs_norm = self._normalise(inputs, inputs_min, inputs_max)
+        emulator_prediction = emu.forward(inputs_norm).reshape(-1)  # (Nz*NM*NR,)
 
         # Undo log-scaling and multiply by rho_s
-        rho_s_grid = np.broadcast_to(rho_s[:, :, np.newaxis], (Nz, NM, NR)).reshape(-1)
+        profile = (
+            np.exp(emulator_prediction).reshape(R_mpc.shape) * rho_s[:, :, np.newaxis]
+        )  # Msun h² / Mpc³ · Mpc
 
-        profile_flat = np.exp(Y_pred) * rho_s_grid  # Msun h² / Mpc³ · Mpc
         # Convert to h Msun / pc²: 1 Mpc = 1e6 pc  →  1/Mpc² = 1e-12 /pc²
-        profile_flat *= 1.0e-12
-
-        return profile_flat.reshape(Nz, NM, NR)
+        return profile * 1.0e-12
 
     def surface_mass_density(
         self,
@@ -384,7 +383,7 @@ class MiscBMOHaloProfileEmu:
             self._emu_sigma,
             self._sigma_min,
             self._sigma_max,
-            R_mpc[0, 0, :],  # R grid is the same for all (z, M)
+            R_mpc,  # R grid is the same for all (z, M)
             R_vir,
             c,
             sigma_off,
@@ -445,7 +444,7 @@ class MiscBMOHaloProfileEmu:
             self._emu_delta_sigma,
             self._dsigma_min,
             self._dsigma_max,
-            R_mpc[0, 0, :],
+            R_mpc,
             R_vir,
             c,
             sigma_off,
