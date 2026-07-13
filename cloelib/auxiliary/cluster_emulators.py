@@ -63,7 +63,7 @@ class ClusterEmuNet:
         r"""
         Load pre-trained weights from a ``.npz`` file (convenience wrapper).
 
-        Prefer :meth:`load_from_dict` with the weights from
+        Prefer :math:`load_from_dict` with the weights from
         :mod:`EmuNetWeights` for path-independent deployment.
 
         Parameters
