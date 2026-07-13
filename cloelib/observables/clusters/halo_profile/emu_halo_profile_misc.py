@@ -136,6 +136,9 @@ class EmuHaloProfileMisc:
         hidden_size : int, optional
             Hidden-layer width of the emulator networks. Default ``512``.
         """
+        # add something like
+        # from cloelib.cosmology.cosmopower_jax_cosmology import emulator_data
+        # sigma_weights=emulator_data("weights.npy", zenodo_url)
         self._emu_sigma = ClusterEmuNet(
             input_size=4,
             hidden_size=hidden_size,
