@@ -324,12 +324,10 @@ class EmuHaloProfileMisc:
             ]
         )  # (Nz*NM*NR, 4)
 
-        # run emulator
-        emulator_prediction = emu.forward(inputs).flatten()  # (Nz*NM*NR,)
-
-        # Undo log-scaling and multiply by rho_s
+        # Run emulator (Nz*NM*NR),
+        # undo log-scaling and multiply by rho_s
         profile = (
-            np.exp(emulator_prediction).reshape(R_mpc.shape) * rho_s[:, :, np.newaxis]
+            np.exp(emu.forward(inputs)).reshape(R_mpc.shape) * rho_s[:, :, np.newaxis]
         )  # Msun h² / Mpc³ · Mpc
 
         # Convert to h Msun / pc²: 1 Mpc = 1e6 pc  →  1/Mpc² = 1e-12 /pc²
