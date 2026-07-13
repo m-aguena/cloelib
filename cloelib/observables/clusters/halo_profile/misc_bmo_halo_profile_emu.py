@@ -1,5 +1,6 @@
 import numpy as np
 
+from cloelib.auxiliary.cluster_emulators import ClusterEmuNet
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 from .emu_net_weights import (
@@ -12,104 +13,6 @@ from .emu_net_weights import (
 )
 from .halo_profile_core import HaloProfileCore
 from cloelib.cosmology import derived_cosmology
-
-
-# ---------------------------------------------------------------------------
-# Internal helper: lightweight NumPy feed-forward network
-# ---------------------------------------------------------------------------
-
-
-class _EmuNet:
-    r"""
-    Six-hidden-layer feed-forward network evaluated in NumPy.
-
-    Architecture (halving hidden size at each layer)::
-
-        input  →  fc1 (H)  →  fc2 (H/2)  →  fc3 (H/4)
-               →  fc4 (H/8) →  fc5 (H/16) →  fc6 (output)
-
-    Activation: Leaky ReLU (negative slope 0.01) after every hidden layer.
-    """
-
-    def __init__(self, input_size: int, hidden_size: int = 512, output_size: int = 1):
-        # Weight matrices  shape: (out_features, in_features)
-        # Bias vectors     shape: (out_features,)
-        sizes = [
-            (hidden_size, input_size),
-            (hidden_size // 2, hidden_size),
-            (hidden_size // 4, hidden_size // 2),
-            (hidden_size // 8, hidden_size // 4),
-            (hidden_size // 16, hidden_size // 8),
-            (output_size, hidden_size // 16),
-        ]
-        self._weights = [np.zeros(s) for s in sizes]
-        self._biases = [np.zeros(s[0]) for s in sizes]
-
-    # ------------------------------------------------------------------
-    def load_from_dict(self, weight_dict: dict) -> None:
-        r"""
-        Load pre-trained weights from a dictionary.
-
-        The dictionary must contain keys ``fc1_w``, ``fc1_b``,
-        ``fc2_w``, ``fc2_b``, …, ``fc6_w``, ``fc6_b`` mapping to
-        numpy arrays.  This is the primary loading path when weights
-        are embedded in :mod:`EmuNetWeights`.
-
-        Parameters
-        ----------
-        weight_dict : dict
-            Dictionary of weight and bias arrays.
-        """
-        for i in range(1, 7):
-            self._weights[i - 1] = weight_dict[f"fc{i}_w"]
-            self._biases[i - 1] = weight_dict[f"fc{i}_b"]
-
-    # ------------------------------------------------------------------
-    def load_weights(self, npz_path: str) -> None:
-        r"""
-        Load pre-trained weights from a ``.npz`` file (convenience wrapper).
-
-        Prefer :meth:`load_from_dict` with the weights from
-        :mod:`EmuNetWeights` for path-independent deployment.
-
-        Parameters
-        ----------
-        npz_path : str
-            Path to the ``.npz`` weight file.
-        """
-        self.load_from_dict(dict(np.load(npz_path)))
-
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _leaky_relu(x: np.ndarray) -> np.ndarray:
-        return np.where(x > 0.0, x, 0.01 * x)
-
-    # ------------------------------------------------------------------
-    def forward(self, x: np.ndarray) -> np.ndarray:
-        r"""
-        Forward pass.
-
-        Parameters
-        ----------
-        x : np.ndarray
-            Input array of shape ``(N, input_size)``.
-
-        Returns
-        -------
-        out : np.ndarray
-            Output array of shape ``(N, output_size)``.
-        """
-        out = x
-        for i, (W, b) in enumerate(zip(self._weights, self._biases)):
-            out = out @ W.T + b
-            if i < len(self._weights) - 1:  # no activation on output layer
-                out = self._leaky_relu(out)
-        return out
-
-
-# ---------------------------------------------------------------------------
-# Main class
-# ---------------------------------------------------------------------------
 
 
 class MiscBMOHaloProfileEmu:
@@ -243,12 +146,14 @@ class MiscBMOHaloProfileEmu:
 
         # Instantiate and load the two emulator networks from weight dicts,
         # falling back to the weights embedded in EmuNetWeights
-        self._emu_sigma = _EmuNet(input_size=4, hidden_size=hidden_size, output_size=1)
+        self._emu_sigma = ClusterEmuNet(
+            input_size=4, hidden_size=hidden_size, output_size=1
+        )
         self._emu_sigma.load_from_dict(
             sigma_weights if sigma_weights is not None else _DEFAULT_SIGMA_WEIGHTS
         )
 
-        self._emu_delta_sigma = _EmuNet(
+        self._emu_delta_sigma = ClusterEmuNet(
             input_size=4, hidden_size=hidden_size, output_size=1
         )
         self._emu_delta_sigma.load_from_dict(
@@ -362,7 +267,7 @@ class MiscBMOHaloProfileEmu:
 
     def _predict(
         self,
-        emu: _EmuNet,
+        emu: ClusterEmuNet,
         x_min: np.ndarray,
         x_max: np.ndarray,
         R: np.ndarray,
@@ -376,7 +281,7 @@ class MiscBMOHaloProfileEmu:
 
         Parameters
         ----------
-        emu : _EmuNet
+        emu : ClusterEmuNet
             The emulator network to evaluate.
         x_min, x_max : np.ndarray
             Normalisation bounds, shape (4,).
