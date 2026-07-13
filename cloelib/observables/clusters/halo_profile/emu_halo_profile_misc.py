@@ -324,8 +324,7 @@ class EmuHaloProfileMisc:
             ]
         )  # (Nz*NM*NR, 4)
 
-        # Run emulator (Nz*NM*NR),
-        # undo log-scaling and multiply by rho_s
+        # Run emulator (Nz*NM*NR), undo log-scaling and multiply by rho_s
         profile = (
             np.exp(emu.forward(inputs)).reshape(R_mpc.shape) * rho_s[:, :, np.newaxis]
         )  # Msun h² / Mpc³ · Mpc
