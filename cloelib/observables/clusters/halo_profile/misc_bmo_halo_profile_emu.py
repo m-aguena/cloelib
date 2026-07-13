@@ -45,27 +45,6 @@ class MiscBMOHaloProfileEmu:
     ----------
     matter_statistics : MatterStatistics
         MatterStatistics object carrying the cosmology.
-    sigma_weights : dict, optional
-        Weight dictionary for the :math:`\Sigma_\mathrm{off}` emulator,
-        with keys ``fc1_w`` … ``fc6_w``, ``fc1_b`` … ``fc6_b``.
-        Defaults to the weights embedded in :mod:`EmuNetWeights`.
-    delta_sigma_weights : dict, optional
-        Weight dictionary for the :math:`\Delta\Sigma_\mathrm{off}`
-        emulator.  Defaults to the weights embedded in :mod:`EmuNetWeights`.
-    sigma_min_params : array_like, shape (4,)
-        Feature minima used to normalise the inputs of the
-        :math:`\Sigma_\mathrm{off}` emulator.
-        Defaults to the values in :mod:`EmuNetWeights`.
-    sigma_max_params : array_like, shape (4,)
-        Feature maxima used to normalise the inputs of the
-        :math:`\Sigma_\mathrm{off}` emulator.
-        Defaults to the values in :mod:`EmuNetWeights`.
-    delta_sigma_min_params : array_like, shape (4,)
-        Feature minima for the :math:`\Delta\Sigma_\mathrm{off}` emulator.
-        Defaults to the values in :mod:`EmuNetWeights`.
-    delta_sigma_max_params : array_like, shape (4,)
-        Feature maxima for the :math:`\Delta\Sigma_\mathrm{off}` emulator.
-        Defaults to the values in :mod:`EmuNetWeights`.
     overdensity_type : str, optional
         Overdensity type passed to :class:`HaloProfileCore`.  Default ``"vir"``.
     overdensity : int, optional
@@ -73,8 +52,6 @@ class MiscBMOHaloProfileEmu:
     trunc_fact : float, optional
         Truncation radius in units of the overdensity radius
         (:math:`R_t = \tau_\mathrm{vir} \cdot R_\Delta`).  Default ``3.0``.
-    hidden_size : int, optional
-        Hidden-layer width of the emulator networks. Default ``512``.
     z : array_like, optional
         Redshift grid for cosmological calculations.
     zs_max : float, optional
@@ -118,6 +95,8 @@ class MiscBMOHaloProfileEmu:
         )
 
         self.trunc_fact = trunc_fact
+        self._emu_sigma = None
+        self._emu_delta_sigma = None
 
     def load_weights(
         self,
@@ -129,8 +108,36 @@ class MiscBMOHaloProfileEmu:
         delta_sigma_max_params: np.ndarray = None,
         hidden_size: int = 512,
     ):
-        # Instantiate and load the two emulator networks from weight dicts,
-        # falling back to the weights embedded in EmuNetWeights
+        """
+        Instantiate and load the two emulator networks from weight dicts,
+        falling back to the weights embedded in EmuNetWeights
+
+        Parameters
+        ----------
+        sigma_weights : dict, optional
+            Weight dictionary for the :math:`\Sigma_\mathrm{off}` emulator,
+            with keys ``fc1_w`` … ``fc6_w``, ``fc1_b`` … ``fc6_b``.
+            Defaults to the weights embedded in :mod:`EmuNetWeights`.
+        delta_sigma_weights : dict, optional
+            Weight dictionary for the :math:`\Delta\Sigma_\mathrm{off}`
+            emulator.  Defaults to the weights embedded in :mod:`EmuNetWeights`.
+        sigma_min_params : array_like, shape (4,)
+            Feature minima used to normalise the inputs of the
+            :math:`\Sigma_\mathrm{off}` emulator.
+            Defaults to the values in :mod:`EmuNetWeights`.
+        sigma_max_params : array_like, shape (4,)
+            Feature maxima used to normalise the inputs of the
+            :math:`\Sigma_\mathrm{off}` emulator.
+            Defaults to the values in :mod:`EmuNetWeights`.
+        delta_sigma_min_params : array_like, shape (4,)
+            Feature minima for the :math:`\Delta\Sigma_\mathrm{off}` emulator.
+            Defaults to the values in :mod:`EmuNetWeights`.
+        delta_sigma_max_params : array_like, shape (4,)
+            Feature maxima for the :math:`\Delta\Sigma_\mathrm{off}` emulator.
+            Defaults to the values in :mod:`EmuNetWeights`.
+        hidden_size : int, optional
+            Hidden-layer width of the emulator networks. Default ``512``.
+        """
         self._emu_sigma = ClusterEmuNet(
             input_size=4,
             hidden_size=hidden_size,
