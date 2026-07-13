@@ -92,7 +92,7 @@ class EmuHaloProfileMisc:
         self._emu_sigma = None
         self._emu_delta_sigma = None
 
-    def load_weights(
+    def set_weights(
         self,
         trunc_fact: float = 3.0,
         sigma_weights: dict = None,

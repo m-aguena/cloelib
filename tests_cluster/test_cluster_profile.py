@@ -339,5 +339,5 @@ def test_misc_profile():
         alpha_nz=0.4,
     )
     profile_misc = EmuHaloProfileMisc(_get_matter_statistics(), **_prof_kwargs)
-    profile_misc.load_weights(trunc_fact=3.0)
+    profile_misc.set_weights(trunc_fact=3.0)
     _test_misc_profile(profile_misc, _reference_vals)
