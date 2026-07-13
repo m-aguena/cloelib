@@ -15,7 +15,7 @@ from .halo_profile_core import HaloProfileCore
 from cloelib.cosmology import derived_cosmology
 
 
-class EmuHaloProfileMisc:
+class EmulatorMiscenteredHaloProfile:
     r"""
     Miscentered halo profile evaluated via neural-network emulators.
 
