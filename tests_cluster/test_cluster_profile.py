@@ -333,12 +333,11 @@ def test_misc_profile():
     }
  
     _prof_kwargs = dict(
-        trunc_fact=3.0,
         zs_max=2.0,
         mean_nz=0.4,
         sigma_nz=0.3,
         alpha_nz=0.4,
     )
     profile_misc = EmuHaloProfileMisc(_get_matter_statistics(), **_prof_kwargs)
-    profile_misc.load_weights()
+    profile_misc.load_weights(trunc_fact=3.0)
     _test_misc_profile(profile_misc, _reference_vals)

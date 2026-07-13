@@ -40,9 +40,6 @@ class EmuHaloProfileMisc:
         Overdensity type passed to :class:`HaloProfileCore`.  Default ``"vir"``.
     overdensity : int, optional
         Overdensity value passed to :class:`HaloProfileCore`.  Default ``200``.
-    trunc_fact : float, optional
-        Truncation radius in units of the overdensity radius
-        (:math:`R_t = \tau_\mathrm{vir} \cdot R_\Delta`).  Default ``3.0``.
     z : array_like, optional
         Redshift grid for cosmological calculations.
     zs_max : float, optional
@@ -74,7 +71,6 @@ class EmuHaloProfileMisc:
         matter_statistics: MatterStatistics,
         overdensity_type: str = "vir",
         overdensity: int = 200,
-        trunc_fact: float = 3.0,
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         zs_max: float = 2.0,
         mean_nz: float = 0.4,
@@ -92,12 +88,13 @@ class EmuHaloProfileMisc:
             alpha_nz=alpha_nz,
         )
 
-        self.trunc_fact = trunc_fact
+        self.trunc_fact = None
         self._emu_sigma = None
         self._emu_delta_sigma = None
 
     def load_weights(
         self,
+        trunc_fact: float = 3.0,
         sigma_weights: dict = None,
         delta_sigma_weights: dict = None,
         sigma_min_params: np.ndarray = None,
@@ -112,6 +109,9 @@ class EmuHaloProfileMisc:
 
         Parameters
         ----------
+        trunc_fact : float, optional
+            Truncation radius in units of the overdensity radius
+            (:math:`R_t = \tau_\mathrm{vir} \cdot R_\Delta`).  Default ``3.0``.
         sigma_weights : dict, optional
             Weight dictionary for the :math:`\Sigma_\mathrm{off}` emulator,
             with keys ``fc1_w`` … ``fc6_w``, ``fc1_b`` … ``fc6_b``.
@@ -136,6 +136,11 @@ class EmuHaloProfileMisc:
         hidden_size : int, optional
             Hidden-layer width of the emulator networks. Default ``512``.
         """
+        if sigma_weights is None and trunc_fact != 3:
+            raise ValueError(
+                "This emulator was trained with the fixed value of trunc_fact=3."
+            )
+        self.trunc_fact = trunc_fact
         # add something like
         # from cloelib.cosmology.cosmopower_jax_cosmology import emulator_data
         # sigma_weights=emulator_data("weights.npy", zenodo_url)
