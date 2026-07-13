@@ -64,6 +64,8 @@ class EmuHaloProfileMisc:
     miscentering PDF and the BMO truncated NFW profile of
     `Baltz et al. 2009 <https://ui.adsabs.harvard.edu/abs/2009JCAP...01..015B/abstract>`_.
 
+    Also these Emulators were trained with the ln of the profile, an exp operation
+    has to be applied to recover the profiles.
     """
 
     def __init__(
