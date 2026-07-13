@@ -18,7 +18,14 @@ class ClusterEmuNet:
     Activation: Leaky ReLU (negative slope 0.01) after every hidden layer.
     """
 
-    def __init__(self, input_size: int, hidden_size: int = 512, output_size: int = 1):
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int = 512,
+        output_size: int = 1,
+        x_min: np.ndarray = None,
+        x_max: np.ndarray = None,
+    ):
         # Weight matrices  shape: (out_features, in_features)
         # Bias vectors     shape: (out_features,)
         sizes = [
@@ -31,8 +38,9 @@ class ClusterEmuNet:
         ]
         self._weights = [np.zeros(s) for s in sizes]
         self._biases = [np.zeros(s[0]) for s in sizes]
+        self._x_min = x_min
+        self._x_max = x_max
 
-    # ------------------------------------------------------------------
     def load_from_dict(self, weight_dict: dict) -> None:
         r"""
         Load pre-trained weights from a dictionary.
@@ -51,7 +59,6 @@ class ClusterEmuNet:
             self._weights[i - 1] = weight_dict[f"fc{i}_w"]
             self._biases[i - 1] = weight_dict[f"fc{i}_b"]
 
-    # ------------------------------------------------------------------
     def load_weights(self, npz_path: str) -> None:
         r"""
         Load pre-trained weights from a ``.npz`` file (convenience wrapper).
@@ -66,12 +73,10 @@ class ClusterEmuNet:
         """
         self.load_from_dict(dict(np.load(npz_path)))
 
-    # ------------------------------------------------------------------
     @staticmethod
     def _leaky_relu(x: np.ndarray) -> np.ndarray:
         return np.where(x > 0.0, x, 0.01 * x)
 
-    # ------------------------------------------------------------------
     def forward(self, x: np.ndarray) -> np.ndarray:
         r"""
         Forward pass.
@@ -87,6 +92,11 @@ class ClusterEmuNet:
             Output array of shape ``(N, output_size)``.
         """
         out = x
+
+        # Min-max normalisation to [0, 1]
+        if self._x_min is not None:
+            out = (x - self._x_min) / (self._x_max - self._x_min)
+
         for i, (W, b) in enumerate(zip(self._weights, self._biases)):
             out = out @ W.T + b
             if i < len(self._weights) - 1:  # no activation on output layer

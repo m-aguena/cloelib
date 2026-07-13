@@ -129,35 +129,37 @@ class MiscBMOHaloProfileEmu:
         delta_sigma_max_params: np.ndarray = None,
         hidden_size: int = 512,
     ):
-        # Normalisation bounds — fall back to EmuNetWeights defaults
-        self._sigma_min = np.asarray(
-            sigma_min_params if sigma_min_params is not None else _DEFAULT_SIGMA_MIN
-        )
-        self._sigma_max = np.asarray(
-            sigma_max_params if sigma_max_params is not None else _DEFAULT_SIGMA_MAX
-        )
-        self._dsigma_min = np.asarray(
-            delta_sigma_min_params
-            if delta_sigma_min_params is not None
-            else _DEFAULT_DSIGMA_MIN
-        )
-        self._dsigma_max = np.asarray(
-            delta_sigma_max_params
-            if delta_sigma_max_params is not None
-            else _DEFAULT_DSIGMA_MAX
-        )
-
         # Instantiate and load the two emulator networks from weight dicts,
         # falling back to the weights embedded in EmuNetWeights
         self._emu_sigma = ClusterEmuNet(
-            input_size=4, hidden_size=hidden_size, output_size=1
+            input_size=4,
+            hidden_size=hidden_size,
+            output_size=1,
+            x_min=np.asarray(
+                sigma_min_params if sigma_min_params is not None else _DEFAULT_SIGMA_MIN
+            ),
+            x_max=np.asarray(
+                sigma_max_params if sigma_max_params is not None else _DEFAULT_SIGMA_MAX
+            ),
         )
         self._emu_sigma.load_from_dict(
             sigma_weights if sigma_weights is not None else _DEFAULT_SIGMA_WEIGHTS
         )
 
         self._emu_delta_sigma = ClusterEmuNet(
-            input_size=4, hidden_size=hidden_size, output_size=1
+            input_size=4,
+            hidden_size=hidden_size,
+            output_size=1,
+            x_min=np.asarray(
+                delta_sigma_min_params
+                if delta_sigma_min_params is not None
+                else _DEFAULT_DSIGMA_MIN
+            ),
+            x_max=np.asarray(
+                delta_sigma_max_params
+                if delta_sigma_max_params is not None
+                else _DEFAULT_DSIGMA_MAX
+            ),
         )
         self._emu_delta_sigma.load_from_dict(
             delta_sigma_weights
@@ -261,18 +263,11 @@ class MiscBMOHaloProfileEmu:
 
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _normalise(X: np.ndarray, x_min: np.ndarray, x_max: np.ndarray) -> np.ndarray:
-        r"""Min-max normalisation to [0, 1]."""
-        return (X - x_min) / (x_max - x_min)
-
     # ------------------------------------------------------------------
 
     def _predict(
         self,
         emu: ClusterEmuNet,
-        inputs_min: np.ndarray,
-        inputs_max: np.ndarray,
         R_mpc: np.ndarray,
         R_vir: np.ndarray,
         c: float,
@@ -286,8 +281,6 @@ class MiscBMOHaloProfileEmu:
         ----------
         emu : ClusterEmuNet
             The emulator network to evaluate.
-        inputs_min, inputs_max : np.ndarray
-            Normalisation bounds, shape (4,).
         R_mpc : np.ndarray
             Projected radii (Mpc/h), shape ``(R.size,)``.
         R_vir : np.ndarray
@@ -304,29 +297,20 @@ class MiscBMOHaloProfileEmu:
         profile : np.ndarray
             Predicted profile (h Msun/pc²), shape ``(z.size, M.size, R.size)``.
         """
-        print(
-            np.log10(R_mpc).shape,
-            np.broadcast_to(np.log10(R_vir)[:, :, np.newaxis], R_mpc.shape)
-            .reshape(-1)
-            .shape,
-            np.full(R_mpc.size, c).shape,
-            np.full(R_mpc.size, sigma_off).shape,
-        )  # (Nz*NM*NR, 4)
         # Broadcast each quantity to (Nz, NM, NR)
         inputs = np.column_stack(
             [
-                np.log10(R_mpc).reshape(-1),
-                np.broadcast_to(np.log10(R_vir)[:, :, np.newaxis], R_mpc.shape).reshape(
-                    -1
-                ),
+                np.log10(R_mpc).flatten(),
+                np.broadcast_to(
+                    np.log10(R_vir)[:, :, np.newaxis], R_mpc.shape
+                ).flatten(),
                 np.full(R_mpc.size, c),
                 np.full(R_mpc.size, sigma_off),
             ]
         )  # (Nz*NM*NR, 4)
-        print(inputs.shape)
 
-        inputs_norm = self._normalise(inputs, inputs_min, inputs_max)
-        emulator_prediction = emu.forward(inputs_norm).reshape(-1)  # (Nz*NM*NR,)
+        # run emulator
+        emulator_prediction = emu.forward(inputs).flatten()  # (Nz*NM*NR,)
 
         # Undo log-scaling and multiply by rho_s
         profile = (
@@ -381,9 +365,7 @@ class MiscBMOHaloProfileEmu:
 
         Sigma_off = self._predict(
             self._emu_sigma,
-            self._sigma_min,
-            self._sigma_max,
-            R_mpc,  # R grid is the same for all (z, M)
+            R_mpc,
             R_vir,
             c,
             sigma_off,
@@ -442,8 +424,6 @@ class MiscBMOHaloProfileEmu:
 
         DeltaSigma_off = self._predict(
             self._emu_delta_sigma,
-            self._dsigma_min,
-            self._dsigma_max,
             R_mpc,
             R_vir,
             c,
