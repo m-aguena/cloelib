@@ -140,5 +140,7 @@ def get_emulator_data(filename: str, filepath: str, zenodo_url: str = None) -> s
     data = {key: data[key] for key in data.files}
     data["header"] = data["header"].item()
     data["profile_model"] = data["profile_model"].item()
+    if "trunc_fact" in data:
+        data["trunc_fact"] = data["trunc_fact"].item()
 
     return data

@@ -84,13 +84,12 @@ class EmulatorMiscenteredHaloProfile:
             alpha_nz=alpha_nz,
         )
 
-        self.trunc_fact = None
+        self._trunc_fact = None
         self._emu_sigma = None
         self._emu_delta_sigma = None
 
     def set_weights(
         self,
-        trunc_fact: float = 3.0,
         sigma_weights: dict = None,
         delta_sigma_weights: dict = None,
     ):
@@ -100,14 +99,14 @@ class EmulatorMiscenteredHaloProfile:
 
         Parameters
         ----------
-        trunc_fact : float, optional
-            Truncation radius in units of the overdensity radius
-            (:math:`R_t = \tau_\mathrm{vir} \cdot R_\Delta`).  Default ``3.0``.
         sigma_weights : dict, optional
             Weight dictionary for the :math:`\Sigma_\mathrm{off}` emulator,
             with keys ``fc1_w`` … ``fc6_w``, ``fc1_b`` … ``fc6_b``,
             ``params_min`` (array_like, shape (4,), minima used to normalise the inputs),
-            and ``params_max`` (array_like, shape (4,), maxima used to normalise the inputs).
+            ``params_max`` (array_like, shape (4,), maxima used to normalise the inputs),
+            ``profile_model`` (must be ``BMO`` or ``NFW``),
+            and ``trunc_fact`` (float, truncation radius in units of the overdensity radius,
+            only required if ``profile_model=BMO``).
             Defaults to the weights in `zenodo <>`_.
         delta_sigma_weights : dict, optional
             Weight dictionary for the :math:`\Delta\Sigma_\mathrm{off}`
@@ -116,12 +115,6 @@ class EmulatorMiscenteredHaloProfile:
         hidden_size : int, optional
             Hidden-layer width of the emulator networks. Default ``512``.
         """
-        if sigma_weights is None and trunc_fact != 3:
-            raise ValueError(
-                "This emulator was trained with the fixed value of trunc_fact=3."
-            )
-        self.trunc_fact = trunc_fact
-
         # get default data
 
         zenodo_url = None
@@ -154,9 +147,14 @@ class EmulatorMiscenteredHaloProfile:
         if sigma_weights["profile_model"].lower() == "nfw":
             self._rho_s = NFWHaloProfile._rho_s
         elif sigma_weights["profile_model"].lower() == "bmo":
+            if sigma_weights["trunc_fact"] != delta_sigma_weights["trunc_fact"]:
+                raise ValueError(
+                    "trunc_fact in sigma_weights and delta_sigma_weights are different!"
+                )
+            self._trunc_fact = sigma_weights["trunc_fact"]
             # tau = R_t / R_s = trunc_fact * c
             self._rho_s = lambda Delta, c: BMOHaloProfile._rho_s(
-                Delta, c, self.trunc_fact * c
+                Delta, c, tau=self._trunc_fact * c
             )
         else:
             raise ValueError("Pofile model in sigma_weights must be NFW or BMO")
