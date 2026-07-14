@@ -5,8 +5,8 @@ from cloelib.auxiliary.cluster_emulators import ClusterEmuNet, get_emulator_data
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 from .halo_profile_core import HaloProfileCore
-from cloelib.cosmology import derived_cosmology
 from .bmo_halo_profile import BMOHaloProfile
+from .nfw_halo_profile import NFWHaloProfile
 
 
 class EmulatorMiscenteredHaloProfile:
@@ -141,6 +141,26 @@ class EmulatorMiscenteredHaloProfile:
                 zenodo_url=zenodo_url,
             )
 
+        # set up profile
+
+        if (
+            sigma_weights["profile_model"].lower()
+            != delta_sigma_weights["profile_model"].lower()
+        ):
+            raise ValueError(
+                "Pofile models in sigma_weights and delta_sigma_weights are different!"
+            )
+
+        if sigma_weights["profile_model"].lower() == "nfw":
+            self._rho_s = NFWHaloProfile._rho_s
+        elif sigma_weights["profile_model"].lower() == "bmo":
+            # tau = R_t / R_s = trunc_fact * c
+            self._rho_s = lambda Delta, c: BMOHaloProfile._rho_s(
+                Delta, c, self.trunc_fact * c
+            )
+        else:
+            raise ValueError("Pofile model in sigma_weights must be NFW or BMO")
+
         # set up emulators
 
         self._emu_sigma = ClusterEmuNet(**sigma_weights["header"])
@@ -240,17 +260,13 @@ class EmulatorMiscenteredHaloProfile:
             R, z, M, radius_units=radius_units
         )
 
-        # BMO dimensionless mass function m_bmo(c, tau)
-        tau = self.trunc_fact * c  # tau = R_t / R_s = trunc_fact * c
-        rho_s = BMOHaloProfile._rho_s(densityThreshold, c, tau)
-
         Sigma_off = self._predict(
             self._emu_sigma,
             R_mpc,
             R_vir=RDelta,
             c=c,
             sigma_off=sigma_off,
-            rho_s=rho_s,
+            rho_s=self._rho_s(densityThreshold, c),
         )
 
         self.core.check_profile_shape(R, z, M, Sigma_off)
@@ -301,17 +317,13 @@ class EmulatorMiscenteredHaloProfile:
             R, z, M, radius_units=radius_units
         )
 
-        # BMO dimensionless mass function m_bmo(c, tau)
-        tau = self.trunc_fact * c  # tau = R_t / R_s = trunc_fact * c
-        rho_s = BMOHaloProfile._rho_s(densityThreshold, c, tau)
-
         DeltaSigma_off = self._predict(
             self._emu_delta_sigma,
             R_mpc,
             R_vir=RDelta,
             c=c,
             sigma_off=sigma_off,
-            rho_s=rho_s,
+            rho_s=self._rho_s(densityThreshold, c),
         )
 
         self.core.check_profile_shape(R, z, M, DeltaSigma_off)

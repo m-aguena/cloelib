@@ -139,5 +139,6 @@ def get_emulator_data(filename: str, filepath: str, zenodo_url: str = None) -> s
     # convert into dictionary
     data = {key: data[key] for key in data.files}
     data["header"] = data["header"].item()
+    data["profile_model"] = data["profile_model"].item()
 
     return data
