@@ -5,7 +5,6 @@ from cloelib.auxiliary.cluster_emulators import ClusterEmuNet, get_emulator_data
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 from .halo_profile_core import HaloProfileCore
-from cloelib.cosmology import derived_cosmology
 from .bmo_halo_profile import BMOHaloProfile
 
 
