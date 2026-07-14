@@ -105,25 +105,14 @@ class EmulatorMiscenteredHaloProfile:
             (:math:`R_t = \tau_\mathrm{vir} \cdot R_\Delta`).  Default ``3.0``.
         sigma_weights : dict, optional
             Weight dictionary for the :math:`\Sigma_\mathrm{off}` emulator,
-            with keys ``fc1_w`` … ``fc6_w``, ``fc1_b`` … ``fc6_b``.
-            Defaults to the weights embedded in :mod:`EmuNetWeights`.
+            with keys ``fc1_w`` … ``fc6_w``, ``fc1_b`` … ``fc6_b``,
+            ``params_min`` (array_like, shape (4,), minima used to normalise the inputs),
+            and ``params_max`` (array_like, shape (4,), maxima used to normalise the inputs).
+            Defaults to the weights in `zenodo <>`_.
         delta_sigma_weights : dict, optional
             Weight dictionary for the :math:`\Delta\Sigma_\mathrm{off}`
-            emulator.  Defaults to the weights embedded in :mod:`EmuNetWeights`.
-        sigma_min_params : array_like, shape (4,)
-            Feature minima used to normalise the inputs of the
-            :math:`\Sigma_\mathrm{off}` emulator.
-            Defaults to the values in :mod:`EmuNetWeights`.
-        sigma_max_params : array_like, shape (4,)
-            Feature maxima used to normalise the inputs of the
-            :math:`\Sigma_\mathrm{off}` emulator.
-            Defaults to the values in :mod:`EmuNetWeights`.
-        delta_sigma_min_params : array_like, shape (4,)
-            Feature minima for the :math:`\Delta\Sigma_\mathrm{off}` emulator.
-            Defaults to the values in :mod:`EmuNetWeights`.
-        delta_sigma_max_params : array_like, shape (4,)
-            Feature maxima for the :math:`\Delta\Sigma_\mathrm{off}` emulator.
-            Defaults to the values in :mod:`EmuNetWeights`.
+            emulator. Same keys as ``sigma_weights``.
+            Defaults to the weights in `zenodo <>`_.
         hidden_size : int, optional
             Hidden-layer width of the emulator networks. Default ``512``.
         """
