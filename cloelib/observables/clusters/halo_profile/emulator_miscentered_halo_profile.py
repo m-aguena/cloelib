@@ -6,6 +6,7 @@ from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 from .halo_profile_core import HaloProfileCore
 from cloelib.cosmology import derived_cosmology
+from .bmo_halo_profile import BMOHaloProfile
 
 
 class EmulatorMiscenteredHaloProfile:
@@ -289,9 +290,7 @@ class EmulatorMiscenteredHaloProfile:
         inputs = np.column_stack(
             [
                 np.log10(R_mpc).flatten(),
-                np.broadcast_to(
-                    np.log10(R_vir)[:, :, np.newaxis], R_mpc.shape
-                ).flatten(),
+                np.broadcast_to(np.log10(R_vir), R_mpc.shape).flatten(),
                 np.full(R_mpc.size, c),
                 np.full(R_mpc.size, sigma_off),
             ]
@@ -299,7 +298,7 @@ class EmulatorMiscenteredHaloProfile:
 
         # Run emulator (Nz*NM*NR), undo log-scaling and multiply by rho_s
         profile = (
-            np.exp(emu.forward(inputs)).reshape(R_mpc.shape) * rho_s[:, :, np.newaxis]
+            np.exp(emu.forward(inputs)).reshape(R_mpc.shape) * rho_s
         )  # Msun h² / Mpc³ · Mpc
 
         # Convert to h Msun / pc²: 1 Mpc = 1e6 pc  →  1/Mpc² = 1e-12 /pc²
@@ -342,19 +341,21 @@ class EmulatorMiscenteredHaloProfile:
             Miscentered surface mass density (h Msun / pc²),
             shape ``(Nz, NM, NR)``.
         """
-        R_mpc, RDelta, _ = self.core.surface_mass_density_args(
+        R_mpc, RDelta, densityThreshold = self.core.surface_mass_density_args(
             R, z, M, radius_units=radius_units
         )
 
-        rho_s, R_vir = self._rho_s_bmo(M, c, z)
+        # BMO dimensionless mass function m_bmo(c, tau)
+        tau = self.trunc_fact * c  # tau = R_t / R_s = trunc_fact * c
+        rho_s = BMOHaloProfile._rho_s(densityThreshold, c, tau)
 
         Sigma_off = self._predict(
             self._emu_sigma,
             R_mpc,
-            R_vir,
-            c,
-            sigma_off,
-            rho_s,
+            R_vir=RDelta,
+            c=c,
+            sigma_off=sigma_off,
+            rho_s=rho_s,
         )
 
         self.core.check_profile_shape(R, z, M, Sigma_off)
@@ -401,19 +402,21 @@ class EmulatorMiscenteredHaloProfile:
             Miscentered excess surface mass density (h Msun / pc²),
             shape ``(Nz, NM, NR)``.
         """
-        R_mpc, RDelta, _ = self.core.surface_mass_density_args(
+        R_mpc, RDelta, densityThreshold = self.core.surface_mass_density_args(
             R, z, M, radius_units=radius_units
         )
 
-        rho_s, R_vir = self._rho_s_bmo(M, c, z)
+        # BMO dimensionless mass function m_bmo(c, tau)
+        tau = self.trunc_fact * c  # tau = R_t / R_s = trunc_fact * c
+        rho_s = BMOHaloProfile._rho_s(densityThreshold, c, tau)
 
         DeltaSigma_off = self._predict(
             self._emu_delta_sigma,
             R_mpc,
-            R_vir,
-            c,
-            sigma_off,
-            rho_s,
+            R_vir=RDelta,
+            c=c,
+            sigma_off=sigma_off,
+            rho_s=rho_s,
         )
 
         self.core.check_profile_shape(R, z, M, DeltaSigma_off)
