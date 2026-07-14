@@ -1,16 +1,9 @@
+import os
 import numpy as np
 
-from cloelib.auxiliary.cluster_emulators import ClusterEmuNet
+from cloelib.auxiliary.cluster_emulators import ClusterEmuNet, get_emulator_data
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
-from .emu_net_weights import (
-    delta_sigma_max_params as _DEFAULT_DSIGMA_MAX,
-    delta_sigma_min_params as _DEFAULT_DSIGMA_MIN,
-    delta_sigma_weights as _DEFAULT_DSIGMA_WEIGHTS,
-    sigma_max_params as _DEFAULT_SIGMA_MAX,
-    sigma_min_params as _DEFAULT_SIGMA_MIN,
-    sigma_weights as _DEFAULT_SIGMA_WEIGHTS,
-)
 from .halo_profile_core import HaloProfileCore
 from cloelib.cosmology import derived_cosmology
 
@@ -99,11 +92,6 @@ class EmulatorMiscenteredHaloProfile:
         trunc_fact: float = 3.0,
         sigma_weights: dict = None,
         delta_sigma_weights: dict = None,
-        sigma_min_params: np.ndarray = None,
-        sigma_max_params: np.ndarray = None,
-        delta_sigma_min_params: np.ndarray = None,
-        delta_sigma_max_params: np.ndarray = None,
-        hidden_size: int = 512,
     ):
         """
         Instantiate and load the two emulator networks from weight dicts,
@@ -143,48 +131,32 @@ class EmulatorMiscenteredHaloProfile:
                 "This emulator was trained with the fixed value of trunc_fact=3."
             )
         self.trunc_fact = trunc_fact
-        # add something like
-        # from cloelib.cosmology.cosmopower_jax_cosmology import emulator_data
-        # sigma_weights=emulator_data("weights.npy", zenodo_url)
-        self._emu_sigma = ClusterEmuNet(
-            input_size=4,
-            hidden_size=hidden_size,
-            output_size=1,
-            x_min=np.asarray(
-                sigma_min_params if sigma_min_params is not None else _DEFAULT_SIGMA_MIN
-            ),
-            x_max=np.asarray(
-                sigma_max_params if sigma_max_params is not None else _DEFAULT_SIGMA_MAX
-            ),
-        )
-        self._emu_sigma.load_from_dict(
-            sigma_weights if sigma_weights is not None else _DEFAULT_SIGMA_WEIGHTS
-        )
 
-        self._emu_delta_sigma = ClusterEmuNet(
-            input_size=4,
-            hidden_size=hidden_size,
-            output_size=1,
-            x_min=np.asarray(
-                delta_sigma_min_params
-                if delta_sigma_min_params is not None
-                else _DEFAULT_DSIGMA_MIN
-            ),
-            x_max=np.asarray(
-                delta_sigma_max_params
-                if delta_sigma_max_params is not None
-                else _DEFAULT_DSIGMA_MAX
-            ),
+        # get default data
+        zenodo_url = None
+        datapath = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "emulator_data"
         )
-        self._emu_delta_sigma.load_from_dict(
-            delta_sigma_weights
-            if delta_sigma_weights is not None
-            else _DEFAULT_DSIGMA_WEIGHTS
-        )
+        if sigma_weights is None:
+            sigma_weights = get_emulator_data(
+                "NN_6hidLwoBN_5e5trainNOSTDwRlg01_bs32_lr1e4red_hs512_3000e_MSELoss_Sigma_1h_off_4parms.npz",
+                filepath=datapath,
+                zenodo_url=zenodo_url,
+            )
+        if delta_sigma_weights is None:
+            delta_sigma_weights = get_emulator_data(
+                "NN_6hidLwithoutBN_5e5trainNOSTDwRlg01noRescale_bs32_lr1e4red_hs512_3000e_MSELoss_DSigma_1h_off_4parms.npz",
+                filepath=datapath,
+                zenodo_url=zenodo_url,
+            )
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
+        # set up emulators
+
+        self._emu_sigma = ClusterEmuNet(**sigma_weights["header"])
+        self._emu_sigma.load_from_dict(sigma_weights)
+
+        self._emu_delta_sigma = ClusterEmuNet(**delta_sigma_weights["header"])
+        self._emu_delta_sigma.load_from_dict(delta_sigma_weights)
 
     def _rho_s_bmo(self, M: np.ndarray, c: float, z: np.ndarray) -> np.ndarray:
         r"""

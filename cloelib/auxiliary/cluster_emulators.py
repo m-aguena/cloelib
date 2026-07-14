@@ -1,3 +1,5 @@
+import os
+import urllib.request
 import numpy as np
 
 
@@ -23,8 +25,8 @@ class ClusterEmuNet:
         input_size: int,
         hidden_size: int = 512,
         output_size: int = 1,
-        x_min: np.ndarray = None,
-        x_max: np.ndarray = None,
+        params_min: np.ndarray = None,
+        params_max: np.ndarray = None,
     ):
         # Weight matrices  shape: (out_features, in_features)
         # Bias vectors     shape: (out_features,)
@@ -38,8 +40,8 @@ class ClusterEmuNet:
         ]
         self._weights = [np.zeros(s) for s in sizes]
         self._biases = [np.zeros(s[0]) for s in sizes]
-        self._x_min = x_min
-        self._x_max = x_max
+        self._x_min = params_min
+        self._x_max = params_max
 
     def load_from_dict(self, weight_dict: dict) -> None:
         r"""
@@ -102,3 +104,40 @@ class ClusterEmuNet:
             if i < len(self._weights) - 1:  # no activation on output layer
                 out = self._leaky_relu(out)
         return out
+
+
+def get_emulator_data(filename: str, filepath: str, zenodo_url: str = None) -> str:
+    """Download the emulator data file if it does not exist.
+
+    Parameters
+    ----------
+    filename : str
+        The name of the file to download.
+    filepath : str
+        Local path where the data is or will be saved in
+    zenodo_url : str, optional
+        The base URL from which to download the file. Defaults to ZENODO_URL.
+
+    Returns
+    -------
+    str
+        The path to the downloaded file.
+    """
+    # if zenodo_url is None:
+    #    zenodo_url = ZENODO_URL
+
+    os.makedirs(filepath, exist_ok=True)
+    file_path = os.path.join(filepath, filename)
+
+    if not os.path.exists(file_path):
+        url = f"{zenodo_url}/{filename}"
+        print(f"Downloading {filename} from {url} ...")
+        urllib.request.urlretrieve(url, file_path)
+
+    data = np.load(file_path, allow_pickle=True)
+
+    # convert into dictionary
+    data = {key: data[key] for key in data.files}
+    data["header"] = data["header"].item()
+
+    return data
