@@ -112,7 +112,9 @@ class NFWHaloProfile:
         if x > 1.0:
             return np.log(x / 2.0) + np.arccos(1.0 / x) / np.sqrt(x**2.0 - 1.0)
 
-    def _rho_s(self, Delta, c):
+
+    @staticmethod
+    def _rho_s(Delta, c):
         r"""
         NFW characteristic density.
 

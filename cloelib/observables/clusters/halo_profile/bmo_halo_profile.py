@@ -114,7 +114,8 @@ class BMOHaloProfile:
         if x > 1.0:
             return (1.0 - self._f_term(x)) / (x**2.0 - 1.0)
 
-    def _rho_s(self, Delta, c, tau):
+    @staticmethod
+    def _rho_s(Delta, c, tau):
         r"""
         BMO characteristic density.
 
