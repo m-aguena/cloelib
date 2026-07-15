@@ -170,14 +170,14 @@ class EmulatorMiscenteredHaloProfile:
         self._emu_delta_sigma = ClusterEmuNet(**delta_sigma_weights["header"])
         self._emu_delta_sigma.load_from_dict(delta_sigma_weights)
 
-    def _predict(
+    def _emulator_profile(
         self,
         emu: ClusterEmuNet,
         R_mpc: np.ndarray,
         R_vir: np.ndarray,
+        densityThreshold: np.ndarray,
         c: float,
         sigma_off: float,
-        densityThreshold: np.ndarray,
     ) -> np.ndarray:
         r"""
         Run one emulator over the full (z, M, R) grid.
@@ -190,12 +190,12 @@ class EmulatorMiscenteredHaloProfile:
             Projected radii (Mpc/h), shape ``(1, 1, R.size)``.
         R_vir : np.ndarray
             Virial radii (Mpc/h), shape ``(z.size, M.size, 1)``.
+        densityThreshold: np.ndarray
+            Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
         c : float
             Concentration.
         sigma_off : float
             Miscentering scatter (Mpc/h).
-        densityThreshold: np.ndarray
-            Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
 
         Returns
         -------
@@ -257,17 +257,11 @@ class EmulatorMiscenteredHaloProfile:
             Miscentered surface mass density (h Msun / pc²),
             shape ``(Nz, NM, NR)``.
         """
-        R_mpc, RDelta, densityThreshold = self.core.surface_mass_density_args(
-            R, z, M, radius_units=radius_units
-        )
-
-        Sigma_off = self._predict(
+        Sigma_off = self._emulator_profile(
             self._emu_sigma,
-            R_mpc,
-            R_vir=RDelta,
+            *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),
             c=c,
             sigma_off=sigma_off,
-            densityThreshold=densityThreshold,
         )
 
         self.core.check_profile_shape(R, z, M, Sigma_off)
@@ -314,17 +308,11 @@ class EmulatorMiscenteredHaloProfile:
             Miscentered excess surface mass density (h Msun / pc²),
             shape ``(Nz, NM, NR)``.
         """
-        R_mpc, RDelta, densityThreshold = self.core.surface_mass_density_args(
-            R, z, M, radius_units=radius_units
-        )
-
-        DeltaSigma_off = self._predict(
+        DeltaSigma_off = self._emulator_profile(
             self._emu_delta_sigma,
-            R_mpc,
-            R_vir=RDelta,
+            *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),
             c=c,
             sigma_off=sigma_off,
-            densityThreshold=densityThreshold,
         )
 
         self.core.check_profile_shape(R, z, M, DeltaSigma_off)
