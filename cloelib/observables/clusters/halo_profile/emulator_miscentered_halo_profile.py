@@ -206,6 +206,7 @@ class EmulatorMiscenteredHaloProfile:
         inputs = np.column_stack(
             [
                 np.log10(R_mpc).flatten(),
+                # convert Rvir (Nz, NM, 1) -> (Nz*NM*NR)
                 np.broadcast_to(np.log10(R_vir), R_mpc.shape).flatten(),
                 np.full(R_mpc.size, c),
                 np.full(R_mpc.size, sigma_off),
