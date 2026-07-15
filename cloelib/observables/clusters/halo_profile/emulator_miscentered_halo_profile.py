@@ -99,18 +99,19 @@ class EmulatorMiscenteredHaloProfile:
 
         Parameters
         ----------
-        sigma_weights : dict, optional
+        sigma_weights : dict, str, optional
             Weight dictionary for the :math:`\Sigma_\mathrm{off}` emulator,
-            with keys ``fc1_w`` … ``fc6_w``, ``fc1_b`` … ``fc6_b``,
+            or npz file containing the dictionary. The dictionary must have the
+            keys ``fc1_w`` … ``fc6_w``, ``fc1_b`` … ``fc6_b``,
             ``params_min`` (array_like, shape (4,), minima used to normalise the inputs),
             ``params_max`` (array_like, shape (4,), maxima used to normalise the inputs),
             ``profile_model`` (must be ``BMO`` or ``NFW``),
             and ``trunc_fact`` (float, truncation radius in units of the overdensity radius,
             only required if ``profile_model=BMO``).
             Defaults to the weights in `zenodo <>`_.
-        delta_sigma_weights : dict, optional
+        delta_sigma_weights : dict, str, optional
             Weight dictionary for the :math:`\Delta\Sigma_\mathrm{off}`
-            emulator. Same keys as ``sigma_weights``.
+            emulator or npz file containing the dictionary. Same keys as ``sigma_weights``.
             Defaults to the weights in `zenodo <>`_.
         hidden_size : int, optional
             Hidden-layer width of the emulator networks. Default ``512``.
@@ -121,17 +122,19 @@ class EmulatorMiscenteredHaloProfile:
         datapath = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "emulator_data"
         )
+
         if sigma_weights is None:
+            sigma_weights = "NN_6hidLwoBN_5e5trainNOSTDwRlg01_bs32_lr1e4red_hs512_3000e_MSELoss_Sigma_1h_off_4parms.npz"
+        if isinstance(sigma_weights, str):
             sigma_weights = get_emulator_data(
-                "NN_6hidLwoBN_5e5trainNOSTDwRlg01_bs32_lr1e4red_hs512_3000e_MSELoss_Sigma_1h_off_4parms.npz",
-                filepath=datapath,
-                zenodo_url=zenodo_url,
+                sigma_weights, filepath=datapath, zenodo_url=zenodo_url
             )
+
         if delta_sigma_weights is None:
+            delta_sigma_weights = "NN_6hidLwithoutBN_5e5trainNOSTDwRlg01noRescale_bs32_lr1e4red_hs512_3000e_MSELoss_DSigma_1h_off_4parms.npz"
+        if isinstance(delta_sigma_weights, str):
             delta_sigma_weights = get_emulator_data(
-                "NN_6hidLwithoutBN_5e5trainNOSTDwRlg01noRescale_bs32_lr1e4red_hs512_3000e_MSELoss_DSigma_1h_off_4parms.npz",
-                filepath=datapath,
-                zenodo_url=zenodo_url,
+                delta_sigma_weights, filepath=datapath, zenodo_url=zenodo_url
             )
 
         # set up profile
