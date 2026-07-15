@@ -108,17 +108,17 @@ class EmulatorMiscenteredHaloProfile:
             ``profile_model`` (must be ``BMO`` or ``NFW``),
             and ``trunc_fact`` (float, truncation radius in units of the overdensity radius,
             only required if ``profile_model=BMO``).
-            Defaults to the weights in `zenodo <https://zenodo.org/records/21380106/NN_6hidLwoBN_5e5trainNOSTDwRlg01_bs32_lr1e4red_hs512_3000e_MSELoss_Sigma_1h_off_4parms.npz>`_.
+            Defaults to the weights in `zenodo <https://zenodo.org/records/21380106/files/NN_6hidLwoBN_5e5trainNOSTDwRlg01_bs32_lr1e4red_hs512_3000e_MSELoss_Sigma_1h_off_4parms.npz>`_.
         delta_sigma_weights : dict, str, optional
             Weight dictionary for the :math:`\Delta\Sigma_\mathrm{off}`
             emulator or npz file containing the dictionary. Same keys as ``sigma_weights``.
-            Defaults to the weights in `zenodo <https://zenodo.org/records/21380106/NN_6hidLwithoutBN_5e5trainNOSTDwRlg01noRescale_bs32_lr1e4red_hs512_3000e_MSELoss_DSigma_1h_off_4parms.npz>`_.
+            Defaults to the weights in `zenodo <https://zenodo.org/records/21380106/files/NN_6hidLwithoutBN_5e5trainNOSTDwRlg01noRescale_bs32_lr1e4red_hs512_3000e_MSELoss_DSigma_1h_off_4parms.npz>`_.
         hidden_size : int, optional
             Hidden-layer width of the emulator networks. Default ``512``.
         """
         # get default data
 
-        zenodo_url = "https://zenodo.org/records/21380106"
+        zenodo_url = "https://zenodo.org/records/21380106/files"
         datapath = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "emulator_data"
         )
@@ -268,8 +268,6 @@ class EmulatorMiscenteredHaloProfile:
         self.core.check_profile_shape(R, z, M, Sigma_off)
 
         return Sigma_off
-
-    # ------------------------------------------------------------------
 
     def excess_surface_mass_density(
         self,
