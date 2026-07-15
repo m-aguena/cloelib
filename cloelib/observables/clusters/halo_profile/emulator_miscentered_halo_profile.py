@@ -177,7 +177,7 @@ class EmulatorMiscenteredHaloProfile:
         R_vir: np.ndarray,
         c: float,
         sigma_off: float,
-        rho_s: np.ndarray,
+        densityThreshold: np.ndarray,
     ) -> np.ndarray:
         r"""
         Run one emulator over the full (z, M, R) grid.
@@ -194,8 +194,8 @@ class EmulatorMiscenteredHaloProfile:
             Concentration.
         sigma_off : float
             Miscentering scatter (Mpc/h).
-        rho_s : np.ndarray
-            Characteristic density (Msun h²/Mpc³), shape ``(z.size, M.size, 1)``.
+        densityThreshold: np.ndarray
+            Threshold density (units : h * Msun / Mpc**2)  with shape (z.size, 1, 1)
 
         Returns
         -------
@@ -213,8 +213,8 @@ class EmulatorMiscenteredHaloProfile:
         )  # (Nz*NM*NR, 4)
 
         # Run emulator (Nz*NM*NR), undo log-scaling and multiply by rho_s
-        profile = (
-            np.exp(emu.forward(inputs)).reshape(R_mpc.shape) * rho_s
+        profile = np.exp(emu.forward(inputs)).reshape(R_mpc.shape) * self._rho_s(
+            densityThreshold, c
         )  # Msun h² / Mpc³ · Mpc
 
         # Convert to h Msun / pc²: 1 Mpc = 1e6 pc  →  1/Mpc² = 1e-12 /pc²
@@ -267,7 +267,7 @@ class EmulatorMiscenteredHaloProfile:
             R_vir=RDelta,
             c=c,
             sigma_off=sigma_off,
-            rho_s=self._rho_s(densityThreshold, c),
+            densityThreshold=densityThreshold,
         )
 
         self.core.check_profile_shape(R, z, M, Sigma_off)
@@ -324,7 +324,7 @@ class EmulatorMiscenteredHaloProfile:
             R_vir=RDelta,
             c=c,
             sigma_off=sigma_off,
-            rho_s=self._rho_s(densityThreshold, c),
+            densityThreshold=densityThreshold,
         )
 
         self.core.check_profile_shape(R, z, M, DeltaSigma_off)
