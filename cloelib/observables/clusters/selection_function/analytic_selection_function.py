@@ -25,34 +25,89 @@ class AnalyticSelectionFunction:
         fprj_lambda_norm: float,
         fprj_lambda_z: float,
         fprj_lambda_exponent: float,
-        sig_z_exponent: float,
+        sig_z_lambda_exponent: float,
         sig_z_lambda_norm: float,
         sig_z_z_norm: float,
         z_tab_integ: int,
         lambda_tab_integ: list,
     ):
         r"""
-        Class defining the selection function of galaxy clusters, including
-        sample purity, completeness, mass-observable relation, and
-        uncertainties on observed quantities.
+        Class implementing an analytical selection function.
+
+        Class defining the selection function of galaxy clusters
+        calibrated on simulations.
+
+        The observed richness PDF is expressed as follows:
+
+        ..math:
+        P(\lambda_{\rm ob} | \lambda,z)= (1-f_{\rm prj}) \mathcal{N}(\mu,\sigma) + 
+                + f_{\rm prj} \frac{\tau}{2} \exp\left[ \frac{\tau}{2} (2\mu + \tau\sigma^2 - 2 \lambda_{\rm ob})\right]
+                {\rm erfc} \left( \frac{\mu +\tau\sigma^2-\lambda_{\rm ob}}{\sqrt{2}\sigma}\right)
+
+        where
+
+        ..math:
+        f_{\rm prj}(\lambda) = f_{\rm prj,0} \lambda^{[f_{\rm prj,exp}+f_{\rm prj,z} z]}\,,
+
+        while $\mathcal{N}(\mu,\sigma)$ is a Gaussian PDF with $\mu$ and $\sigma$ defined as
+
+        ..math:
+        \mu(\lambda,z) = \mu_{\lambda_0} + (\mu_0 +z\mu_z)  (\lambda- \lambda_{\rm pivot})\,,
+
+        ..math:
+        \sigma(\lambda,z) = (\sigma_0 + z \sigma_z) \lambda^{\sigma_{\rm exp} }\,.
+
+        Lastly, $\tau$ is expressed as follows:
+
+        ..math:
+        \tau(\lambda,z) = (\tau_0 + z\tau_z)  \lambda^{\tau_{\rm exp}}
+
+        The observed redshift PDF is Gaussian with a mean equal to the
+        true redshift and a standard deviation expressed as follows:
+
+        ..math:
+        \sigma_z(\lambda_{\rm ob}, \lambda, z) = 
+        \varsigma_0 \,\mu(\lambda,z)^{\varsigma_{\rm exp}} 
+        + \varsigma_z \frac{z}{z_{\rm pivot}} \cdot \frac{\lambda_{\rm ob}
+        - \mu(\lambda,z)} {\mu(\lambda,z)}
 
         Parameters
         ----------
         halo_mass_observable: HaloMassObservable,
             Object that contains the distribution of true richness given mass
         sig_lambda_norm: float
-            Amplitude of the observed proxy - true proxy relation
+            Amplitude of the observed proxy - true proxy relation ($\sigma_0$)
         sig_lambda_z: float
-            Redshift evolution of the observed proxy - true proxy relation
+            Redshift evolution of the observed proxy - true proxy relation ($\sigma_z$)
         sig_lambda_exponent: float
-            Exponential evolution of the observed proxy - true proxy relation
-        sig_z_z: float
-            Amplitude of the observed redshift - true redshift relation
-        sig_z_lambda: float
-            Proxy evolution of the observed redshift - true redshift relation
-        z_tab_integ : int
+            Exponential evolution of the observed proxy - true proxy relation ($\sigma_{\rm exp}$)
+        mu_lambda_norm: float
+            $\mu_0$ in the formula of $\mu$
+        mu_lambda_z: float
+            $\mu_z$ in the formula of $\mu$
+        mu_lambda_0: float
+            $\mu_{\lambda_0}$ in the formula of $\mu$
+        tau_lambda_norm: float
+            $\tau_0$ in the formula of $\tau$
+        tau_lambda_z: float
+            $\tau_z$ in the formula of $\tau$            
+        tau_lambda_exponent: float
+            $\tau_{\rm exp}$ in the formula of $\tau$            
+        fprj_lambda_norm: float
+            $f_{\rm prj,0}$ in the formula of $f_{\rm prj}$
+        fprj_lambda_z: float
+            $f_{\rm prj,z}$ in the formula of $f_{\rm prj}$
+        fprj_lambda_exponent: float
+            $f_{\rm prj,exp}$ in the formula of $f_{\rm prj}$
+        sig_z_lambda_exponent: float
+            Exponent in the richness-dependent part of the $z_{\rm ob}$ PDF ($\varsigma_{\rm exp}$)
+        sig_z_lambda_norm: float
+            Amplitude of the richness-dependent part of the $z_{\rm ob}$ PDF ($\varsigma_0$)
+        sig_z_z_norm: float
+            Amplitude of the $z_{\rm ob}$ PDF ($\varsigma_z$)
+        z_tab_integ: int
             Number of points to be used for z_obs integration.
-        lambda_tab_integ : List
+        lambda_tab_integ: list
             Number of points to be used for the lambda_obs integration
             in each lambda_obs bin. Must be same size of lambda_obs_edges.
         """
@@ -69,7 +124,7 @@ class AnalyticSelectionFunction:
         self.fprj_lambda_norm = fprj_lambda_norm
         self.fprj_lambda_z = fprj_lambda_z
         self.fprj_lambda_exponent = fprj_lambda_exponent
-        self.sig_z_exponent = sig_z_exponent
+        self.sig_z_lambda_exponent = sig_z_lambda_exponent
         self.sig_z_lambda_norm = sig_z_lambda_norm
         self.sig_z_z_norm = sig_z_z_norm
         self.z_tab_integ = z_tab_integ
@@ -259,12 +314,12 @@ class AnalyticSelectionFunction:
         """
         if lambda_true is None:
             return (
-                lambda_obs**self.sig_z_exponent
+                lambda_obs**self.sig_z_lambda_exponent
                 * self.sig_z_lambda_norm
                 * np.ones(z.shape)
             )
         mu = self._mu_lambda_obs(z, lambda_true)
-        sig_base = mu**self.sig_z_exponent * self.sig_z_lambda_norm
+        sig_base = mu**self.sig_z_lambda_exponent * self.sig_z_lambda_norm
         sig_slope = self.sig_z_z_norm * (z / z_pivot) * (lambda_obs - mu) / mu
         return np.where(lambda_obs >= mu, sig_base + sig_slope, sig_base)
 
