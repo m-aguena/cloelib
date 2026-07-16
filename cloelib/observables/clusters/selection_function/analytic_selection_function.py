@@ -510,7 +510,7 @@ class AnalyticSelectionFunction:
             axis=-1,
         )
 
-    def window_z_lambda_observed(
+    def window_redshift_lambda_observed(
         self,
         z_obs_edges,
         lambda_obs_edges,
@@ -664,7 +664,7 @@ class AnalyticSelectionFunction:
 
         # window integrated over lob and zob bin
         # shape: (z_obs_bin, lambda_obs_bin, z_true, lambda_true)
-        w_lob_zob = self.window_z_lambda_observed(
+        w_lob_zob = self.window_redshift_lambda_observed(
             z_obs_edges, lambda_obs_edges, z_true, lambda_true
         )
 
