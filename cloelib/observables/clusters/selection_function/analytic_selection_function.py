@@ -107,8 +107,9 @@ class AnalyticSelectionFunction:
         mean observed richness at the requested true redshift and richness points.
 
         ..math:
-            \mu_{\lambda_{\rm obs}}(\lambda_{\rm true},z_{\rm true}) =
-            \mu_{\lambda_0} + (\mu_0 +z_{\rm true}*\mu_z) * \lambda_{\rm true}
+            \mu_{\lambda_{\rm obs}}(\lambda_{\rm true},z_{\rm true}) = max \left[ 1,
+            \mu_{\lambda_0} + (\mu_0 +z_{\rm true}*\mu_z) * (\lambda_{\rm true} -lambda_pivot) \right]
+
 
         Parameters
         ----------
@@ -122,9 +123,10 @@ class AnalyticSelectionFunction:
         scatter_lbobs_lbdz: numpy.ndarray
             Mean observed mass proxy.
         """
-        return (self.mu_lambda_norm + self.mu_lambda_z * z) * (
+        mu = (self.mu_lambda_norm + self.mu_lambda_z * z) * (
             lambda_true - lambda_pivot
         ) + self.mu_lambda_0
+        return np.clip(mu, 1.0, None)
 
     def _tau_lambda_obs(self, z, lambda_true):
         r"""
@@ -222,7 +224,7 @@ class AnalyticSelectionFunction:
         ) + exptau * spc.erfc(erfc_arg1) * (f_prj * tau / 2.0)
         return pdf
 
-    def scatter_z_obs(self, z, lambda_true, lambda_obs, z_pivot=0.2):
+    def scatter_z_obs(self, lambda_obs, z, lambda_true=None, z_pivot=0.2):
         r"""
         Statistical uncertainty on the observed redshift.
 
@@ -241,18 +243,12 @@ class AnalyticSelectionFunction:
 
         Parameters
         ----------
+        lambda_obs: numpy.ndarray
+            Observed richness points.
         z: numpy.ndarray
             True redshift points.
         lambda_true: numpy.ndarray
-            True richness points.
-        lambda_obs: numpy.ndarray
-            Observed richness points.
-        alpha: float
-            Power law slope of the mean richness dependence.
-        a: float
-            Normalization of the redshift-independent term.
-        b: float
-            Normalization of the redshift-dependent term.
+            True richness points. If None assume _mu_lambda_obs = lambda_obs
         z_pivot: float
             Pivot redshift.
 
@@ -261,6 +257,12 @@ class AnalyticSelectionFunction:
         scatter_z_obs: numpy.ndarray
             Statistical uncertainty on the observed redshift.
         """
+        if lambda_true is None:
+            return (
+                lambda_obs**self.sig_z_exponent
+                * self.sig_z_lambda_norm
+                * np.ones(z.shape)
+            )
         mu = self._mu_lambda_obs(z, lambda_true)
         sig_base = mu**self.sig_z_exponent * self.sig_z_lambda_norm
         sig_slope = self.sig_z_z_norm * (z / z_pivot) * (lambda_obs - mu) / mu
@@ -290,7 +292,7 @@ class AnalyticSelectionFunction:
             Observed redshift PDF.
         """
         return self._gaussian(
-            z_obs, z_true, self.scatter_z_obs(z_true, lambda_true, lambda_obs)
+            z_obs, z_true, self.scatter_z_obs(lambda_obs, z_true, lambda_true)
         )
 
     def window_zob_given_lob_ztr_ltr(
@@ -336,48 +338,53 @@ class AnalyticSelectionFunction:
         _z_true = z_true[np.newaxis, np.newaxis, :, np.newaxis]
         _lambda_true = lambda_true[np.newaxis, np.newaxis, np.newaxis, :]
 
-        sig = self.scatter_z_obs(_z_true, _lambda_true, _lambda_obs)
+        sig = self.scatter_z_obs(_lambda_obs, _z_true, _lambda_true)
 
         arg_high = (_z_obs_high - _z_true) / (np.sqrt(2.0) * sig)
         arg_low = (_z_obs_low - _z_true) / (np.sqrt(2.0) * sig)
 
         return 0.5 * (spc.erf(arg_high) - spc.erf(arg_low))
 
-    def window_z_observed(self, z_obs_edges, lambda_obs, z_true, lambda_true=None):
+    def window_z_observed(
+        self, z_obs_edges, lambda_obs_edges, z_true, lambda_true=None
+    ):
         r"""Compute the redshift window function of each observed redshift bin,
         marginalized over lambda_true:
 
         ..math:
-            W_{\Delta z_{\rm obs}}(\lambda_{\rm obs}, z_{\rm true}) =
-            \int_{\Delta z_{\rm obs}}dz_{\rm obs} \int_0^{\infty}
-              d \lambda_{\rm true} P(z_{\rm obs}|\lambda_{\rm obs}, \lambda_{\rm true}, z_{\rm true})
+            W_{\Delta z_{\rm obs},\lambda_{\rm obs}}(z_{\rm true}) =
+            \int_{\Delta z_{\rm obs}}dz_{\rm obs}
+            \int_{\Delta \lambda_{\rm obs}}d\lambda_{\rm obs}
+            \int_0^{\infty}
+            d \lambda_{\rm true} P(\lambda_{\rm obs},z_{\rm obs}| \lambda_{\rm true}, z_{\rm true})
 
         Parameters
         ----------
         z_obs_edges : numpy.ndarray
             Edges of redshift bins for the integration.
-        lambda_obs : numpy.ndarray
-            Observed richness to compute the window.
+        lambda_obs_edges : numpy.ndarray
+            Edges of richness bins for the integration.
         z_true : numpy.ndarray
             True redshift to compute the window.
         lambda_true : numpy.ndarray
-            Values to be used for marginalization over true richness
+            Values to be used for marginalization over true richness.
+            If not provided computed internally to the function
 
         Returns
         -------
         window_z_obs : numpy.ndarray
-            Integral of P(z_obs|lambda_obs, z_true) in z_obs bins.
+            Integral of P(Delta_lambda_obs, Delta_z_obs| lambda_true, z_true) over lambda_true.
             Dimensions: (z_obs_bins, lambda_obs, z_true).
         """
 
         if lambda_true is None:
             lambda_true = np.linspace(5.0, 300.0, 50)
-        # Dimensions: (z_obs_bins, lambda_obs, z_true, lambda_true)
-        w_Dzob__lob_ztr_ltr = self.window_zob_given_lob_ztr_ltr(
-            z_obs_edges, lambda_obs, z_true, lambda_true
-        )
 
-        return simpson(w_Dzob__lob_ztr_ltr, x=lambda_true, axis=-1)
+        # Dimensions: (z_obs_bins, lambda_obs_bin, z_true, lambda_true)
+        w_Dzob_Dlob__ztr_ltr = self.window_z_lambda_observed(
+            z_obs_edges, lambda_obs_edges, z_true, lambda_true
+        )
+        return simpson(w_Dzob_Dlob__ztr_ltr, x=lambda_true, axis=-1)
 
     def window_lambda_observed(self, lambda_obs_edges, z_true, lambda_true):
         r"""Compute the window function of each observed richness bin, given by:
@@ -470,7 +477,7 @@ class AnalyticSelectionFunction:
         -------
         window_lambda_obs : numpy.ndarray
             Integral of P(lambda_obs|\lambda_{\rm true}, z_true) in lambda_obs bins.
-            Dimensions: (lambda_obs_edges-1, z_true, \lambda_{\rm true}).
+            Dimensions: (lambda_obs_edges-1, z_true, mass).
         """
 
         lambda_obs_bins_size = len(lambda_obs_edges) - 1
@@ -548,17 +555,6 @@ class AnalyticSelectionFunction:
                 f" ({len(self.lambda_tab_integ)}) setup!"
             )
 
-        lambda_obs_tabs = np.array(
-            [
-                np.linspace(
-                    lambda_obs_edges[i],
-                    lambda_obs_edges[i + 1],
-                    self.lambda_tab_integ[i],
-                )
-                for i in range(lambda_obs_bins_size)
-            ]
-        )
-
         # output: (z_obs_bins, lambda_obs_bins, z_true, lambda_true)
         window = np.zeros(
             (
@@ -570,7 +566,11 @@ class AnalyticSelectionFunction:
         )
 
         for i_lob in range(lambda_obs_bins_size):
-            lob_tab = lambda_obs_tabs[i_lob]  # (n_tab,)
+            lob_tab = np.linspace(
+                lambda_obs_edges[i_lob],
+                lambda_obs_edges[i_lob + 1],
+                self.lambda_tab_integ[i_lob],
+            )  # (n_tab,)
 
             # # w_zob at each lambda_obs quadrature point
             # # shape: (n_tab, z_obs_bins, z_true, lambda_true)
