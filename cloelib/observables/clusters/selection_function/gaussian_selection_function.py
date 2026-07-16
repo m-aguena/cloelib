@@ -108,7 +108,7 @@ class GaussianSelectionFunction:
             lambda_obs, lambda_true, self._scatter_lambda_obs(z, lambda_true)
         )
 
-    def scatter_z_obs(self, lambda_obs, z):
+    def scatter_z_obs(self, lambda_obs, z, lambda_true=None):
         r"""
         Statistical uncertainty on the observed redshift.
 
@@ -175,7 +175,7 @@ class GaussianSelectionFunction:
         -------
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_obs, z_true) in z_obs bins.
-            Dimensions: (z_obs_edges, lambda_obs_edges, z_true).
+            Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true).
         """
 
         z_obs_bins_size = len(z_obs_edges) - 1
@@ -186,7 +186,9 @@ class GaussianSelectionFunction:
 
         # reshape for multiplication
         _z_obs_tabs = z_obs_tabs[:, :, np.newaxis, np.newaxis]
-        _lambda_obs = lambda_obs_edges[np.newaxis, :-1, np.newaxis]
+        _lambda_obs = lambda_obs_edges[
+            np.newaxis, :-1, np.newaxis
+        ]  # The fact that is computing at the low edge of lambda_ob is wrong, it should be the center of the bin
         _z_true = z_true[np.newaxis, np.newaxis, :]
 
         # Window function
@@ -236,7 +238,7 @@ class GaussianSelectionFunction:
         -------
         window_lambda_obs : numpy.ndarray
             Integral of P(lambda_obs|\lambda_{\rm true}, z_true) in lambda_obs bins.
-            Dimensions: (lambda_obs_edges, z_true, \lambda_{\rm true}).
+            Dimensions: (lambda_obs_edges-1, z_true, mass).
         """
 
         lambda_obs_bins_size = len(lambda_obs_edges) - 1
@@ -282,7 +284,8 @@ class GaussianSelectionFunction:
             z_true, mass, lambda_true
         )
 
-        return simpson(
+        # return simpson(
+        return np.trapezoid(
             pdf_mass_richness_scaling[np.newaxis, :, :, :]  # (1, z, M, ltr)
             * windows_lambda_obs_lambda_true[:, :, np.newaxis, :],  # (lobs, z, 1, ltr)
             x=lambda_true,
@@ -327,29 +330,22 @@ class GaussianSelectionFunction:
         -------
         numpy.ndarray
             Window function for observed redshift and richness bins.
-            Dimensions: (z_obs_edges, lambda_obs_edges, z_true, mass)
+            Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, mass)
         """
-        # Dimensions: (z, M, lambda_true)
-        pdf_mass_richness_scaling = self.halo_mass_observable.pdf_richness(
-            z_true, mass, lambda_true
-        )
-        # Dimensions: (z_obs_edges, lambda_obs_edges, z_true, lambda_true)
+
+        # Dimensions: (z_obs_edges, lambda_obs_edges, z_true, mass)
         window_lambda_true = (
             # Dimensions: (z_obs_edges, lambda_obs_edges, z_true, 1).
             self.window_z_observed(z_obs_edges, lambda_obs_edges, z_true)[
                 :, :, :, np.newaxis
             ]
-            # Dimensions: (1, lambda_obs_edges, z_true, lambda_true)
+            # Dimensions: (1, lambda_obs_edges, z_true, M)
             * self.window_richness_observed(
                 lambda_obs_edges,
                 z_true,
-                lambda_true,
                 mass,
+                lambda_true,
             )[np.newaxis, :, :, :]
         )
-        return simpson(
-            pdf_mass_richness_scaling[np.newaxis, np.newaxis, :, :, :]
-            * window_lambda_true[:, :, :, np.newaxis, :],
-            x=lambda_true,
-            axis=-1,
-        )
+
+        return window_lambda_true

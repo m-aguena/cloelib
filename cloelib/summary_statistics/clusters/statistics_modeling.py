@@ -1,11 +1,3 @@
-"""
-
-## Notes :
-
-- Cluster statistics modeling
-
-"""
-
 # General imports
 import numpy as np
 from scipy.integrate import simpson
@@ -15,6 +7,14 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_abundance import HaloAbundance
 
 # import jax
+
+"""
+
+## Notes :
+
+- Cluster statistics modeling
+
+"""
 
 
 class ClusterStatisticsModeling:
@@ -181,6 +181,41 @@ class ClusterStatisticsModeling:
             self.tabulated_integrands["lambda_true"],
         )
 
+    def window_redshift_richness_observed(
+        self, selection_function, z_obs_edges, lambda_obs_edges
+    ):
+        r"""Compute the window function of each observed richness and redhisft bin, given by:
+
+        ..math:
+            W_{\Delta\lambda_{\rm obs},\Delta\z_{\rm obs}}(M, z_{\rm true}) =
+            \int_{\Delta z_{\rm obs}}dz_{\rm obs}
+            \int_{\Delta\lambda_{\rm obs}}d\lambda_{\rm obs}
+            P(\lambda_{\rm obs}, z_{\rm obs}|M, z_{\rm true})
+
+        Parameters
+        ----------
+        selection_function : SelectionFunction
+            Selection function object
+        lambda_obs_edges : numpy.ndarray
+            Edges of richness bins for the integration.
+        z_obs_edges : numpy.ndarray
+            Edges of redshift bins for the integration.
+
+        Returns
+        -------
+        numpy.ndarray
+            Window function for observed redshift and richness bins.
+            Dimensions: (z_obs_bins, lambda_obs_bins, z_true, mass).
+        """
+
+        return selection_function.window_redshift_richness_observed(
+            z_obs_edges,
+            lambda_obs_edges,
+            self.tabulated_integrands["ztrue"],
+            self.tabulated_integrands["M"],
+            self.tabulated_integrands["lambda_true"],
+        )
+
     # ---------------------
     # integration functions
     # ---------------------
@@ -228,7 +263,9 @@ class ClusterStatisticsModeling:
             kernel * self.tabulated_integrands["dk"]
         )
 
-    def integrate_probe_function_in_mass(self, probe_function, window_lambda_obs):
+    def integrate_probe_function_in_mass(
+        self, probe_function, window_redshift_lambda_obs
+    ):
         """Integrate over mass convolving with the halo mass function.
 
         Parameters
@@ -236,41 +273,40 @@ class ClusterStatisticsModeling:
         probe_function : numpy.ndarray
             Kernel to be integrated in mass and convoluted with observed richness bins.
             Must be dimension (ztrue, M, ...) with (ztrue, M) from self.tabulated_integrands.
-        window_lambda_obs : numpy.ndarray
-            Integral of P(lambda_obs|M, ztrue) in lambda_obs bins,
+        window_redshift_richness_obs : numpy.ndarray
+            Window function for observed redshift and richness bins,
+            W(lambda_true,z_true|lambda_ob_bin_i,z_ob_bin_j),
+            convolved with P(lambda_true|M,ztrue),
             where (M, ztrue) are the values in self.tabulated_integrands.
-            Dimensions: (lambda_obs, ztrue, M)
+            Dimensions: (z_obs_bins, lambda_obs_bins, z_true, mass)
 
         Returns
         -------
         integrated_probe_function : numpy.ndarray
             Quantity integrated in mass with the halo mass function and convoluted
-            with observed richness bins. Dimension (lambda_obs, ztrue, ...),
+            with observed richness bins. Dimension (z_obs_bins, lambda_obs_bins, z_true),
             with (ztrue) from self.tabulated_integrands.
         """
         # Add lambda_obs_edges dimension to probe_function
-        _probe_function = probe_function[np.newaxis, ...]
+        _probe_function = probe_function[np.newaxis, np.newaxis, ...]
 
         # to make window_lambda_obs, hmf same shape as probe_function
-        extra_axes = tuple(range(3, 3 + len(_probe_function.shape[3:])))
-
-        # reshape window_lambda_obs
-        _window_lambda_obs = np.expand_dims(window_lambda_obs, axis=extra_axes)
+        extra_axes = tuple(range(4, 4 + len(_probe_function.shape[4:])))
 
         # reshape HMF
         _hmf = np.expand_dims(
-            self.tabulated_integrands["dn/dM(ztrue,M)"], axis=(0, *extra_axes)
+            self.tabulated_integrands["dn/dM(ztrue,M)"], axis=(0, 1, *extra_axes)
         )
-
-        # integral of P(lambda_obs|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs_edges, z)
+        # integral of P(lambda_obs_bin_i,z_ob_bin_j|M, z)*dn/dM(M,z) over mass
+        # Dimension: (z_obs_bins, lambda_obs_bins, z_true)
         integrated_probe_function = simpson(
-            _probe_function * _hmf * _window_lambda_obs,
+            _probe_function * _hmf * window_redshift_lambda_obs,
             x=self.tabulated_integrands["M"],
-            axis=2,
+            axis=3,
         )
         return integrated_probe_function
 
-    def integrate_probe_function_in_redshift(self, probe_function, window_z_obs):
+    def integrate_probe_function_in_redshift(self, probe_function):
         """Integrate in true volume dv/dz(ztrue) a probe_function that has been
         binned in observed richness, in each observed redsfhit bin.
 
@@ -279,11 +315,7 @@ class ClusterStatisticsModeling:
         probe_function : numpy.ndarray
             Kernel binned in observed richness to be integrated in true redshift, and
             convoluted with observed redshift bins. Must be dimension
-            (lambda_obs, ztrue, ...) with (ztrue) from self.tabulated_integrands.
-        window_z_obs : numpy.ndarray
-            Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins,
-            where (ztrue) are the values in self.tabulated_integrands.
-            Dimensions: (z_obs, lambda_obs, ztrue, ...) with (ztrue) in tabulated_integrands.
+            (z_obs, lambda_obs, ztrue, ...) with (ztrue) from self.tabulated_integrands.
 
         Returns
         -------
@@ -291,14 +323,9 @@ class ClusterStatisticsModeling:
             Quantity integrated in true redshift for each observed bin.
             Dimension (z_obs, lambda_obs, ...).
         """
-        # Add z_obs_edges dimension to probe_function
-        _probe_function = probe_function[np.newaxis, ...]
 
-        # to make window_z_obs, dvdz same shape as probe_function
-        extra_axes = tuple(range(3, 3 + len(_probe_function.shape[3:])))
-
-        # reshape window_z_obs
-        _window_z_obs = np.expand_dims(window_z_obs, axis=extra_axes)
+        # to make dvdz same shape as probe_function
+        extra_axes = tuple(range(3, 3 + len(probe_function.shape[3:])))
 
         # reshape dvdz
         _dvdz = np.expand_dims(
@@ -307,7 +334,7 @@ class ClusterStatisticsModeling:
 
         # output : (z_obs, lambda_obs_edges)
         integrated_probe_function = simpson(
-            _probe_function * _dvdz * _window_z_obs,
+            probe_function * _dvdz,
             x=self.tabulated_integrands["ztrue"],
             axis=2,
         )
