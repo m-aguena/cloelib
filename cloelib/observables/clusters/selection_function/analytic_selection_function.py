@@ -206,7 +206,7 @@ class AnalyticSelectionFunction:
         """
         return (
             self.tau_lambda_norm + self.tau_lambda_z * z
-        ) / lambda_true**self.tau_lambda_exponent
+        ) * lambda_true**self.tau_lambda_exponent
 
     def _fprj_lambda_obs(self, z, lambda_true):
         r"""
@@ -436,7 +436,7 @@ class AnalyticSelectionFunction:
             lambda_true = np.linspace(5.0, 300.0, 50)
 
         # Dimensions: (z_obs_bins, lambda_obs_bin, z_true, lambda_true)
-        w_Dzob_Dlob__ztr_ltr = self.window_z_lambda_observed(
+        w_Dzob_Dlob__ztr_ltr = self.window_redshift_lambda_observed(
             z_obs_edges, lambda_obs_edges, z_true, lambda_true
         )
         return simpson(w_Dzob_Dlob__ztr_ltr, x=lambda_true, axis=-1)

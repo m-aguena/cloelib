@@ -59,7 +59,7 @@ def _get_test_analytic_sf():
         # exponential tail slope
         tau_lambda_norm=0.23,
         tau_lambda_z=0.0,
-        tau_lambda_exponent=0.22,
+        tau_lambda_exponent= - 0.22,
         # projected cluster fraction
         fprj_lambda_norm=0.04,
         fprj_lambda_z=-0.03,
