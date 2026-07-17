@@ -65,7 +65,7 @@ def _get_test_analytic_sf():
         fprj_lambda_z=-0.03,
         fprj_lambda_exponent=0.02,
         # scatter in z_obs
-        sig_z_exponent=-0.26,
+        sig_z_lambda_exponent=-0.26,
         sig_z_lambda_norm=0.0186,
         sig_z_z_norm=0.006,
         # quadrature
