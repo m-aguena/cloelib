@@ -6,7 +6,10 @@ from scipy.special import spherical_jn
 from cloelib.cosmology.cosmology import Background
 from cloelib.observables.clusters.auxiliary import (
     isotropic_volume_distance,
+    photoz_rsd_amplitude,
     photoz_rsd_correction,
+    photoz_rsd_hexadecapole_correction,
+    photoz_rsd_quadrupole_correction,
     tophat_window,
 )
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
@@ -65,6 +68,44 @@ class HaloClusteringCore:
 
         shell_volume = 4.0 * np.pi / 3.0 * np.diff(r_z[:, :, 0] ** 3, axis=1)
 
+        return shell_window, shell_volume
+
+    def radial_shell_quadrupole_window_and_volume(
+        self, z: np.ndarray, k: np.ndarray, r: np.ndarray, n_quad: int = 32
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute the shell-averaged quadrupole window and shell volume."""
+        return self.radial_shell_multipole_window_and_volume(z, k, r, 2, n_quad)
+
+    def radial_shell_hexadecapole_window_and_volume(
+        self, z: np.ndarray, k: np.ndarray, r: np.ndarray, n_quad: int = 32
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute the shell-averaged hexadecapole window and shell volume."""
+        return self.radial_shell_multipole_window_and_volume(z, k, r, 4, n_quad)
+
+    def radial_shell_multipole_window_and_volume(
+        self, z: np.ndarray, k: np.ndarray, r: np.ndarray, ell: int, n_quad: int = 32
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute a shell-averaged spherical-Bessel window and shell volume."""
+        r_z = self.alcock_paczynski_correction_factor(z)[:, np.newaxis] * r
+        nodes, weights = np.polynomial.legendre.leggauss(n_quad)
+        shell_window = np.empty((z.size, r.size - 1, k.size))
+
+        for i in range(r.size - 1):
+            r_nodes = 0.5 * (
+                (r_z[:, i + 1] - r_z[:, i])[:, np.newaxis] * nodes
+                + (r_z[:, i + 1] + r_z[:, i])[:, np.newaxis]
+            )
+            integral = 0.5 * (r_z[:, i + 1] - r_z[:, i])[:, np.newaxis] * np.sum(
+                weights[np.newaxis, :, np.newaxis]
+                * r_nodes[:, :, np.newaxis] ** 2
+                * spherical_jn(ell, r_nodes[:, :, np.newaxis] * k),
+                axis=1,
+            )
+            shell_window[:, i] = 3.0 * integral / (
+                r_z[:, i + 1] ** 3 - r_z[:, i] ** 3
+            )[:, np.newaxis]
+
+        shell_volume = 4.0 * np.pi / 3.0 * np.diff(r_z**3, axis=1)
         return shell_window, shell_volume
 
     # cosmo correction (isotropic AP)
@@ -149,6 +190,54 @@ class HaloClusteringCore:
         )
 
         return photoz_halo_corr
+
+    def photoz_rsd_halo_quadrupole_correction(
+        self, z, k, z_obs_scatter, b_eff
+    ):
+        """Compute the photo-z and RSD halo correction for the quadrupole."""
+        if z_obs_scatter.shape != b_eff.shape:
+            raise ValueError(
+                f"Shape of z_obs_scatter {z_obs_scatter.shape} must be"
+                f" the same as b_eff {b_eff.shape}"
+            )
+
+        corr0, corr1, corr2 = photoz_rsd_quadrupole_correction(
+            self.matter_statistics.background, z, k, z_obs_scatter
+        )
+        bias = b_eff[:, np.newaxis]
+        return corr0 * bias**2 + corr1 * bias + corr2
+
+    def photoz_rsd_halo_hexadecapole_correction(
+        self, z, k, z_obs_scatter, b_eff
+    ):
+        """Compute the photo-z and RSD halo correction for the hexadecapole."""
+        if z_obs_scatter.shape != b_eff.shape:
+            raise ValueError(
+                f"Shape of z_obs_scatter {z_obs_scatter.shape} must be"
+                f" the same as b_eff {b_eff.shape}"
+            )
+
+        corr0, corr1, corr2 = photoz_rsd_hexadecapole_correction(
+            self.matter_statistics.background, z, k, z_obs_scatter
+        )
+        bias = b_eff[:, np.newaxis]
+        return corr0 * bias**2 + corr1 * bias + corr2
+
+    def photoz_rsd_halo_amplitude(self, z, k, z_obs_scatter, b_eff, mu):
+        """Compute the halo redshift-space amplitude at fixed mu."""
+        if z_obs_scatter.shape != b_eff.shape:
+            raise ValueError(
+                f"Shape of z_obs_scatter {z_obs_scatter.shape} must be"
+                f" the same as b_eff {b_eff.shape}"
+            )
+        return photoz_rsd_amplitude(
+            self.matter_statistics.background,
+            z,
+            k,
+            z_obs_scatter,
+            b_eff,
+            mu,
+        )
 
     # IR resummation of the bao wiggles in the Pk
     # not in use currently

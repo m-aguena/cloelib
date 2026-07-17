@@ -2,7 +2,7 @@
 
 import numpy as np
 from astropy import units as ap_units
-from scipy.special import erf
+from scipy.special import hyp1f1
 
 from cloelib.auxiliary import units
 
@@ -126,31 +126,130 @@ def photoz_rsd_correction(
     z_obs_scatter: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute the correction that accounts for photo-z uncertainty and RSD (Kaiser effect),
-    from `(Kaiser (1987)) <(https://doi.org/10.1093/mnras/227.1.1>`_.
+    Compute the photo-z and RSD correction terms for the monopole.
 
     Parameters
     ----------
-    background: Background
-        Background class containing cosmology
-    k:  np.ndarray
-        wavenumber
-    z:  np.ndarray
-        redshift
-    z_obs_scatter: float, numpy.ndarray
-        Observed redshift scatter. If array, first dimension must be z.
+    background : Background
+        Background cosmology.
+    z : np.ndarray
+        Redshift.
+    k : np.ndarray
+        Wavenumber in h Mpc^{-1}.
+    z_obs_scatter : float, np.ndarray
+        Observed redshift scatter. If array, its first dimension
+        must correspond to redshift.
 
     Returns
     -------
-    corr0, corr1, corr2: np.ndarray
-        Correction terms to the power spectrum monopole
-        Shape (z.size, k.size, other dimensions of z_obs_scatter)
+    corr0, corr1, corr2 : np.ndarray
+        Monopole correction terms with shape
+        (z.size, k.size, ...).
     """
     ks = np.atleast_1d(k)
     zs = np.atleast_1d(z)
-    z_obs_scatter_arr = np.array(z_obs_scatter)
+    scatter = np.asarray(
+        z_obs_scatter
+    )
 
-    # growth rate and scaled k, shape (z.size, k.size)
+    f_gr = (
+        background.Omega_cb(zs) ** 0.55
+    )[:, np.newaxis]
+
+    ks_z = (
+        ks[np.newaxis, :]
+        * (
+            units.SPEED_OF_LIGHT
+            * 1.0e-3
+        )
+        / background.hubble_parameter(
+            zs
+        )[:, np.newaxis]
+        * (
+            background.H0
+            / 100.0
+        )
+    )
+
+    if scatter.ndim > 1:
+        extra_axes = tuple(
+            range(
+                2,
+                scatter.ndim + 1,
+            )
+        )
+
+        f_gr = np.expand_dims(
+            f_gr,
+            axis=extra_axes,
+        )
+
+        ks_z = np.expand_dims(
+            ks_z,
+            axis=extra_axes,
+        )
+
+    if scatter.ndim > 0:
+        scatter = scatter[
+            :,
+            np.newaxis,
+            ...,
+        ]
+
+    x = (
+        ks_z
+        * scatter
+    ) ** 2
+
+    moment0 = hyp1f1(
+        0.5,
+        1.5,
+        -x,
+    )
+
+    moment1 = (
+        hyp1f1(
+            1.5,
+            2.5,
+            -x,
+        )
+        / 3.0
+    )
+
+    moment2 = (
+        hyp1f1(
+            2.5,
+            3.5,
+            -x,
+        )
+        / 5.0
+    )
+
+    corr0 = moment0
+    corr1 = (
+        2.0
+        * f_gr
+        * moment1
+    )
+    corr2 = (
+        f_gr**2
+        * moment2
+    )
+
+    return corr0, corr1, corr2
+
+
+def photoz_rsd_quadrupole_correction(
+    background,
+    z: np.ndarray,
+    k: np.ndarray,
+    z_obs_scatter: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Compute the photo-z and RSD correction terms for the quadrupole."""
+    ks = np.atleast_1d(k)
+    zs = np.atleast_1d(z)
+    scatter = np.asarray(z_obs_scatter)
+
     f_gr = (background.Omega_cb(zs) ** 0.55)[:, np.newaxis]
     ks_z = (
         ks[np.newaxis, :]
@@ -159,40 +258,87 @@ def photoz_rsd_correction(
         * (background.H0 / 100)
     )
 
-    # check if z_obs_scatter has more dimensions
-    ndim_z_obs_scatter = len(z_obs_scatter_arr.shape)
-    if ndim_z_obs_scatter > 1:
-        # if it does, add them to f_gr, ks_z
-        extra_axes = tuple(range(2, ndim_z_obs_scatter + 1))
+    if scatter.ndim > 1:
+        extra_axes = tuple(range(2, scatter.ndim + 1))
         f_gr = np.expand_dims(f_gr, axis=extra_axes)
         ks_z = np.expand_dims(ks_z, axis=extra_axes)
-    if ndim_z_obs_scatter > 0:
-        # if z_obs_scatter is array, add k dimention in 2nd place
-        z_obs_scatter_arr = z_obs_scatter_arr[:, np.newaxis, ...]
+    if scatter.ndim > 0:
+        scatter = scatter[:, np.newaxis, ...]
 
-    # multiply by scatter
-    ks_z = ks_z * z_obs_scatter_arr
+    x = (ks_z * scatter) ** 2
+    moments = [hyp1f1(n + 0.5, n + 1.5, -x) / (2 * n + 1) for n in range(4)]
 
-    erf_ks = erf(ks_z)
-
-    corr0 = np.sqrt(np.pi) / (2 * ks_z) * erf_ks
-    corr1 = f_gr / ks_z**3 * (np.sqrt(np.pi) / 2 * erf_ks - ks_z * np.exp(-(ks_z**2)))
-    corr2 = (
-        f_gr**2
-        / ks_z**5
-        * (
-            3 * np.sqrt(np.pi) / 8 * erf_ks
-            - ks_z / 4 * (2 * ks_z**2 + 3) * np.exp(-(ks_z**2))
-        )
-    )
-
-    # correct for numerical inaccuracy
-    # note: for jax, use corr1 = corr1.at[idx].set(2 / 3.0)
-    idx = erf_ks < 0.02
-    corr1[idx] = 2 / 3.0
-    corr2[idx] = 1 / 5.0
+    corr0 = 2.5 * (3 * moments[1] - moments[0])
+    corr1 = 5.0 * f_gr * (3 * moments[2] - moments[1])
+    corr2 = 2.5 * f_gr**2 * (3 * moments[3] - moments[2])
 
     return corr0, corr1, corr2
+
+
+def photoz_rsd_hexadecapole_correction(
+    background,
+    z: np.ndarray,
+    k: np.ndarray,
+    z_obs_scatter: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Compute the photo-z and RSD correction terms for the hexadecapole."""
+    ks = np.atleast_1d(k)
+    zs = np.atleast_1d(z)
+    scatter = np.asarray(z_obs_scatter)
+
+    f_gr = (background.Omega_cb(zs) ** 0.55)[:, np.newaxis]
+    ks_z = (
+        ks[np.newaxis, :]
+        * (units.SPEED_OF_LIGHT * 1e-3)
+        / background.hubble_parameter(zs)[:, np.newaxis]
+        * (background.H0 / 100)
+    )
+
+    if scatter.ndim > 1:
+        extra_axes = tuple(range(2, scatter.ndim + 1))
+        f_gr = np.expand_dims(f_gr, axis=extra_axes)
+        ks_z = np.expand_dims(ks_z, axis=extra_axes)
+    if scatter.ndim > 0:
+        scatter = scatter[:, np.newaxis, ...]
+
+    x = (ks_z * scatter) ** 2
+    moments = [hyp1f1(n + 0.5, n + 1.5, -x) / (2 * n + 1) for n in range(5)]
+
+    corr0 = 9.0 / 8.0 * (35 * moments[2] - 30 * moments[1] + 3 * moments[0])
+    corr1 = 9.0 / 4.0 * f_gr * (
+        35 * moments[3] - 30 * moments[2] + 3 * moments[1]
+    )
+    corr2 = 9.0 / 8.0 * f_gr**2 * (
+        35 * moments[4] - 30 * moments[3] + 3 * moments[2]
+    )
+
+    return corr0, corr1, corr2
+
+
+def photoz_rsd_amplitude(background, z, k, z_obs_scatter, b_eff, mu):
+    """Compute the redshift-space halo amplitude at fixed line-of-sight angle."""
+    ks = np.atleast_1d(k)
+    zs = np.atleast_1d(z)
+    scatter = np.asarray(z_obs_scatter)
+    bias = np.asarray(b_eff)
+
+    f_gr = (background.Omega_cb(zs) ** 0.55)[:, np.newaxis]
+    ks_z = (
+        ks[np.newaxis, :]
+        * (units.SPEED_OF_LIGHT * 1e-3)
+        / background.hubble_parameter(zs)[:, np.newaxis]
+        * (background.H0 / 100)
+    )
+
+    if scatter.ndim > 1:
+        extra_axes = tuple(range(2, scatter.ndim + 1))
+        f_gr = np.expand_dims(f_gr, axis=extra_axes)
+        ks_z = np.expand_dims(ks_z, axis=extra_axes)
+    if scatter.ndim > 0:
+        scatter = scatter[:, np.newaxis, ...]
+        bias = bias[:, np.newaxis, ...]
+
+    return (bias + f_gr * mu**2) * np.exp(-0.5 * (ks_z * scatter * mu) ** 2)
 
 
 def tophat_window(kr):

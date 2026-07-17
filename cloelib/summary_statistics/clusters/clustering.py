@@ -190,6 +190,132 @@ class ClusterClustering:
         }
         return cluster_clustering, intermediate_integration_products
 
+    def get_xi2(
+        self,
+        z_obs_edges,
+        lambda_obs_edges,
+        radius_edges,
+        return_intermediate_products=True,
+        n_mu=32,
+    ):
+        """Compute the shell-averaged halo correlation-function quadrupole."""
+        return self._get_xil(
+            2,
+            z_obs_edges,
+            lambda_obs_edges,
+            radius_edges,
+            return_intermediate_products,
+            n_mu,
+        )
+
+    def get_xi4(
+        self,
+        z_obs_edges,
+        lambda_obs_edges,
+        radius_edges,
+        return_intermediate_products=True,
+        n_mu=32,
+    ):
+        """Compute the shell-averaged halo correlation-function hexadecapole."""
+        return self._get_xil(
+            4,
+            z_obs_edges,
+            lambda_obs_edges,
+            radius_edges,
+            return_intermediate_products,
+            n_mu,
+        )
+
+    def _get_xil(
+        self,
+        ell,
+        z_obs_edges,
+        lambda_obs_edges,
+        radius_edges,
+        return_intermediate_products,
+        n_mu,
+    ):
+        window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
+            self.selection_function, z_obs_edges, lambda_obs_edges
+        )
+        window_lambda_obs = (
+            self.cluster_statitstics_modeling.window_richness_observed(
+                self.selection_function, lambda_obs_edges
+            )
+        )
+        number_density = self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
+            np.ones((1, 1)), window_lambda_obs
+        )
+        bias_density = self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
+            self.cluster_statitstics_modeling.tabulated_integrands["bias(ztrue,M)"],
+            window_lambda_obs,
+        )
+        cluster_counts = (
+            self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
+                number_density, window_z_obs
+            )
+        )
+
+        z = self.cluster_statitstics_modeling.tabulated_integrands["ztrue"]
+        k = self.cluster_statitstics_modeling.tabulated_integrands["k"]
+        z_obs_scatter = self.selection_function.scatter_z_obs(
+            0.5 * (lambda_obs_edges[1:] + lambda_obs_edges[:-1])[np.newaxis, :],
+            z[:, np.newaxis],
+        )
+        b_eff = (bias_density / number_density).T
+
+        mu, weights = np.polynomial.legendre.leggauss(n_mu)
+        pk_mean_values = 0.0
+        legendre_coefficients = [0.0] * ell + [1.0]
+
+        for mu_i, weight in zip(mu, weights):
+            amplitude = self.clustering.power_spectrum_RSD_amplitude(
+                z, k, z_obs_scatter, b_eff, mu_i
+            ).transpose(2, 0, 1)
+            amplitude = (
+                self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
+                    amplitude * number_density[:, :, np.newaxis], window_z_obs
+                )
+                / cluster_counts[:, :, np.newaxis]
+            )
+            pk_mean_values += (
+                0.5
+                * (2 * ell + 1)
+                * weight
+                * np.polynomial.legendre.legval(mu_i, legendre_coefficients)
+                * amplitude[:, :, np.newaxis, :]
+                * amplitude[:, np.newaxis, :, :]
+            )
+
+        radial_shell_window, radial_shell_volume = (
+            self.clustering.core.radial_shell_multipole_window_and_volume(
+                0.5 * (z_obs_edges[1:] + z_obs_edges[:-1]),
+                k,
+                radius_edges,
+                ell,
+            )
+        )
+        xi = self.cluster_statitstics_modeling.integrate_probe_function_in_dk(
+            (-1) ** (ell // 2)
+            * radial_shell_window[:, np.newaxis, np.newaxis, :, :]
+            * pk_mean_values[:, :, :, np.newaxis, :]
+        )
+
+        triangle_indexes = np.triu_indices(len(lambda_obs_edges) - 1)
+        cluster_multipole = xi[:, triangle_indexes[0], triangle_indexes[1], :]
+
+        if not return_intermediate_products:
+            return cluster_multipole
+
+        intermediate_integration_products = {
+            f"pk{ell}_mean_values": pk_mean_values,
+            "radial_shell_window": radial_shell_window,
+            "radial_shell_volume": radial_shell_volume,
+            "cluster_counts": cluster_counts,
+            "window_z_obs": window_z_obs,
+        }
+        return cluster_multipole, intermediate_integration_products
+
     # ----------------------
     # clustering covariance
     # ----------------------
