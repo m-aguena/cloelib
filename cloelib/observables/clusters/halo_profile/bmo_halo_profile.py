@@ -128,7 +128,7 @@ class BMOHaloProfile:
         c: float
             Concentration.
         tau : float
-            Truncation factor.
+            Truncation factor multiplied by concentration.
 
         Returns
         -------
