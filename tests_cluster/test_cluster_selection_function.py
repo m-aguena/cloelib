@@ -9,6 +9,7 @@ from cloelib.observables.clusters.halo_mass_observable import (
 from cloelib.observables.clusters.selection_function import (
     GaussianSelectionFunction,
     NumericalSelectionFunction,
+    AnalyticSelectionFunction,
 )
 
 
@@ -35,6 +36,47 @@ def _get_test_gaussian_sf():
         ),
         lambda_tab_integ=[31, 31, 31, 51],
         z_tab_integ=31,
+    )
+
+def _get_test_analytic_sf():
+    _lambda_true_dist_pars = dict(
+        A_l=52.0,
+        B_l=0.9,
+        C_l=0.5,
+        sig_A_l=0.2,
+        sig_B_l=-0.05,
+        sig_C_l=0.001,
+    )
+    _sel_pars = dict(
+        # scatter in lambda_obs
+        sig_lambda_norm=0.21,
+        sig_lambda_z=0.0,
+        sig_lambda_exponent=0.54,
+        # mean of lambda_obs
+        mu_lambda_norm=0.65,
+        mu_lambda_z=0.056,
+        mu_lambda_0=17.6,
+        # exponential tail slope
+        tau_lambda_norm=0.23,
+        tau_lambda_z=0.0,
+        tau_lambda_exponent= - 0.22,
+        # projected cluster fraction
+        fprj_lambda_norm=0.04,
+        fprj_lambda_z=-0.03,
+        fprj_lambda_exponent=0.02,
+        # scatter in z_obs
+        sig_z_lambda_exponent=-0.26,
+        sig_z_lambda_norm=0.0186,
+        sig_z_z_norm=0.006,
+        # quadrature
+        z_tab_integ=41,
+        lambda_tab_integ=[51],
+    )
+    return AnalyticSelectionFunction(
+        **_sel_pars,
+        halo_mass_observable=LognormalPowerLawHaloMassObservable(
+            **_lambda_true_dist_pars
+        ),
     )
 
 
@@ -263,3 +305,68 @@ def test_interpolated_selectionfunction_compare_with_gauss():
     # compare non zeros
     print(f"nz: {(~_zeros).sum():}")
     assert_allclose(wf_g[~_zeros], wf_n[~_zeros], rtol=1e-100)
+
+def test_analytical_selectionfunction_compare_with_tabulated_values():
+    
+    sf = _get_test_analytic_sf()
+
+    z_obs_edges      = np.array([0.5, 0.8])
+    lambda_obs_edges = np.array([40., 55.])
+    z_true           = np.arange(0.05, 1.05, 0.1)
+    lambda_true      = np.geomspace(5, 300, 50)
+    mass             = np.array([5.0e13, 1.0e14, 5.0e14])
+
+    # --- test window_redshift_richness_observed_given_lambda_true ---
+    wf_ltr = sf.window_redshift_lambda_observed(
+        z_obs_edges=z_obs_edges,
+        lambda_obs_edges=lambda_obs_edges,
+        z_true=z_true,
+        lambda_true=lambda_true,
+    )
+    # shape: (z_obs_bins, lambda_obs_bins, z_true, lambda_true) = (1, 1, 10, 50)
+    assert wf_ltr.shape == (1, 1, z_true.size, lambda_true.size), (
+        f"unexpected shape {wf_ltr.shape}"
+    )
+
+    # reference values at fixed (z_obs_bin=0, lambda_obs_bin=0, z_true[::3], lambda_true[::10])
+    wf_ltr_ref = np.array([[5.39475954e-060, 1.33203968e-137, 0.00000000e+000,
+        0.00000000e+000, 0.00000000e+000],
+       [1.07678194e-005, 2.06252565e-006, 2.17363812e-011,
+        8.09177270e-052, 1.00565778e-193],
+       [5.46648627e-005, 4.37501366e-004, 3.03891514e-003,
+        8.95067306e-001, 1.25435837e-044],
+       [2.35447974e-005, 6.65519003e-005, 5.69578591e-006,
+        5.95520128e-028, 9.69293555e-205]])
+    assert_allclose(wf_ltr[0, 0, ::3, ::10], wf_ltr_ref, atol=1e-6)
+
+    # sanity check: values should be in [0,1]
+    assert np.all(wf_ltr >= 0.), "window_redshift_lambda_observed has negative values"
+
+    # --- test window_redshift_richness_observed ---
+    wf = sf.window_redshift_richness_observed(
+        z_obs_edges=z_obs_edges,
+        lambda_obs_edges=lambda_obs_edges,
+        z_true=z_true,
+        mass=mass,
+        lambda_true=None,
+    )
+    # shape: (z_obs_bins, lambda_obs_bins, z_true, mass) = (1, 1, 10, 3)
+    assert wf.shape == (1, 1, z_true.size, mass.size), (
+        f"unexpected shape {wf.shape}"
+    )
+
+    # reference values at fixed (z_obs_bin=0, lambda_obs_bin=0)
+    # i.e. wf[0, 0, :, :] shape (z_true, mass) — replace with your actual reference values
+    wf_ref = np.array([[7.61599845e-036, 4.25536494e-045, 1.68165627e-110],
+       [4.25648499e-006, 2.61380513e-007, 2.64930039e-020],
+       [4.94060244e-004, 2.07331459e-003, 2.71621975e-001],
+       [5.74158191e-005, 2.31162812e-005, 7.68118646e-015]]
+    )
+
+    assert_allclose(wf[0,0,::3,:], wf_ref, atol=1.0e-5)
+
+    # sanity check: values should be non-negative
+    assert np.all(wf >= 0.), "window_redshift_richness_observed has negative values"
+if __name__ == "__main__":
+    print("Comparison with Analytic SF")
+    test_analytical_selectionfunction_compare_with_tabulated_values()
