@@ -134,7 +134,7 @@ class HaloProfileCore:
             )
         return np.argmax(mask)
 
-    def n_zs_norM(self, z, idx):
+    def n_zs_norM(self, z, idx, Delta_z=0.05):
         r"""
         Galaxy number density normalization.
 
@@ -145,7 +145,11 @@ class HaloProfileCore:
         idx: int
             Index into mean_nz/sigma_nz/alpha_nz for the tomographic bin,
             as returned by `_get_tomo_bin_index`.
-
+        Delta_z: float, optional
+            Redshift buffer defining the lower edge of the source integration
+            range, z_s > z + Delta_z. Sources within Delta_z of the cluster
+            are excluded to avoid contamination from cluster-member/foreground
+            galaxies scattered into the source sample.
         Returns
         -------
         n_zs_norM: float or np.ndarray
@@ -159,7 +163,7 @@ class HaloProfileCore:
                 self.sigma_nz[idx],
             )
             - skewnorm.cdf(
-                z,
+                z+ Delta_z,
                 self.alpha_nz[idx],
                 self.mean_nz[idx],
                 self.sigma_nz[idx],
@@ -206,22 +210,22 @@ class HaloProfileCore:
         idx: int
             Index into mean_nz/sigma_nz/alpha_nz for the tomographic bin,
             as returned by `_get_tomo_bin_index`.
-
+        Delta_z: float, optional
+            Redshift buffer defining the lower edge of the source integration
+            range, z_s > z + Delta_z. Sources within Delta_z of the cluster
+            are excluded to avoid contamination from cluster-member/foreground
+            galaxies scattered into the source sample.
+        z_grid_size: int, optional
+            Number of source-redshift grid points used for the quadrature
         Returns
         -------
         m_sigma_crit_m1: float
             Effective inverse critical surface mass density (units : pc^2 / Msun / h)
         """
-        # z_s is temporarily hard-coded
-        # z_s = np.linspace(z + 1.0e-10, self.zs_max, len(self.z), axis=1)
-        # sig_crit_m1 = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s)
-
-        # return self.nzsnorM[zbin] * simpson(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
-
         z_s = np.linspace(z + Delta_z, self.zs_max, z_grid_size, axis=1) 
         z_s[z_s>=self.zs_max]=self.zs_max-1.0e-5 # the last term is to avoid problem with the normalization n_zs_norM. It can be removed setting zs_max higer than max z (i.e. z_true)
         sig_crit_m1 = self.n_zs(z_s,idx) * 1.0 / self.sigma_crit(z, z_s)
-        return self.n_zs_norM(z,idx) * simpson(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
+        return self.n_zs_norM(z, idx, Delta_z,) * simpson(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
 
 
     def surface_mass_density_args(self, R, z, M, radius_units="Mpc/h"):

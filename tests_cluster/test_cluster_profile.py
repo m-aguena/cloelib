@@ -89,8 +89,7 @@ def _test_profile(profile, reference_vals):
     M_test = np.array([5e14])
     c_test = 4.0
     z_sources_test = np.linspace(0.6, 1, 5)
-    zbin_test = 1
-
+    mean_z_cl_test = np.linspace(0.2, 1.0, 4)
     HS = _get_matter_statistics()
     castro = _get_castro()
     halo_bias = castro.bias(z_test, M_test)
@@ -100,10 +99,13 @@ def _test_profile(profile, reference_vals):
         profile.core.sigma_crit(z_test, z_sources_test)[0],
         **reference_vals["sigma_crit"],
     )
+    idx = np.array([profile.core._get_tomo_bin_index(mean_z_cl_test[i]) for i in range(mean_z_cl_test.size)])
     print("    n_zs_norM")
-    assert_allclose(profile.core.n_zs_norM(z_test), **reference_vals["n_zs_norM"])
+    n_zs_norMs = np.array([profile.core.n_zs_norM(mean_z_cl_test[i],idx[i]) for i in range(mean_z_cl_test.size)])
+    assert_allclose(n_zs_norMs, **reference_vals["n_zs_norM"],atol=1.0e-5)
     print("    n_zs")
-    assert_allclose(profile.core.n_zs(z_test)[0][:5], **reference_vals["n_zs"])
+    nzs = np.array([profile.core.n_zs(z_sources_test,idx[i]) for i in range(mean_z_cl_test.size)])
+    assert_allclose(nzs, **reference_vals["n_zs"],atol=1.0e-5)
     print("    surface_mass_density")
     assert_allclose(
         profile.surface_mass_density(R_test, z_test, M_test, c_test)[:, 0, 0],
@@ -161,16 +163,13 @@ def test_profiles():
             ],
             "rtol": 1e-5,
         },
-        "n_zs_norM": {"desired": [1.04925, 1.156374, 1.424675, 2.067442], "rtol": 1e-5},
+        "n_zs_norM": {"desired": [1.12513478, 1.50243006, 1.28488508, 1.594103  ], "rtol": 1e-5},
         "n_zs": {
-            "desired": [
-                3.445074e-01,
-                3.52638e-01,
-                3.6089e-01,
-                3.69262e-01,
-                3.77753e-01,
-            ],
-            "rtol": 1e-3,
+            "desired": [[0.83347014, 0.7820134 , 0.72356751, 0.66030692, 0.59431415],
+       [0.83347014, 0.7820134 , 0.72356751, 0.66030692, 0.59431415],
+       [0.29190244, 0.5992073 , 0.84143889, 0.92745609, 0.9132132 ],
+       [0.08161356, 0.18759727, 0.34873945, 0.53502114, 0.69604214]],
+            "rtol": 1e-5,
         },
         "surface_mass_density": {
             "desired": [57.782346, 60.278322, 62.62685, 64.791899],
