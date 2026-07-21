@@ -148,27 +148,15 @@ def photoz_rsd_correction(
     """
     ks = np.atleast_1d(k)
     zs = np.atleast_1d(z)
-    scatter = np.asarray(
-        z_obs_scatter
-    )
+    scatter = np.asarray(z_obs_scatter)
 
-    f_gr = (
-        background.Omega_cb(zs) ** 0.55
-    )[:, np.newaxis]
+    f_gr = (background.Omega_cb(zs) ** 0.55)[:, np.newaxis]
 
     ks_z = (
         ks[np.newaxis, :]
-        * (
-            units.SPEED_OF_LIGHT
-            * 1.0e-3
-        )
-        / background.hubble_parameter(
-            zs
-        )[:, np.newaxis]
-        * (
-            background.H0
-            / 100.0
-        )
+        * (units.SPEED_OF_LIGHT * 1.0e-3)
+        / background.hubble_parameter(zs)[:, np.newaxis]
+        * (background.H0 / 100.0)
     )
 
     if scatter.ndim > 1:
@@ -196,10 +184,7 @@ def photoz_rsd_correction(
             ...,
         ]
 
-    x = (
-        ks_z
-        * scatter
-    ) ** 2
+    x = (ks_z * scatter) ** 2
 
     moment0 = hyp1f1(
         0.5,
@@ -226,15 +211,8 @@ def photoz_rsd_correction(
     )
 
     corr0 = moment0
-    corr1 = (
-        2.0
-        * f_gr
-        * moment1
-    )
-    corr2 = (
-        f_gr**2
-        * moment2
-    )
+    corr1 = 2.0 * f_gr * moment1
+    corr2 = f_gr**2 * moment2
 
     return corr0, corr1, corr2
 
@@ -305,12 +283,8 @@ def photoz_rsd_hexadecapole_correction(
     moments = [hyp1f1(n + 0.5, n + 1.5, -x) / (2 * n + 1) for n in range(5)]
 
     corr0 = 9.0 / 8.0 * (35 * moments[2] - 30 * moments[1] + 3 * moments[0])
-    corr1 = 9.0 / 4.0 * f_gr * (
-        35 * moments[3] - 30 * moments[2] + 3 * moments[1]
-    )
-    corr2 = 9.0 / 8.0 * f_gr**2 * (
-        35 * moments[4] - 30 * moments[3] + 3 * moments[2]
-    )
+    corr1 = 9.0 / 4.0 * f_gr * (35 * moments[3] - 30 * moments[2] + 3 * moments[1])
+    corr2 = 9.0 / 8.0 * f_gr**2 * (35 * moments[4] - 30 * moments[3] + 3 * moments[2])
 
     return corr0, corr1, corr2
 

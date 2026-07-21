@@ -18,15 +18,11 @@ class HaloClustering(Protocol):
         r"""Compute the halo power-spectrum monopole."""
         ...
 
-    def power_spectrum_quadrupole_RSD_corrected(
-        self, z, k, z_obs_scatter, b_eff
-    ):
+    def power_spectrum_quadrupole_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
         r"""Compute the halo power-spectrum quadrupole."""
         ...
 
-    def power_spectrum_hexadecapole_RSD_corrected(
-        self, z, k, z_obs_scatter, b_eff
-    ):
+    def power_spectrum_hexadecapole_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
         r"""Compute the halo power-spectrum hexadecapole."""
         ...
 

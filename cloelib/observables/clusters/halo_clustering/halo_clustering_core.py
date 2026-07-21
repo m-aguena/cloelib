@@ -95,15 +95,19 @@ class HaloClusteringCore:
                 (r_z[:, i + 1] - r_z[:, i])[:, np.newaxis] * nodes
                 + (r_z[:, i + 1] + r_z[:, i])[:, np.newaxis]
             )
-            integral = 0.5 * (r_z[:, i + 1] - r_z[:, i])[:, np.newaxis] * np.sum(
-                weights[np.newaxis, :, np.newaxis]
-                * r_nodes[:, :, np.newaxis] ** 2
-                * spherical_jn(ell, r_nodes[:, :, np.newaxis] * k),
-                axis=1,
+            integral = (
+                0.5
+                * (r_z[:, i + 1] - r_z[:, i])[:, np.newaxis]
+                * np.sum(
+                    weights[np.newaxis, :, np.newaxis]
+                    * r_nodes[:, :, np.newaxis] ** 2
+                    * spherical_jn(ell, r_nodes[:, :, np.newaxis] * k),
+                    axis=1,
+                )
             )
-            shell_window[:, i] = 3.0 * integral / (
-                r_z[:, i + 1] ** 3 - r_z[:, i] ** 3
-            )[:, np.newaxis]
+            shell_window[:, i] = (
+                3.0 * integral / (r_z[:, i + 1] ** 3 - r_z[:, i] ** 3)[:, np.newaxis]
+            )
 
         shell_volume = 4.0 * np.pi / 3.0 * np.diff(r_z**3, axis=1)
         return shell_window, shell_volume
@@ -191,9 +195,7 @@ class HaloClusteringCore:
 
         return photoz_halo_corr
 
-    def photoz_rsd_halo_quadrupole_correction(
-        self, z, k, z_obs_scatter, b_eff
-    ):
+    def photoz_rsd_halo_quadrupole_correction(self, z, k, z_obs_scatter, b_eff):
         """Compute the photo-z and RSD halo correction for the quadrupole."""
         if z_obs_scatter.shape != b_eff.shape:
             raise ValueError(
@@ -207,9 +209,7 @@ class HaloClusteringCore:
         bias = b_eff[:, np.newaxis]
         return corr0 * bias**2 + corr1 * bias + corr2
 
-    def photoz_rsd_halo_hexadecapole_correction(
-        self, z, k, z_obs_scatter, b_eff
-    ):
+    def photoz_rsd_halo_hexadecapole_correction(self, z, k, z_obs_scatter, b_eff):
         """Compute the photo-z and RSD halo correction for the hexadecapole."""
         if z_obs_scatter.shape != b_eff.shape:
             raise ValueError(

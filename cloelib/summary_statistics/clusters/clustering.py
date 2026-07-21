@@ -238,17 +238,19 @@ class ClusterClustering:
         window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
             self.selection_function, z_obs_edges, lambda_obs_edges
         )
-        window_lambda_obs = (
-            self.cluster_statitstics_modeling.window_richness_observed(
-                self.selection_function, lambda_obs_edges
+        window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
+            self.selection_function, lambda_obs_edges
+        )
+        number_density = (
+            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
+                np.ones((1, 1)), window_lambda_obs
             )
         )
-        number_density = self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-            np.ones((1, 1)), window_lambda_obs
-        )
-        bias_density = self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-            self.cluster_statitstics_modeling.tabulated_integrands["bias(ztrue,M)"],
-            window_lambda_obs,
+        bias_density = (
+            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
+                self.cluster_statitstics_modeling.tabulated_integrands["bias(ztrue,M)"],
+                window_lambda_obs,
+            )
         )
         cluster_counts = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
