@@ -107,9 +107,9 @@ class hi_classBackground:
 
         # Set neutrino parameters
         if self.N_mnu > 0:
-            self.interface_args["hi_classparams"][
-                "m_ncdm"
-            ] = self._set_neutrino_masses()
+            self.interface_args["hi_classparams"]["m_ncdm"] = (
+                self._set_neutrino_masses()
+            )
         self.interface_args["hi_classparams"]["N_ncdm"] = self.N_mnu
         self.interface_args["hi_classparams"]["N_ur"] = self.N_ur
 

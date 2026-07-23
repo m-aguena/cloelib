@@ -280,8 +280,9 @@ def extend_spectra(
                 )
             else:
                 # Use exponential going to 1 (assuming boost)
-                boost_out[:, :i_first] = boost_out[:, i_first][:, None] ** (
-                    (wavenumber_minus / wavenumber_in[0])[None, :]
+                boost_out[:, :i_first] = (
+                    boost_out[:, i_first][:, None]
+                    ** ((wavenumber_minus / wavenumber_in[0])[None, :])
                 )
 
                 # Use exponential going to 1 (assuming boost) with continuous derivative
