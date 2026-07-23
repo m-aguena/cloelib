@@ -206,9 +206,9 @@ class MGemuNonlinearBoost:
 
         # Only enforce LCDM background if not in one of the "allowed" DE models
         if self.gravity_model not in ["wCDM", "w0waCDM", "ide", "mu"]:
-            assert self.background.w0 == -1.0 and self.background.wa == 0.0, (
-                "All other emulators are trained for ΛCDM background"
-            )
+            assert (
+                self.background.w0 == -1.0 and self.background.wa == 0.0
+            ), "All other emulators are trained for ΛCDM background"
 
         xi = mgpars.get("xi", 0.0)
 
