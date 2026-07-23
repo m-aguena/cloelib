@@ -138,8 +138,8 @@ class ShiftedPoissonHaloMassObservable:
 
         m = self._mean_richness(z, M) - 1.0  # lsat
         std_richness = self.scatter_richness(z, M)
-        std = np.sqrt(m + (std_richness) ** 2.0)
-        x = lambda_true + (std_richness) ** 2.0
+        std = np.sqrt(m + std_richness**2.0)
+        x = lambda_true + std_richness**2.0
         lam = std**2.0
         ln_gamma_fun = spc.gammaln(x)
         return np.exp(-lam + (x - 1.0) * np.log(lam) - ln_gamma_fun, dtype="float128")
