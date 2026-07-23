@@ -77,9 +77,9 @@ class ShiftedPoissonHaloMassObservable:
             operation z x M.
         """
 
-        lsat = ((M - self.M_min_cen) / (self.M_min_sat - self.M_min_cen)) ** self.alpha * (
-            (1.0 + z) / (1.0 + self.z_piv)
-        ) ** self.epsilon
+        lsat = (
+            (M - self.M_min_cen) / (self.M_min_sat - self.M_min_cen)
+        ) ** self.alpha * ((1.0 + z) / (1.0 + self.z_piv)) ** self.epsilon
         return 1.0 + lsat
 
     def scatter_richness(self, z, M):
@@ -137,8 +137,9 @@ class ShiftedPoissonHaloMassObservable:
         """
 
         m = self._mean_richness(z, M) - 1.0  # lsat
-        std = np.sqrt(m + (self.scatter_richness(z, M)) ** 2.0)
-        x = lambda_true + (self.scatter_richness(z, M)) ** 2.0
+        std_richness = self.scatter_richness(z, M)
+        std = np.sqrt(m + (std_richness) ** 2.0)
+        x = lambda_true + (std_richness) ** 2.0
         lam = std**2.0
         ln_gamma_fun = spc.gammaln(x)
         return np.exp(-lam + (x - 1.0) * np.log(lam) - ln_gamma_fun, dtype="float128")

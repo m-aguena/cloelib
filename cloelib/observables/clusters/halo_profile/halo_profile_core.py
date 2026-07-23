@@ -241,9 +241,9 @@ class HaloProfileCore:
             np.atleast_1d(M).size,
             np.atleast_1d(R).size,
         )
-        assert profile.shape == expected_shape, (
-            f"Expected shape {expected_shape}, got {profile.shape}"
-        )
+        assert (
+            profile.shape == expected_shape
+        ), f"Expected shape {expected_shape}, got {profile.shape}"
 
     def _include_2h_term(
         self, inclusion_type, term_1h, func_2h, R, z, halo_bias, radius_units
