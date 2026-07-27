@@ -14,7 +14,7 @@ T = TypeVar("T", bound=Union[jnp.ndarray, np.ndarray])
 
 @runtime_checkable
 class HaloClustering(Protocol):
-    def power_spectrum_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
+    def power_spectrum_monopole_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
         r"""Compute the halo power-spectrum monopole."""
         ...
 

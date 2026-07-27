@@ -6,7 +6,7 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.auxiliary import (
     photoz_rsd_amplitude,
-    photoz_rsd_correction,
+    photoz_rsd_monopole_correction,
     photoz_rsd_hexadecapole_correction,
     photoz_rsd_quadrupole_correction,
 )
@@ -130,7 +130,7 @@ def test_cosmo_photoz_rsd_correction():
 
     background = CAMBBackground(**_cosmo_pars)
 
-    corr0, corr1, corr2 = photoz_rsd_correction(
+    corr0, corr1, corr2 = photoz_rsd_monopole_correction(
         background,
         z_test,
         k_test,

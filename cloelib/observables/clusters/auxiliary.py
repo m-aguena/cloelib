@@ -119,14 +119,15 @@ def convert_distance(distance, units_in, units_out, angular_diameter_distance=No
     return out
 
 
-def photoz_rsd_correction(
+def photoz_rsd_monopole_correction(
     background,
     z: np.ndarray,
     k: np.ndarray,
     z_obs_scatter: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute the photo-z and RSD correction terms for the monopole.
+    Compute the correction that accounts for photo-z uncertainty and RSD (Kaiser effect) for the monopole,
+    from `(Kaiser (1987)) <(https://doi.org/10.1093/mnras/227.1.1>`_.
 
     Parameters
     ----------
@@ -143,12 +144,13 @@ def photoz_rsd_correction(
     Returns
     -------
     corr0, corr1, corr2 : np.ndarray
-        Monopole correction terms with shape
-        (z.size, k.size, ...).
+        Monopole correction terms multiplying the squared bias,
+        the bias, and the bias-independent contribution, respectively,
+        with shape (z.size, k.size, ...).
     """
     ks = np.atleast_1d(k)
     zs = np.atleast_1d(z)
-    scatter = np.asarray(z_obs_scatter)
+    z_obs_scatter_arr = np.asarray(z_obs_scatter)
 
     f_gr = (background.Omega_cb(zs) ** 0.55)[:, np.newaxis]
 
@@ -159,11 +161,11 @@ def photoz_rsd_correction(
         * (background.H0 / 100.0)
     )
 
-    if scatter.ndim > 1:
+    if z_obs_scatter_arr.ndim > 1:
         extra_axes = tuple(
             range(
                 2,
-                scatter.ndim + 1,
+                z_obs_scatter_arr.ndim + 1,
             )
         )
 
@@ -177,14 +179,14 @@ def photoz_rsd_correction(
             axis=extra_axes,
         )
 
-    if scatter.ndim > 0:
-        scatter = scatter[
+    if z_obs_scatter_arr.ndim > 0:
+        z_obs_scatter_arr = z_obs_scatter_arr[
             :,
             np.newaxis,
             ...,
         ]
 
-    x = (ks_z * scatter) ** 2
+    x = (ks_z * z_obs_scatter_arr) ** 2
 
     moment0 = hyp1f1(
         0.5,
@@ -223,10 +225,33 @@ def photoz_rsd_quadrupole_correction(
     k: np.ndarray,
     z_obs_scatter: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Compute the photo-z and RSD correction terms for the quadrupole."""
+    """
+    Compute the correction that accounts for photo-z uncertainty and RSD
+    (Kaiser effect) for the quadrupole, from
+    `(Kaiser (1987)) <https://doi.org/10.1093/mnras/227.1.1>`_.
+
+    Parameters
+    ----------
+    background : Background
+        Background cosmology.
+    z : np.ndarray
+        Redshift.
+    k : np.ndarray
+        Wavenumber in h Mpc^{-1}.
+    z_obs_scatter : float, np.ndarray
+        Observed redshift scatter. If array, its first dimension
+        must correspond to redshift.
+
+    Returns
+    -------
+    corr0, corr1, corr2 : np.ndarray
+        Quadrupole correction terms multiplying the squared bias,
+        the bias, and the bias-independent contribution, respectively,
+        with shape (z.size, k.size, ...).
+    """
     ks = np.atleast_1d(k)
     zs = np.atleast_1d(z)
-    scatter = np.asarray(z_obs_scatter)
+    z_obs_scatter_arr = np.asarray(z_obs_scatter)
 
     f_gr = (background.Omega_cb(zs) ** 0.55)[:, np.newaxis]
     ks_z = (
@@ -236,14 +261,14 @@ def photoz_rsd_quadrupole_correction(
         * (background.H0 / 100)
     )
 
-    if scatter.ndim > 1:
-        extra_axes = tuple(range(2, scatter.ndim + 1))
+    if z_obs_scatter_arr.ndim > 1:
+        extra_axes = tuple(range(2, z_obs_scatter_arr.ndim + 1))
         f_gr = np.expand_dims(f_gr, axis=extra_axes)
         ks_z = np.expand_dims(ks_z, axis=extra_axes)
-    if scatter.ndim > 0:
-        scatter = scatter[:, np.newaxis, ...]
+    if z_obs_scatter_arr.ndim > 0:
+        z_obs_scatter_arr = z_obs_scatter_arr[:, np.newaxis, ...]
 
-    x = (ks_z * scatter) ** 2
+    x = (ks_z * z_obs_scatter_arr) ** 2
     moments = [hyp1f1(n + 0.5, n + 1.5, -x) / (2 * n + 1) for n in range(4)]
 
     corr0 = 2.5 * (3 * moments[1] - moments[0])
@@ -259,10 +284,33 @@ def photoz_rsd_hexadecapole_correction(
     k: np.ndarray,
     z_obs_scatter: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Compute the photo-z and RSD correction terms for the hexadecapole."""
+    """
+    Compute the correction that accounts for photo-z uncertainty and RSD
+    (Kaiser effect) for the hexadecapole, from
+    `(Kaiser (1987)) <https://doi.org/10.1093/mnras/227.1.1>`_.
+
+    Parameters
+    ----------
+    background : Background
+        Background cosmology.
+    z : np.ndarray
+        Redshift.
+    k : np.ndarray
+        Wavenumber in h Mpc^{-1}.
+    z_obs_scatter : float, np.ndarray
+        Observed redshift scatter. If array, its first dimension
+        must correspond to redshift.
+
+    Returns
+    -------
+    corr0, corr1, corr2 : np.ndarray
+        Hexadecapole correction terms multiplying the squared bias,
+        the bias, and the bias-independent contribution, respectively,
+        with shape (z.size, k.size, ...).
+    """
     ks = np.atleast_1d(k)
     zs = np.atleast_1d(z)
-    scatter = np.asarray(z_obs_scatter)
+    z_obs_scatter_arr = np.asarray(z_obs_scatter)
 
     f_gr = (background.Omega_cb(zs) ** 0.55)[:, np.newaxis]
     ks_z = (
@@ -272,14 +320,14 @@ def photoz_rsd_hexadecapole_correction(
         * (background.H0 / 100)
     )
 
-    if scatter.ndim > 1:
-        extra_axes = tuple(range(2, scatter.ndim + 1))
+    if z_obs_scatter_arr.ndim > 1:
+        extra_axes = tuple(range(2, z_obs_scatter_arr.ndim + 1))
         f_gr = np.expand_dims(f_gr, axis=extra_axes)
         ks_z = np.expand_dims(ks_z, axis=extra_axes)
-    if scatter.ndim > 0:
-        scatter = scatter[:, np.newaxis, ...]
+    if z_obs_scatter_arr.ndim > 0:
+        z_obs_scatter_arr = z_obs_scatter_arr[:, np.newaxis, ...]
 
-    x = (ks_z * scatter) ** 2
+    x = (ks_z * z_obs_scatter_arr) ** 2
     moments = [hyp1f1(n + 0.5, n + 1.5, -x) / (2 * n + 1) for n in range(5)]
 
     corr0 = 9.0 / 8.0 * (35 * moments[2] - 30 * moments[1] + 3 * moments[0])
@@ -290,10 +338,39 @@ def photoz_rsd_hexadecapole_correction(
 
 
 def photoz_rsd_amplitude(background, z, k, z_obs_scatter, b_eff, mu):
-    """Compute the redshift-space halo amplitude at fixed line-of-sight angle."""
+    """
+    Compute the redshift-space halo amplitude at fixed line-of-sight angle,
+    accounting for photo-z uncertainty and RSD (Kaiser effect), from
+    `(Kaiser (1987)) <https://doi.org/10.1093/mnras/227.1.1>`_.
+
+    Parameters
+    ----------
+    background : Background
+        Background cosmology.
+    z : np.ndarray
+        Redshift.
+    k : np.ndarray
+        Wavenumber in h Mpc^{-1}.
+    z_obs_scatter : float, np.ndarray
+        Observed redshift scatter. If array, its first dimension
+        must correspond to redshift.
+    b_eff : float, np.ndarray
+        Effective linear halo bias. If array, its first dimension
+        must correspond to redshift.
+    mu : float, np.ndarray
+        Cosine of the angle between the wavevector and the line of sight.
+
+    Returns
+    -------
+    np.ndarray
+        Damped redshift-space halo amplitude,
+        :math:`(b_\\mathrm{eff} + f\\mu^2)
+        \\exp[-(k\\sigma_r\\mu)^2/2]`, with shape
+        ``(z.size, k.size, ...)``.
+    """
     ks = np.atleast_1d(k)
     zs = np.atleast_1d(z)
-    scatter = np.asarray(z_obs_scatter)
+    z_obs_scatter_arr = np.asarray(z_obs_scatter)
     bias = np.asarray(b_eff)
 
     f_gr = (background.Omega_cb(zs) ** 0.55)[:, np.newaxis]
@@ -304,15 +381,15 @@ def photoz_rsd_amplitude(background, z, k, z_obs_scatter, b_eff, mu):
         * (background.H0 / 100)
     )
 
-    if scatter.ndim > 1:
-        extra_axes = tuple(range(2, scatter.ndim + 1))
+    if z_obs_scatter_arr.ndim > 1:
+        extra_axes = tuple(range(2, z_obs_scatter_arr.ndim + 1))
         f_gr = np.expand_dims(f_gr, axis=extra_axes)
         ks_z = np.expand_dims(ks_z, axis=extra_axes)
-    if scatter.ndim > 0:
-        scatter = scatter[:, np.newaxis, ...]
+    if z_obs_scatter_arr.ndim > 0:
+        z_obs_scatter_arr = z_obs_scatter_arr[:, np.newaxis, ...]
         bias = bias[:, np.newaxis, ...]
 
-    return (bias + f_gr * mu**2) * np.exp(-0.5 * (ks_z * scatter * mu) ** 2)
+    return (bias + f_gr * mu**2) * np.exp(-0.5 * (ks_z * z_obs_scatter_arr * mu) ** 2)
 
 
 def tophat_window(kr):

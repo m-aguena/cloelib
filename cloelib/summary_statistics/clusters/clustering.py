@@ -47,148 +47,60 @@ class ClusterClustering:
         self.clustering = clustering
         self.selection_function = selection_function
 
-    def get_xi(
+    def get_xi0(
         self,
         z_obs_edges,
         lambda_obs_edges,
         radius_edges,
         return_intermediate_products=True,
+        n_mu=32,
     ):
-        """Computes binned quantities (clustering+aux)
+        """
+        Compute the shell-averaged halo correlation-function monopole.
 
         Parameters
         ----------
         z_obs_edges : numpy.ndarray
-            Edges of redshift bins for the integration.
+            Edges of the observed-redshift bins.
         lambda_obs_edges : numpy.ndarray
-            Edges of richness bins for the integration.
+            Edges of the observed-richness bins.
         radius_edges : numpy.ndarray
-            Edges of radial bins for the clustering.
+            Edges of the radial bins.
+        return_intermediate_products : bool, optional
+            If true, also return the intermediate quantities used in the
+            computation. Default is true.
+        n_mu : int, optional
+            Number of Gauss-Legendre nodes used for the line-of-sight
+            integration. Default is 32.
 
         Returns
         -------
-        cluster_clustering : numpy.ndarray
-            Two point correlation function in richness, redshift and radial bins
-        intermediate_integration_products (optional) : dict
-            Dictionary with intermidate products that can be used for other computations.
-            Returned only when `return_intermediate_products` is true.
-            Contains :
+        cluster_multipole : numpy.ndarray
+            Shell-averaged monopole in observed-redshift, richness-pair and
+            radial bins.
+        intermediate_integration_products : dict, optional
+            Intermediate quantities used in the computation. Returned only
+            when `return_intermediate_products` is true. Contains:
 
-                * pk_mean_values (numpy.ndarray) : Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
-                * radial_shell_window (numpy.ndarray) : Cluster count covariance window (z_obs, lambda_obs, k).
-                * radial_shell_volume (numpy.ndarray) : Spherical shell volume (z_obs, radius).
-                * window_z_obs (numpy.ndarray) : Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins.
-                * cluster_counts (numpy.ndarray) :  Number counts in redshift and richness bins
+                * pk0_mean_values (numpy.ndarray): Monopole power spectrum
+                  averaged over redshift and richness bins.
+                * radial_shell_window (numpy.ndarray): Monopole radial
+                  shell window.
+                * radial_shell_volume (numpy.ndarray): Spherical shell
+                  volume.
+                * window_z_obs (numpy.ndarray): Integral of
+                  P(z_obs|lambda_obs, ztrue) in observed-redshift bins.
+                * cluster_counts (numpy.ndarray): Number counts in
+                  observed-redshift and richness bins.
         """
-
-        ############################################
-        # Get cluster statistics modeling quantities
-        ############################################
-
-        # integral of P(z_obs|lambda_obs, z) on z_obs bins : (z_obs, lambda_obs, ztrue)
-        window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
-            self.selection_function, z_obs_edges, lambda_obs_edges
+        return self._get_xil(
+            0,
+            z_obs_edges,
+            lambda_obs_edges,
+            radius_edges,
+            return_intermediate_products,
+            n_mu,
         )
-        # integral of P(lambda_obs|M, z) on lambda_obs bins : (lambda_obs_edges, M, ztrue)
-        _window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
-            self.selection_function, lambda_obs_edges
-        )
-        # integral of P(lambda_obs|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs, ztrue)
-        window_lambda_obs_mass_integrated = (
-            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-                np.ones((1, 1)), _window_lambda_obs
-            )
-        )
-        # integral of P(lambda_obs|M, z)*dn/dM*bias on lambda_obs bins and mass : (lambda_obs, ztrue)
-        halo_bias_in_window_lambda_obs_mass_integrated = (
-            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-                self.cluster_statitstics_modeling.tabulated_integrands["bias(ztrue,M)"],
-                _window_lambda_obs,
-            )
-        )
-        # cluster counts : (z_obs, lambda_obs)
-        cluster_counts = (
-            self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-                window_lambda_obs_mass_integrated, window_z_obs
-            )
-        )
-
-        ################################################
-        # Computes radial shells for the 3D 2ptcf
-        ################################################
-
-        # radial_shell_window : (z_obs, radius, k)
-        # radial_shell_volume : (z_obs, radius)
-        radial_shell_window, radial_shell_volume = (
-            self.clustering.core.radial_shell_window_and_volume(
-                0.5 * (z_obs_edges[1:] + z_obs_edges[:-1]),
-                self.cluster_statitstics_modeling.tabulated_integrands["k"],
-                radius_edges,
-            )
-        )
-        # * radial_shell_volume is used only by covariance
-
-        ################################################
-        # Computes the 3D two-point correlation function
-        ################################################
-
-        # halo matter power spectrum + IR resummation : (lambda_obs, ztrue, k) dimension
-        _pk_halo = self.clustering.power_spectrum_RSD_corrected(
-            z=self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
-            k=self.cluster_statitstics_modeling.tabulated_integrands["k"],
-            z_obs_scatter=(
-                self.selection_function.scatter_z_obs(
-                    0.5 * (lambda_obs_edges[1:] + lambda_obs_edges[:-1])[np.newaxis, :],
-                    self.cluster_statitstics_modeling.tabulated_integrands["ztrue"][
-                        :, np.newaxis
-                    ],
-                )
-            ),  # (ztrue, lambda_obs)
-            b_eff=(
-                halo_bias_in_window_lambda_obs_mass_integrated
-                / window_lambda_obs_mass_integrated
-            ).T,  # (ztrue, lambda_obs)
-        ).transpose(2, 0, 1)
-
-        # integrate the square root of power spectrum in redshift bins (z_obs, lambda_obs, k)
-        _sqrt_pk_z_integrated = (
-            self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-                np.sqrt(_pk_halo) * window_lambda_obs_mass_integrated[:, :, np.newaxis],
-                window_z_obs,
-            )
-        )
-
-        # Compute Pk convoluted in lambda_obs: (z_obs, lambda_obs, lambda_obs, k)
-        pk_mean_values = (
-            _sqrt_pk_z_integrated[:, :, np.newaxis, :]
-            * _sqrt_pk_z_integrated[:, np.newaxis, :, :]
-        ) / (
-            cluster_counts[:, np.newaxis, :, np.newaxis]
-            * cluster_counts[:, :, np.newaxis, np.newaxis]
-        )
-
-        # compute 2point correlation function : (z_obs, lambda_obs, lambda_obs, radius)
-        _2pt_3d_cf = self.cluster_statitstics_modeling.integrate_probe_function_in_dk(
-            radial_shell_window[:, np.newaxis, np.newaxis, :, :]
-            * pk_mean_values[:, :, :, np.newaxis, :]
-        )
-
-        # xi(lambda_obs_i, lambda_obs_j) = xi(lambda_obs_j, lambda_obs_i) so we reshape
-        # and keep only one of them, with a (z_obs, lambda_obs, radius) output
-        triangle_indexes = np.triu_indices(len(lambda_obs_edges) - 1)
-        cluster_clustering = _2pt_3d_cf[:, triangle_indexes[0], triangle_indexes[1], :]
-
-        if not return_intermediate_products:
-            return cluster_clustering
-
-        intermediate_integration_products = {
-            "pk_mean_values": pk_mean_values,
-            "radial_shell_window": radial_shell_window,
-            "radial_shell_volume": radial_shell_volume,
-            "cluster_counts": cluster_counts,
-            "window_z_obs": window_z_obs,
-        }
-        return cluster_clustering, intermediate_integration_products
 
     def get_xi2(
         self,
@@ -198,7 +110,44 @@ class ClusterClustering:
         return_intermediate_products=True,
         n_mu=32,
     ):
-        """Compute the shell-averaged halo correlation-function quadrupole."""
+        """
+        Compute the shell-averaged halo correlation-function quadrupole.
+
+        Parameters
+        ----------
+        z_obs_edges : numpy.ndarray
+            Edges of the observed-redshift bins.
+        lambda_obs_edges : numpy.ndarray
+            Edges of the observed-richness bins.
+        radius_edges : numpy.ndarray
+            Edges of the radial bins.
+        return_intermediate_products : bool, optional
+            If true, also return the intermediate quantities used in the
+            computation. Default is true.
+        n_mu : int, optional
+            Number of Gauss-Legendre nodes used for the line-of-sight
+            integration. Default is 32.
+
+        Returns
+        -------
+        cluster_multipole : numpy.ndarray
+            Shell-averaged quadrupole in observed-redshift, richness-pair and
+            radial bins.
+        intermediate_integration_products : dict, optional
+            Intermediate quantities used in the computation. Returned only
+            when `return_intermediate_products` is true. Contains:
+
+                * pk2_mean_values (numpy.ndarray): Quadrupole power spectrum
+                  averaged over redshift and richness bins.
+                * radial_shell_window (numpy.ndarray): Quadrupole radial
+                  shell window.
+                * radial_shell_volume (numpy.ndarray): Spherical shell
+                  volume.
+                * window_z_obs (numpy.ndarray): Integral of
+                  P(z_obs|lambda_obs, ztrue) in observed-redshift bins.
+                * cluster_counts (numpy.ndarray): Number counts in
+                  observed-redshift and richness bins.
+        """
         return self._get_xil(
             2,
             z_obs_edges,
@@ -216,7 +165,44 @@ class ClusterClustering:
         return_intermediate_products=True,
         n_mu=32,
     ):
-        """Compute the shell-averaged halo correlation-function hexadecapole."""
+        """
+        Compute the shell-averaged halo correlation-function hexadecapole.
+
+        Parameters
+        ----------
+        z_obs_edges : numpy.ndarray
+            Edges of the observed-redshift bins.
+        lambda_obs_edges : numpy.ndarray
+            Edges of the observed-richness bins.
+        radius_edges : numpy.ndarray
+            Edges of the radial bins.
+        return_intermediate_products : bool, optional
+            If true, also return the intermediate quantities used in the
+            computation. Default is true.
+        n_mu : int, optional
+            Number of Gauss-Legendre nodes used for the line-of-sight
+            integration. Default is 32.
+
+        Returns
+        -------
+        cluster_multipole : numpy.ndarray
+            Shell-averaged hexadecapole in observed-redshift, richness-pair
+            and radial bins.
+        intermediate_integration_products : dict, optional
+            Intermediate quantities used in the computation. Returned only
+            when `return_intermediate_products` is true. Contains:
+
+                * pk4_mean_values (numpy.ndarray): Hexadecapole power spectrum
+                  averaged over redshift and richness bins.
+                * radial_shell_window (numpy.ndarray): Hexadecapole radial
+                  shell window.
+                * radial_shell_volume (numpy.ndarray): Spherical shell
+                  volume.
+                * window_z_obs (numpy.ndarray): Integral of
+                  P(z_obs|lambda_obs, ztrue) in observed-redshift bins.
+                * cluster_counts (numpy.ndarray): Number counts in
+                  observed-redshift and richness bins.
+        """
         return self._get_xil(
             4,
             z_obs_edges,
@@ -235,6 +221,38 @@ class ClusterClustering:
         return_intermediate_products,
         n_mu,
     ):
+        """
+        Compute a shell-averaged halo correlation-function multipole.
+
+        Parameters
+        ----------
+        ell : int
+            Even multipole order. Supported values are 0, 2 and 4.
+        z_obs_edges : numpy.ndarray
+            Edges of the observed-redshift bins.
+        lambda_obs_edges : numpy.ndarray
+            Edges of the observed-richness bins.
+        radius_edges : numpy.ndarray
+            Edges of the radial bins.
+        return_intermediate_products : bool
+            If true, also return the intermediate quantities used in the
+            computation.
+        n_mu : int
+            Number of Gauss-Legendre nodes used for the line-of-sight
+            integration.
+
+        Returns
+        -------
+        cluster_multipole : numpy.ndarray
+            Shell-averaged correlation-function multipole in
+            observed-redshift, richness-pair and radial bins.
+        intermediate_integration_products : dict, optional
+            Intermediate quantities used in the computation. Returned only
+            when `return_intermediate_products` is true.
+        """
+        if ell not in (0, 2, 4):
+            raise ValueError(f"Unsupported multipole ell={ell}. Expected 0, 2 or 4.")
+
         window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
             self.selection_function, z_obs_edges, lambda_obs_edges
         )
@@ -276,7 +294,8 @@ class ClusterClustering:
             ).transpose(2, 0, 1)
             amplitude = (
                 self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-                    amplitude * number_density[:, :, np.newaxis], window_z_obs
+                    amplitude * number_density[:, :, np.newaxis],
+                    window_z_obs,
                 )
                 / cluster_counts[:, :, np.newaxis]
             )
@@ -336,18 +355,18 @@ class ClusterClustering:
         ----------
         pk_mean_values : numpy.ndarray
             Power spectrum averaged on redshift and richnesses bins (with IR-resummation).
-            Is in the intermediate_integration_products output of get_xi.
+            Is in the intermediate_integration_products output of get_xi0.
         radial_shell_window : numpy.ndarray
             Cluster count covariance window (z_obs, lambda_obs, k),
             with (k) in cluster_statitstics_modeling.tabulated_integrands.
-            Is in the intermediate_integration_products output of get_xi.
+            Is in the intermediate_integration_products output of get_xi0.
         radial_shell_volume : numpy.ndarray
             Spherical shell volume (z_obs, radius).
-            Is in the intermediate_integration_products output of get_xi.
+            Is in the intermediate_integration_products output of get_xi0.
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_obs, ztrue) in z_obs bins.
             Dimensions: (z_obs, lambda_obs, ztrue) with (ztrue) in cluster_statitstics_modeling.tabulated_integrands.
-            Is in the intermediate_integration_products output of get_xi.
+            Is in the intermediate_integration_products output of get_xi0.
         cluster_counts : numpy.ndarray
             Number counts in redshift and richness bins
 

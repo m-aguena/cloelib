@@ -7,7 +7,7 @@ from cloelib.cosmology.cosmology import Background
 from cloelib.observables.clusters.auxiliary import (
     isotropic_volume_distance,
     photoz_rsd_amplitude,
-    photoz_rsd_correction,
+    photoz_rsd_monopole_correction,
     photoz_rsd_hexadecapole_correction,
     photoz_rsd_quadrupole_correction,
     tophat_window,
@@ -181,7 +181,7 @@ class HaloClusteringCore:
             )
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
         # rsd corrections (z, k, ...)
-        photoz_corr0, photoz_corr1, photoz_corr2 = photoz_rsd_correction(
+        photoz_corr0, photoz_corr1, photoz_corr2 = photoz_rsd_monopole_correction(
             self.matter_statistics.background, z, k, z_obs_scatter
         )
 
