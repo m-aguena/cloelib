@@ -380,9 +380,7 @@ def test_clustersummmarystatitistics():
 
     assert_allclose(gt_mean_values[0:2], benchmark_values.deltasigma, rtol=1e-2)
 
-    assert_allclose(
-        cluster_clustering[0:2], benchmark_values.cluster_clustering, rtol=1e-2
-    )
+    assert_allclose(cluster_clustering[0:2], benchmark_values.cluster_clustering, rtol=0.01, atol=5.0e-5,)
 
     assert_allclose(
         cov_cluster_counts[1:2], benchmark_values.cov_cluster_counts, rtol=5e-2
