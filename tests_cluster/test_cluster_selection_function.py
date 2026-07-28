@@ -1,8 +1,9 @@
 # import jax.numpy as np
 
+import os
+
 import numpy as np
-from numpy.testing import assert_allclose, assert_equal, assert_raises
-import benchmark_values_sel_fun
+from numpy.testing import assert_allclose
 from cloelib.observables.clusters.halo_mass_observable import (
     LognormalPowerLawHaloMassObservable,
 )
@@ -11,6 +12,17 @@ from cloelib.observables.clusters.selection_function import (
     NumericalSelectionFunction,
 )
 
+# get validation data
+import urllib.request
+
+SEL_FUNC_VAL_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "benchmark_values_sel_fun.py"
+)
+if not os.path.exists(SEL_FUNC_VAL_PATH):
+    sf_val_url = "https://zenodo.org/records/21511551/files/benchmark_values_sel_fun.py"
+    print(f"Downloading selection function validation file from {sf_val_url} ...")
+    urllib.request.urlretrieve(sf_val_url, SEL_FUNC_VAL_PATH)
+import benchmark_values_sel_fun
 
 def _get_test_gaussian_sf():
     _lambda_true_dist_pars = dict(
