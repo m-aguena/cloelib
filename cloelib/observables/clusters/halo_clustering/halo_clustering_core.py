@@ -1,18 +1,114 @@
 # import jax.numpy as np
 import numpy as np
 from scipy.integrate import simpson
-from scipy.special import spherical_jn
+from scipy.special import sici, spherical_jn
 
 from cloelib.cosmology.cosmology import Background
 from cloelib.observables.clusters.auxiliary import (
     isotropic_volume_distance,
     photoz_rsd_amplitude,
-    photoz_rsd_monopole_correction,
     photoz_rsd_hexadecapole_correction,
+    photoz_rsd_monopole_correction,
     photoz_rsd_quadrupole_correction,
     tophat_window,
 )
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
+
+
+def _radial_window_f2(x):
+    r"""Evaluate the analytic primitive used by the quadrupole shell window.
+    
+    Computes
+    
+    .. math::
+    
+        F_2(x) = \operatorname{Si}(x) - \sin(x),
+    
+    where :math:`\operatorname{Si}` is the sine integral. For small
+    :math:`|x|`, the function is evaluated with its Taylor expansion to
+    avoid cancellation between the two terms.
+    
+    Parameters
+    ----------
+    x : float or np.ndarray
+        Dimensionless argument, typically :math:`kr`.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Value of :math:`F_2(x)`, with the same shape as ``x``.
+    
+    Notes
+    -----
+    This is the primitive entering the analytic shell-averaged quadrupole
+    window of Eq. (19) in the dispersion-model multipole implementation.
+    """
+    x = np.asarray(x, dtype=float)
+    result = np.empty_like(x)
+    small = np.abs(x) < 0.5
+    xs = x[small]
+    result[small] = xs**3 * (
+        1.0 / 9.0
+        + xs**2
+        * (
+            -1.0 / 150.0
+            + xs**2 * (1.0 / 5880.0 + xs**2 * (-1.0 / 408240.0 + xs**2 / 43908480.0))
+        )
+    )
+    xl = x[~small]
+    result[~small] = sici(xl)[0] - np.sin(xl)
+    return result
+
+
+def _radial_window_f4(x):
+    r"""Evaluate the analytic primitive used by the hexadecapole shell window.
+    
+    Computes
+    
+    .. math::
+    
+        F_4(x) = 3\operatorname{Si}(x)
+                 + \sin(x)\left(2 - \frac{15}{x^2}\right)
+                 + \frac{15\cos(x)}{x}.
+    
+    For small :math:`|x|`, the function is evaluated with its Taylor
+    expansion to avoid numerical cancellation between the closed-form
+    terms.
+    
+    Parameters
+    ----------
+    x : float or np.ndarray
+        Dimensionless argument, typically :math:`kr`.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Value of :math:`F_4(x)`, with the same shape as ``x``.
+    
+    Notes
+    -----
+    This is the primitive entering the analytic shell-averaged
+    hexadecapole window of Eq. (21) in the dispersion-model multipole
+    implementation.
+    """
+    x = np.asarray(x, dtype=float)
+    result = np.empty_like(x)
+    small = np.abs(x) < 1.0
+    xs = x[small]
+    result[small] = xs**5 * (
+        2.0 / 525.0
+        + xs**2
+        * (
+            -1.0 / 6615.0
+            + xs**2
+            * (1.0 / 374220.0 + xs**2 * (-1.0 / 35675640.0 + xs**2 / 5059454400.0))
+        )
+    )
+    xl = x[~small]
+    result[~small] = (
+        3.0 * sici(xl)[0] + np.sin(xl) * (2.0 - 15.0 / xl**2) + 15.0 * np.cos(xl) / xl
+    )
+    return result
 
 
 class HaloClusteringCore:
@@ -21,16 +117,23 @@ class HaloClusteringCore:
         matter_statistics: MatterStatistics,
         background_fid: Background,
     ):
-        r"""Auxiliary class computing quantities used in halo clustering models.
-
-        Initialize the class with given perturbations and overdensity definition.
-
+        r"""Initialize the halo-clustering calculation helper.
+        
         Parameters
         ----------
         matter_statistics : MatterStatistics
-            An object from the `MatterStatistics` class.
+            Matter-statistics object providing the cosmological background,
+            matter power spectrum, and distance quantities used by the
+            clustering model.
         background_fid : Background
-            Fiducial `Background` adopted for the measurements.
+            Fiducial cosmological background adopted when converting the
+            measured two-point correlation function to distances.
+        
+        Notes
+        -----
+        The fiducial background is used only for geometrical
+        Alcock--Paczynski corrections, while the model background is taken
+        from ``matter_statistics``.
         """
         self.matter_statistics = matter_statistics
         self.background_fid = background_fid
@@ -38,22 +141,43 @@ class HaloClusteringCore:
     def radial_shell_window_and_volume(
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Computes the window function and the volume of the spherical shells as a function of the radial separation
-
+        r"""Compute the monopole shell window and spherical-shell volume.
+        
+        The radial bin edges are first rescaled by the isotropic
+        Alcock--Paczynski correction. The shell-averaged monopole window is
+        then evaluated analytically from the spherical top-hat window.
+        
         Parameters
         ----------
-        z: np.ndarray
-           Redshift at which apply the geometrical correction (Alcock-Paczynski effect)
-        k: np.ndarray
-           Wavenumber used to evaluate power spectrum, in h Mpc^{-1}
-
+        z : np.ndarray
+            Redshift values at which the geometrical correction is evaluated,
+            with shape ``(n_z,)``.
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        r : np.ndarray
+            Radial-bin edges in :math:`h^{-1}\,\mathrm{Mpc}`, with shape
+            ``(n_r + 1,)``.
+        
         Returns
         -------
-        cluster count covariance window:   numpy.ndarray
-            shell_window, shape (z, r, k)
-        spherical shell volume: numpy.ndarray
-            shell_volume, shape (z, r)
+        shell_window : np.ndarray
+            Shell-averaged monopole window with shape ``(n_z, n_r, n_k)``.
+        shell_volume : np.ndarray
+            Spherical-shell volumes with shape ``(n_z, n_r)``.
+        
+        Notes
+        -----
+        For a shell with corrected edges :math:`r_1` and :math:`r_2`, the
+        window is
+        
+        .. math::
+        
+            W_0(k;\Delta r) =
+            \frac{r_2^3 W_{\rm th}(kr_2)-r_1^3 W_{\rm th}(kr_1)}
+                 {r_2^3-r_1^3},
+        
+        corresponding to Eq. (17) of the analytic multipole implementation.
         """
 
         r_z = (
@@ -73,61 +197,223 @@ class HaloClusteringCore:
     def radial_shell_quadrupole_window_and_volume(
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray, n_quad: int = 32
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Compute the shell-averaged quadrupole window and shell volume."""
+        r"""Compute the quadrupole shell window and spherical-shell volume.
+        
+        Parameters
+        ----------
+        z : np.ndarray
+            Redshift values, with shape ``(n_z,)``.
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        r : np.ndarray
+            Radial-bin edges in :math:`h^{-1}\,\mathrm{Mpc}`, with shape
+            ``(n_r + 1,)``.
+        n_quad : int, optional
+            Retained for API compatibility. The analytic implementation does
+            not use numerical quadrature.
+        
+        Returns
+        -------
+        shell_window : np.ndarray
+            Shell-averaged quadrupole window with shape
+            ``(n_z, n_r, n_k)``.
+        shell_volume : np.ndarray
+            Spherical-shell volumes with shape ``(n_z, n_r)``.
+        
+        Notes
+        -----
+        This is a convenience wrapper around
+        :meth:`radial_shell_multipole_window_and_volume` with ``ell=2``.
+        """
         return self.radial_shell_multipole_window_and_volume(z, k, r, 2, n_quad)
 
     def radial_shell_hexadecapole_window_and_volume(
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray, n_quad: int = 32
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Compute the shell-averaged hexadecapole window and shell volume."""
+        r"""Compute the hexadecapole shell window and spherical-shell volume.
+        
+        Parameters
+        ----------
+        z : np.ndarray
+            Redshift values, with shape ``(n_z,)``.
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        r : np.ndarray
+            Radial-bin edges in :math:`h^{-1}\,\mathrm{Mpc}`, with shape
+            ``(n_r + 1,)``.
+        n_quad : int, optional
+            Retained for API compatibility. The analytic implementation does
+            not use numerical quadrature.
+        
+        Returns
+        -------
+        shell_window : np.ndarray
+            Shell-averaged hexadecapole window with shape
+            ``(n_z, n_r, n_k)``.
+        shell_volume : np.ndarray
+            Spherical-shell volumes with shape ``(n_z, n_r)``.
+        
+        Notes
+        -----
+        This is a convenience wrapper around
+        :meth:`radial_shell_multipole_window_and_volume` with ``ell=4``.
+        """
         return self.radial_shell_multipole_window_and_volume(z, k, r, 4, n_quad)
 
     def radial_shell_multipole_window_and_volume(
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray, ell: int, n_quad: int = 32
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Compute a shell-averaged spherical-Bessel window and shell volume."""
-        r_z = self.alcock_paczynski_correction_factor(z)[:, np.newaxis] * r
-        nodes, weights = np.polynomial.legendre.leggauss(n_quad)
-        shell_window = np.empty((z.size, r.size - 1, k.size))
+        r"""Compute an analytic shell-averaged multipole window and shell volume.
+        
+        The radial-bin edges are rescaled by the isotropic
+        Alcock--Paczynski correction and the shell average of the spherical
+        Bessel function is evaluated analytically for
+        :math:`\ell=0,2,4`.
+        
+        Parameters
+        ----------
+        z : np.ndarray
+            Redshift values at which the geometrical correction is evaluated,
+            with shape ``(n_z,)``.
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        r : np.ndarray
+            Radial-bin edges in :math:`h^{-1}\,\mathrm{Mpc}`, with shape
+            ``(n_r + 1,)``.
+        ell : int
+            Multipole order. Must be one of ``0``, ``2``, or ``4``.
+        n_quad : int, optional
+            Retained for API compatibility. The current analytic
+            implementation does not use numerical quadrature.
+        
+        Returns
+        -------
+        shell_window : np.ndarray
+            Shell-averaged multipole window with shape
+            ``(n_z, n_r, n_k)``.
+        shell_volume : np.ndarray
+            Spherical-shell volumes with shape ``(n_z, n_r)``.
+        
+        Raises
+        ------
+        ValueError
+            If ``ell`` is not one of ``0``, ``2``, or ``4``.
+        
+        Notes
+        -----
+        The window is defined by
+        
+        .. math::
+        
+            W_\ell(k;\Delta r)
+            = \frac{4\pi}{V_{\Delta r}}
+              \int_{r_1}^{r_2} dr\,r^2 j_\ell(kr),
+        
+        with :math:`V_{\Delta r}=4\pi(r_2^3-r_1^3)/3`. The closed forms used
+        for :math:`\ell=0,2,4` correspond to Eqs. (17), (18), and (20) of the
+        analytic multipole implementation. Small arguments are evaluated with
+        the spherical-Bessel power series to avoid cancellation.
+        """
+        if ell not in (0, 2, 4):
+            raise ValueError(f"ell (={ell}) must be one of 0, 2, or 4")
 
-        for i in range(r.size - 1):
-            r_nodes = 0.5 * (
-                (r_z[:, i + 1] - r_z[:, i])[:, np.newaxis] * nodes
-                + (r_z[:, i + 1] + r_z[:, i])[:, np.newaxis]
-            )
-            integral = (
-                0.5
-                * (r_z[:, i + 1] - r_z[:, i])[:, np.newaxis]
-                * np.sum(
-                    weights[np.newaxis, :, np.newaxis]
-                    * r_nodes[:, :, np.newaxis] ** 2
-                    * spherical_jn(ell, r_nodes[:, :, np.newaxis] * k),
-                    axis=1,
+        r_z = self.alcock_paczynski_correction_factor(z)[:, np.newaxis] * r
+        r1 = r_z[:, :-1, np.newaxis]
+        r2 = r_z[:, 1:, np.newaxis]
+        ks = np.asarray(k)[np.newaxis, np.newaxis, :]
+        delta_r3 = r2**3 - r1**3
+        x1 = ks * r1
+        x2 = ks * r2
+        ks_broadcast = np.broadcast_to(ks, x1.shape)
+        delta_r3_broadcast = np.broadcast_to(delta_r3, x1.shape)
+
+        window0 = (r2**3 * tophat_window(x2) - r1**3 * tophat_window(x1)) / delta_r3
+
+        if ell == 0:
+            shell_window = window0
+        else:
+            shell_window = np.empty_like(window0)
+            small = np.maximum(np.abs(x1), np.abs(x2)) < 0.25
+
+            coefficients = {
+                2: (1.0 / 15.0, -1.0 / 210.0, 1.0 / 7560.0, -1.0 / 498960.0),
+                4: (1.0 / 945.0, -1.0 / 20790.0, 1.0 / 1081080.0),
+            }[ell]
+            series = np.zeros_like(window0)
+            for order, coefficient in enumerate(coefficients):
+                power = ell + 2 * order
+                series += (
+                    3.0
+                    * coefficient
+                    * ks**power
+                    * (r2 ** (power + 3) - r1 ** (power + 3))
+                    / ((power + 3) * delta_r3)
                 )
-            )
-            shell_window[:, i] = (
-                3.0 * integral / (r_z[:, i + 1] ** 3 - r_z[:, i] ** 3)[:, np.newaxis]
-            )
+            shell_window[small] = series[small]
+
+            large = ~small
+            if ell == 2:
+                f2_x1 = _radial_window_f2(x1[large])
+                f2_x2 = _radial_window_f2(x2[large])
+                shell_window[large] = (
+                    9.0
+                    * (f2_x2 - f2_x1)
+                    / (ks_broadcast[large] ** 3 * delta_r3_broadcast[large])
+                    - window0[large]
+                )
+            else:
+                f4_x1 = _radial_window_f4(x1[large])
+                f4_x2 = _radial_window_f4(x2[large])
+                window2, _ = self.radial_shell_multipole_window_and_volume(
+                    z, k, r, 2, n_quad
+                )
+                shell_window[large] = (
+                    21.0
+                    * (f4_x2 - f4_x1)
+                    / (2.0 * ks_broadcast[large] ** 3 * delta_r3_broadcast[large])
+                    - window2[large]
+                )
 
         shell_volume = 4.0 * np.pi / 3.0 * np.diff(r_z**3, axis=1)
         return shell_window, shell_volume
 
     # cosmo correction (isotropic AP)
     def alcock_paczynski_correction_factor(self, z: np.ndarray) -> np.ndarray:
-        """
-        Compute the Alcock-Paczynski correction factor for isotropic clustering measurements.
-        See https://arxiv.org/pdf/1511.00012.pdf (Sect. 4.3.1) for details.
-
+        r"""Compute the isotropic Alcock--Paczynski correction factor.
+        
+        The correction rescales radial separations measured in the fiducial
+        cosmology to those of the model cosmology using the isotropic volume
+        distance and the sound horizon at the drag epoch.
+        
         Parameters
         ----------
-        z: np.ndarray
-           Redshift
-
+        z : np.ndarray
+            Redshift values at which to evaluate the correction.
+        
         Returns
         -------
-        AP_corr: np.ndarray
-           Volume distance over drag scale (sound horizon scale at recombination) over the same quantity at fiducial cosmology
-
+        np.ndarray
+            Isotropic Alcock--Paczynski correction factor at each redshift,
+            with the same shape as ``z``.
+        
+        Notes
+        -----
+        The implemented factor is
+        
+        .. math::
+        
+            \alpha =
+            \frac{D_V(z)}{D_V^{\rm fid}(z)}
+            \frac{r_d^{\rm fid}}{r_d},
+        
+        where :math:`D_V` is the isotropic volume distance and :math:`r_d` is
+        the sound horizon at the drag epoch.
+        
+        Entries of the input array equal to zero are replaced in place by
+        ``1e-5`` before evaluating the distances.
         """
 
         # units don't matter here, they cancel out
@@ -153,26 +439,49 @@ class HaloClusteringCore:
         )
 
     def photoz_rsd_halo_correction(self, z, k, z_obs_scatter, b_eff):
-        """Compute the correction that accounts for photo-z uncertainty
-        and RSD (Kaiser effect) for halos.
-        From `(Kaiser (1987)) <(https://doi.org/10.1093/mnras/227.1.1>`_.
-
+        r"""Compute the photo-z and RSD halo correction for the monopole.
+        
+        The correction combines the analytic dispersion-model monopole
+        coefficients with the effective halo bias and the linear growth rate.
+        
         Parameters
         ----------
-        z: np.ndarray
-           Redshift
-        k: np.ndarray
-           Wavenumber used to evaluate power spectrum, in h Mpc^{-1}
-        z_obs_scatter: float, numpy.ndarray
-            Observed redshift scatter. If array, first dimension must be z.
-        b_eff: np.ndarray
-            Effective bias, must have same shape as z_obs_scatter.
-
+        z : np.ndarray
+            Redshift values, with shape ``(n_z,)``.
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        z_obs_scatter : np.ndarray
+            Observed redshift scatter :math:`\sigma_z`. Its first dimension
+            must correspond to redshift.
+        b_eff : np.ndarray
+            Effective linear halo bias. Must have the same shape as
+            ``z_obs_scatter``.
+        
         Returns
         -------
-        pk_halo : numpy.ndarray
-            Power spectrum averaged on redshift and richnesses bins (with IR-resummation),
-            Shape (z.size, k.size, other dimensions of z_obs_scatter)
+        np.ndarray
+            Monopole halo correction with shape
+            ``(n_z, n_k, ...)``, where the trailing dimensions are those of
+            ``z_obs_scatter`` after the redshift axis.
+        
+        Raises
+        ------
+        ValueError
+            If ``z_obs_scatter`` and ``b_eff`` do not have identical shapes.
+        
+        Notes
+        -----
+        The returned quantity is
+        
+        .. math::
+        
+            b_{\rm eff}^2 A_0
+            + b_{\rm eff} f B_0
+            + f^2 C_0,
+        
+        where :math:`A_0`, :math:`B_0`, and :math:`C_0` are the analytic
+        dispersion-model coefficients and :math:`f=\Omega_{cb}^{0.55}`.
         """
         if z_obs_scatter.shape != b_eff.shape:
             raise ValueError(
@@ -196,7 +505,44 @@ class HaloClusteringCore:
         return photoz_halo_corr
 
     def photoz_rsd_halo_quadrupole_correction(self, z, k, z_obs_scatter, b_eff):
-        """Compute the photo-z and RSD halo correction for the quadrupole."""
+        r"""Compute the photo-z and RSD halo correction for the quadrupole.
+        
+        Parameters
+        ----------
+        z : np.ndarray
+            Redshift values, with shape ``(n_z,)``.
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        z_obs_scatter : np.ndarray
+            Observed redshift scatter :math:`\sigma_z`. Its first dimension
+            must correspond to redshift.
+        b_eff : np.ndarray
+            Effective linear halo bias. Must have the same shape as
+            ``z_obs_scatter``.
+        
+        Returns
+        -------
+        np.ndarray
+            Quadrupole halo correction with shape ``(n_z, n_k, ...)``.
+        
+        Raises
+        ------
+        ValueError
+            If ``z_obs_scatter`` and ``b_eff`` do not have identical shapes.
+        
+        Notes
+        -----
+        The returned quantity is
+        
+        .. math::
+        
+            b_{\rm eff}^2 A_2
+            + b_{\rm eff} f B_2
+            + f^2 C_2,
+        
+        using the analytic :math:`\ell=2` dispersion-model coefficients.
+        """
         if z_obs_scatter.shape != b_eff.shape:
             raise ValueError(
                 f"Shape of z_obs_scatter {z_obs_scatter.shape} must be"
@@ -210,7 +556,44 @@ class HaloClusteringCore:
         return corr0 * bias**2 + corr1 * bias + corr2
 
     def photoz_rsd_halo_hexadecapole_correction(self, z, k, z_obs_scatter, b_eff):
-        """Compute the photo-z and RSD halo correction for the hexadecapole."""
+        r"""Compute the photo-z and RSD halo correction for the hexadecapole.
+        
+        Parameters
+        ----------
+        z : np.ndarray
+            Redshift values, with shape ``(n_z,)``.
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        z_obs_scatter : np.ndarray
+            Observed redshift scatter :math:`\sigma_z`. Its first dimension
+            must correspond to redshift.
+        b_eff : np.ndarray
+            Effective linear halo bias. Must have the same shape as
+            ``z_obs_scatter``.
+        
+        Returns
+        -------
+        np.ndarray
+            Hexadecapole halo correction with shape ``(n_z, n_k, ...)``.
+        
+        Raises
+        ------
+        ValueError
+            If ``z_obs_scatter`` and ``b_eff`` do not have identical shapes.
+        
+        Notes
+        -----
+        The returned quantity is
+        
+        .. math::
+        
+            b_{\rm eff}^2 A_4
+            + b_{\rm eff} f B_4
+            + f^2 C_4,
+        
+        using the analytic :math:`\ell=4` dispersion-model coefficients.
+        """
         if z_obs_scatter.shape != b_eff.shape:
             raise ValueError(
                 f"Shape of z_obs_scatter {z_obs_scatter.shape} must be"
@@ -224,7 +607,47 @@ class HaloClusteringCore:
         return corr0 * bias**2 + corr1 * bias + corr2
 
     def photoz_rsd_halo_amplitude(self, z, k, z_obs_scatter, b_eff, mu):
-        """Compute the halo redshift-space amplitude at fixed mu."""
+        r"""Compute the redshift-space halo amplitude at fixed line-of-sight angle.
+        
+        Parameters
+        ----------
+        z : np.ndarray
+            Redshift values, with shape ``(n_z,)``.
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        z_obs_scatter : np.ndarray
+            Observed redshift scatter :math:`\sigma_z`. Its first dimension
+            must correspond to redshift.
+        b_eff : np.ndarray
+            Effective linear halo bias. Must have the same shape as
+            ``z_obs_scatter``.
+        mu : float or np.ndarray
+            Cosine of the angle between the wavevector and the line of sight.
+        
+        Returns
+        -------
+        np.ndarray
+            Damped redshift-space halo amplitude with shape
+            ``(n_z, n_k, ...)``.
+        
+        Raises
+        ------
+        ValueError
+            If ``z_obs_scatter`` and ``b_eff`` do not have identical shapes.
+        
+        Notes
+        -----
+        The returned amplitude is
+        
+        .. math::
+        
+            \left(b_{\rm eff}+f\mu^2\right)
+            \exp\left[-\frac{1}{2}(k\sigma_r\mu)^2\right],
+        
+        whose square gives the Kaiser-plus-Gaussian-damping factor entering
+        the anisotropic dispersion-model power spectrum.
+        """
         if z_obs_scatter.shape != b_eff.shape:
             raise ValueError(
                 f"Shape of z_obs_scatter {z_obs_scatter.shape} must be"
@@ -242,22 +665,43 @@ class HaloClusteringCore:
     # IR resummation of the bao wiggles in the Pk
     # not in use currently
     def Pk_IR_func(self, k: np.array, Pk: np.ndarray) -> np.ndarray:
-        """
-        Infrared resummation (first order approx) to correct non-linear damping of bao wiggles.
-        Approach of `(Eisenstein & Hu (1998)) <(https://doi.org/10.1086/305424>`_.
-
+        r"""Apply first-order infrared resummation to BAO wiggles.
+        
+        The linear matter power spectrum is decomposed into smooth and
+        oscillatory components using an Eisenstein--Hu reference spectrum and
+        Gaussian filtering in :math:`\log_{10}k`. The oscillatory component
+        is then exponentially damped.
+        
         Parameters
         ----------
-        k: np.ndarray
-           Wavenumber used to evaluate power spectrum, in h Mpc^{-1}
-        Pk: np.ndarray
-           Linear matter power spectrum at different redshifts in (Mpc/h)^3
-
+        k : np.ndarray
+            Wavenumbers in :math:`h\,\mathrm{Mpc}^{-1}`, with shape
+            ``(n_k,)``.
+        Pk : np.ndarray
+            Linear matter power spectrum in
+            :math:`(h^{-1}\,\mathrm{Mpc})^3`, with shape
+            ``(n_z, n_k)``.
+        
         Returns
         -------
-        Pk_IR: np.ndarray
-           Matter power spectrum with corrected bao wiggles in (Mpc/h)^3
-
+        Pk_IR : np.ndarray
+            Infrared-resummed matter power spectrum in
+            :math:`(h^{-1}\,\mathrm{Mpc})^3`, with the same shape as ``Pk``.
+        
+        Notes
+        -----
+        The implementation constructs a no-wiggle component from the
+        Eisenstein & Hu (1998) transfer-function approximation and returns
+        
+        .. math::
+        
+            P_{\rm IR}(k)
+            = P_{\rm nw}(k)
+              + \exp[-k^2\Sigma^2]\,P_{\rm w}(k).
+        
+        The input ``k`` array is temporarily rescaled in place from
+        :math:`h\,\mathrm{Mpc}^{-1}` to :math:`\mathrm{Mpc}^{-1}` and is
+        rescaled back before returning.
         """
 
         ns = self.matter_statistics.background.ns
