@@ -17,27 +17,27 @@ from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 def _radial_window_f2(x):
     r"""Evaluate the analytic primitive used by the quadrupole shell window.
-    
+
     Computes
-    
+
     .. math::
-    
+
         F_2(x) = \operatorname{Si}(x) - \sin(x),
-    
+
     where :math:`\operatorname{Si}` is the sine integral. For small
     :math:`|x|`, the function is evaluated with its Taylor expansion to
     avoid cancellation between the two terms.
-    
+
     Parameters
     ----------
     x : float or np.ndarray
         Dimensionless argument, typically :math:`kr`.
-    
+
     Returns
     -------
     float or np.ndarray
         Value of :math:`F_2(x)`, with the same shape as ``x``.
-    
+
     Notes
     -----
     This is the primitive entering the analytic shell-averaged quadrupole
@@ -62,29 +62,29 @@ def _radial_window_f2(x):
 
 def _radial_window_f4(x):
     r"""Evaluate the analytic primitive used by the hexadecapole shell window.
-    
+
     Computes
-    
+
     .. math::
-    
+
         F_4(x) = 3\operatorname{Si}(x)
                  + \sin(x)\left(2 - \frac{15}{x^2}\right)
                  + \frac{15\cos(x)}{x}.
-    
+
     For small :math:`|x|`, the function is evaluated with its Taylor
     expansion to avoid numerical cancellation between the closed-form
     terms.
-    
+
     Parameters
     ----------
     x : float or np.ndarray
         Dimensionless argument, typically :math:`kr`.
-    
+
     Returns
     -------
     float or np.ndarray
         Value of :math:`F_4(x)`, with the same shape as ``x``.
-    
+
     Notes
     -----
     This is the primitive entering the analytic shell-averaged
@@ -118,7 +118,7 @@ class HaloClusteringCore:
         background_fid: Background,
     ):
         r"""Initialize the halo-clustering calculation helper.
-        
+
         Parameters
         ----------
         matter_statistics : MatterStatistics
@@ -128,7 +128,7 @@ class HaloClusteringCore:
         background_fid : Background
             Fiducial cosmological background adopted when converting the
             measured two-point correlation function to distances.
-        
+
         Notes
         -----
         The fiducial background is used only for geometrical
@@ -142,11 +142,11 @@ class HaloClusteringCore:
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Compute the monopole shell window and spherical-shell volume.
-        
+
         The radial bin edges are first rescaled by the isotropic
         Alcock--Paczynski correction. The shell-averaged monopole window is
         then evaluated analytically from the spherical top-hat window.
-        
+
         Parameters
         ----------
         z : np.ndarray
@@ -158,25 +158,25 @@ class HaloClusteringCore:
         r : np.ndarray
             Radial-bin edges in :math:`h^{-1}\,\mathrm{Mpc}`, with shape
             ``(n_r + 1,)``.
-        
+
         Returns
         -------
         shell_window : np.ndarray
             Shell-averaged monopole window with shape ``(n_z, n_r, n_k)``.
         shell_volume : np.ndarray
             Spherical-shell volumes with shape ``(n_z, n_r)``.
-        
+
         Notes
         -----
         For a shell with corrected edges :math:`r_1` and :math:`r_2`, the
         window is
-        
+
         .. math::
-        
+
             W_0(k;\Delta r) =
             \frac{r_2^3 W_{\rm th}(kr_2)-r_1^3 W_{\rm th}(kr_1)}
                  {r_2^3-r_1^3},
-        
+
         corresponding to Eq. (17) of the analytic multipole implementation.
         """
 
@@ -198,7 +198,7 @@ class HaloClusteringCore:
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray, n_quad: int = 32
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Compute the quadrupole shell window and spherical-shell volume.
-        
+
         Parameters
         ----------
         z : np.ndarray
@@ -212,7 +212,7 @@ class HaloClusteringCore:
         n_quad : int, optional
             Retained for API compatibility. The analytic implementation does
             not use numerical quadrature.
-        
+
         Returns
         -------
         shell_window : np.ndarray
@@ -220,7 +220,7 @@ class HaloClusteringCore:
             ``(n_z, n_r, n_k)``.
         shell_volume : np.ndarray
             Spherical-shell volumes with shape ``(n_z, n_r)``.
-        
+
         Notes
         -----
         This is a convenience wrapper around
@@ -232,7 +232,7 @@ class HaloClusteringCore:
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray, n_quad: int = 32
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Compute the hexadecapole shell window and spherical-shell volume.
-        
+
         Parameters
         ----------
         z : np.ndarray
@@ -246,7 +246,7 @@ class HaloClusteringCore:
         n_quad : int, optional
             Retained for API compatibility. The analytic implementation does
             not use numerical quadrature.
-        
+
         Returns
         -------
         shell_window : np.ndarray
@@ -254,7 +254,7 @@ class HaloClusteringCore:
             ``(n_z, n_r, n_k)``.
         shell_volume : np.ndarray
             Spherical-shell volumes with shape ``(n_z, n_r)``.
-        
+
         Notes
         -----
         This is a convenience wrapper around
@@ -266,12 +266,12 @@ class HaloClusteringCore:
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray, ell: int, n_quad: int = 32
     ) -> tuple[np.ndarray, np.ndarray]:
         r"""Compute an analytic shell-averaged multipole window and shell volume.
-        
+
         The radial-bin edges are rescaled by the isotropic
         Alcock--Paczynski correction and the shell average of the spherical
         Bessel function is evaluated analytically for
         :math:`\ell=0,2,4`.
-        
+
         Parameters
         ----------
         z : np.ndarray
@@ -288,7 +288,7 @@ class HaloClusteringCore:
         n_quad : int, optional
             Retained for API compatibility. The current analytic
             implementation does not use numerical quadrature.
-        
+
         Returns
         -------
         shell_window : np.ndarray
@@ -296,22 +296,22 @@ class HaloClusteringCore:
             ``(n_z, n_r, n_k)``.
         shell_volume : np.ndarray
             Spherical-shell volumes with shape ``(n_z, n_r)``.
-        
+
         Raises
         ------
         ValueError
             If ``ell`` is not one of ``0``, ``2``, or ``4``.
-        
+
         Notes
         -----
         The window is defined by
-        
+
         .. math::
-        
+
             W_\ell(k;\Delta r)
             = \frac{4\pi}{V_{\Delta r}}
               \int_{r_1}^{r_2} dr\,r^2 j_\ell(kr),
-        
+
         with :math:`V_{\Delta r}=4\pi(r_2^3-r_1^3)/3`. The closed forms used
         for :math:`\ell=0,2,4` correspond to Eqs. (17), (18), and (20) of the
         analytic multipole implementation. Small arguments are evaluated with
@@ -383,35 +383,35 @@ class HaloClusteringCore:
     # cosmo correction (isotropic AP)
     def alcock_paczynski_correction_factor(self, z: np.ndarray) -> np.ndarray:
         r"""Compute the isotropic Alcock--Paczynski correction factor.
-        
+
         The correction rescales radial separations measured in the fiducial
         cosmology to those of the model cosmology using the isotropic volume
         distance and the sound horizon at the drag epoch.
-        
+
         Parameters
         ----------
         z : np.ndarray
             Redshift values at which to evaluate the correction.
-        
+
         Returns
         -------
         np.ndarray
             Isotropic Alcock--Paczynski correction factor at each redshift,
             with the same shape as ``z``.
-        
+
         Notes
         -----
         The implemented factor is
-        
+
         .. math::
-        
+
             \alpha =
             \frac{D_V(z)}{D_V^{\rm fid}(z)}
             \frac{r_d^{\rm fid}}{r_d},
-        
+
         where :math:`D_V` is the isotropic volume distance and :math:`r_d` is
         the sound horizon at the drag epoch.
-        
+
         Entries of the input array equal to zero are replaced in place by
         ``1e-5`` before evaluating the distances.
         """
@@ -440,10 +440,10 @@ class HaloClusteringCore:
 
     def photoz_rsd_halo_correction(self, z, k, z_obs_scatter, b_eff):
         r"""Compute the photo-z and RSD halo correction for the monopole.
-        
+
         The correction combines the analytic dispersion-model monopole
         coefficients with the effective halo bias and the linear growth rate.
-        
+
         Parameters
         ----------
         z : np.ndarray
@@ -457,29 +457,29 @@ class HaloClusteringCore:
         b_eff : np.ndarray
             Effective linear halo bias. Must have the same shape as
             ``z_obs_scatter``.
-        
+
         Returns
         -------
         np.ndarray
             Monopole halo correction with shape
             ``(n_z, n_k, ...)``, where the trailing dimensions are those of
             ``z_obs_scatter`` after the redshift axis.
-        
+
         Raises
         ------
         ValueError
             If ``z_obs_scatter`` and ``b_eff`` do not have identical shapes.
-        
+
         Notes
         -----
         The returned quantity is
-        
+
         .. math::
-        
+
             b_{\rm eff}^2 A_0
             + b_{\rm eff} f B_0
             + f^2 C_0,
-        
+
         where :math:`A_0`, :math:`B_0`, and :math:`C_0` are the analytic
         dispersion-model coefficients and :math:`f=\Omega_{cb}^{0.55}`.
         """
@@ -506,7 +506,7 @@ class HaloClusteringCore:
 
     def photoz_rsd_halo_quadrupole_correction(self, z, k, z_obs_scatter, b_eff):
         r"""Compute the photo-z and RSD halo correction for the quadrupole.
-        
+
         Parameters
         ----------
         z : np.ndarray
@@ -520,27 +520,27 @@ class HaloClusteringCore:
         b_eff : np.ndarray
             Effective linear halo bias. Must have the same shape as
             ``z_obs_scatter``.
-        
+
         Returns
         -------
         np.ndarray
             Quadrupole halo correction with shape ``(n_z, n_k, ...)``.
-        
+
         Raises
         ------
         ValueError
             If ``z_obs_scatter`` and ``b_eff`` do not have identical shapes.
-        
+
         Notes
         -----
         The returned quantity is
-        
+
         .. math::
-        
+
             b_{\rm eff}^2 A_2
             + b_{\rm eff} f B_2
             + f^2 C_2,
-        
+
         using the analytic :math:`\ell=2` dispersion-model coefficients.
         """
         if z_obs_scatter.shape != b_eff.shape:
@@ -557,7 +557,7 @@ class HaloClusteringCore:
 
     def photoz_rsd_halo_hexadecapole_correction(self, z, k, z_obs_scatter, b_eff):
         r"""Compute the photo-z and RSD halo correction for the hexadecapole.
-        
+
         Parameters
         ----------
         z : np.ndarray
@@ -571,27 +571,27 @@ class HaloClusteringCore:
         b_eff : np.ndarray
             Effective linear halo bias. Must have the same shape as
             ``z_obs_scatter``.
-        
+
         Returns
         -------
         np.ndarray
             Hexadecapole halo correction with shape ``(n_z, n_k, ...)``.
-        
+
         Raises
         ------
         ValueError
             If ``z_obs_scatter`` and ``b_eff`` do not have identical shapes.
-        
+
         Notes
         -----
         The returned quantity is
-        
+
         .. math::
-        
+
             b_{\rm eff}^2 A_4
             + b_{\rm eff} f B_4
             + f^2 C_4,
-        
+
         using the analytic :math:`\ell=4` dispersion-model coefficients.
         """
         if z_obs_scatter.shape != b_eff.shape:
@@ -608,7 +608,7 @@ class HaloClusteringCore:
 
     def photoz_rsd_halo_amplitude(self, z, k, z_obs_scatter, b_eff, mu):
         r"""Compute the redshift-space halo amplitude at fixed line-of-sight angle.
-        
+
         Parameters
         ----------
         z : np.ndarray
@@ -624,27 +624,27 @@ class HaloClusteringCore:
             ``z_obs_scatter``.
         mu : float or np.ndarray
             Cosine of the angle between the wavevector and the line of sight.
-        
+
         Returns
         -------
         np.ndarray
             Damped redshift-space halo amplitude with shape
             ``(n_z, n_k, ...)``.
-        
+
         Raises
         ------
         ValueError
             If ``z_obs_scatter`` and ``b_eff`` do not have identical shapes.
-        
+
         Notes
         -----
         The returned amplitude is
-        
+
         .. math::
-        
+
             \left(b_{\rm eff}+f\mu^2\right)
             \exp\left[-\frac{1}{2}(k\sigma_r\mu)^2\right],
-        
+
         whose square gives the Kaiser-plus-Gaussian-damping factor entering
         the anisotropic dispersion-model power spectrum.
         """
@@ -666,12 +666,12 @@ class HaloClusteringCore:
     # not in use currently
     def Pk_IR_func(self, k: np.array, Pk: np.ndarray) -> np.ndarray:
         r"""Apply first-order infrared resummation to BAO wiggles.
-        
+
         The linear matter power spectrum is decomposed into smooth and
         oscillatory components using an Eisenstein--Hu reference spectrum and
         Gaussian filtering in :math:`\log_{10}k`. The oscillatory component
         is then exponentially damped.
-        
+
         Parameters
         ----------
         k : np.ndarray
@@ -681,24 +681,24 @@ class HaloClusteringCore:
             Linear matter power spectrum in
             :math:`(h^{-1}\,\mathrm{Mpc})^3`, with shape
             ``(n_z, n_k)``.
-        
+
         Returns
         -------
         Pk_IR : np.ndarray
             Infrared-resummed matter power spectrum in
             :math:`(h^{-1}\,\mathrm{Mpc})^3`, with the same shape as ``Pk``.
-        
+
         Notes
         -----
         The implementation constructs a no-wiggle component from the
         Eisenstein & Hu (1998) transfer-function approximation and returns
-        
+
         .. math::
-        
+
             P_{\rm IR}(k)
             = P_{\rm nw}(k)
               + \exp[-k^2\Sigma^2]\,P_{\rm w}(k).
-        
+
         The input ``k`` array is temporarily rescaled in place from
         :math:`h\,\mathrm{Mpc}^{-1}` to :math:`\mathrm{Mpc}^{-1}` and is
         rescaled back before returning.
