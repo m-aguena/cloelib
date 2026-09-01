@@ -10,7 +10,7 @@
 import numpy as np
 
 # cloelib imports
-from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
+from cloelib.observables.clusters.auxiliary import photoz_rsd_monopole_correction
 from cloelib.observables.clusters.covariance import HaloCovariance
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
@@ -137,7 +137,7 @@ class ClusterCounts:
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
         # can neglect richness dependence here
-        pk *= photoz_rsd_correction(
+        pk *= photoz_rsd_monopole_correction(
             self.cluster_statitstics_modeling.matter_statistics.background,
             z_mid,
             self.cluster_statitstics_modeling.tabulated_integrands["k"],

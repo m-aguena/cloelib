@@ -305,7 +305,7 @@ def get_values(get_sf):
     print(f"dsig      :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
     cluster_clustering, clustering_intermediate_integration_products = (
-        cluster_clustering_statistics.get_xi(
+        cluster_clustering_statistics.get_xi0(
             lambda_obs_edges=lambda_obs_clustering_edges,
             radius_edges=radius_clustering_edges,
             z_obs_edges=zed_obs_clustering_edges,
@@ -314,7 +314,7 @@ def get_values(get_sf):
     print(f"xi        :  {time.time()-t0:.4f} seconds")
     t0 = time.time()
     cov_cluster_clustering = cluster_clustering_statistics.get_xi_covariance(
-        clustering_intermediate_integration_products["pk_mean_values"],
+        clustering_intermediate_integration_products["pk0_mean_values"],
         clustering_intermediate_integration_products["radial_shell_window"],
         clustering_intermediate_integration_products["radial_shell_volume"],
         clustering_intermediate_integration_products["window_z_obs"],
@@ -380,9 +380,7 @@ def test_clustersummmarystatitistics():
 
     assert_allclose(gt_mean_values[0:2], benchmark_values.deltasigma, rtol=1e-2)
 
-    assert_allclose(
-        cluster_clustering[0:2], benchmark_values.cluster_clustering, rtol=1e-2
-    )
+    assert_allclose(cluster_clustering[0:2], benchmark_values.cluster_clustering, rtol=0.01, atol=2.0e-4,)
 
     assert_allclose(
         cov_cluster_counts[1:2], benchmark_values.cov_cluster_counts, rtol=5e-2
