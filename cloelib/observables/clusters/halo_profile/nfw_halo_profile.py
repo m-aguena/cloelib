@@ -112,6 +112,28 @@ class NFWHaloProfile:
         if x > 1.0:
             return np.log(x / 2.0) + np.arccos(1.0 / x) / np.sqrt(x**2.0 - 1.0)
 
+    @staticmethod
+    def _rho_s(Delta, c):
+        r"""
+        NFW characteristic density.
+
+        Computes the NFW characteristic density.
+
+        Parameters
+        ----------
+        Delta: np.ndarray
+            Critical overdensity.
+        c: float
+            Concentration.
+
+        Returns
+        -------
+        rho_s: float
+            NFW characteristic density.
+        """
+        m = np.log(1.0 + c) - c / (1.0 + c)  # Eq. 4 Oguri & Hamana 2011
+        return Delta * c**3.0 / (3.0 * m)
+
     def _surface_mass_density_1h(self, R, RDelta, Delta, c):
         r"""
         NFW surface mass density profile.
@@ -139,8 +161,7 @@ class NFWHaloProfile:
         x = R / Rs
 
         F = np.vectorize(self._f_term)(x)
-        m_nfw = np.log(1.0 + c) - c / (1.0 + c)  # Eq. 4 Oguri & Hamana 2011
-        rho_s = Delta * c**3.0 / (3.0 * m_nfw)
+        rho_s = self._rho_s(Delta, c)
 
         Sigma = 2.0 * rho_s * Rs * F * 1.0e-12
 
@@ -174,9 +195,7 @@ class NFWHaloProfile:
         x = R / Rs
 
         G = np.vectorize(self._g_term)(x)
-
-        m_nfw = np.log(1.0 + c) - c / (1.0 + c)  # Eq. 4 Oguri & Hamana 2011
-        rho_s = Delta * c**3.0 / (3.0 * m_nfw)
+        rho_s = self._rho_s(Delta, c)
 
         return 4.0 * rho_s * Rs * (G / x**2.0) * 1.0e-12
 
