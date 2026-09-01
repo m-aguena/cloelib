@@ -8,8 +8,15 @@
 
 # General imports
 import numpy as np
+from scipy.integrate import simpson
 
 # cloelib imports
+from cloelib.observables.clusters.auxiliary import (
+    _photoz_rsd_parameters,
+    dispersion_model_hexadecapole_coefficients,
+    dispersion_model_monopole_coefficients,
+    dispersion_model_quadrupole_coefficients,
+)
 from cloelib.observables.clusters.halo_clustering import HaloClustering
 from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
@@ -70,8 +77,8 @@ class ClusterClustering:
             If true, also return the intermediate quantities used in the
             computation. Default is true.
         n_mu : int, optional
-            Number of Gauss-Legendre nodes used for the line-of-sight
-            integration. Default is 32.
+            Retained for API compatibility. The line-of-sight projection
+            is evaluated analytically and does not use numerical quadrature.
 
         Returns
         -------
@@ -125,8 +132,8 @@ class ClusterClustering:
             If true, also return the intermediate quantities used in the
             computation. Default is true.
         n_mu : int, optional
-            Number of Gauss-Legendre nodes used for the line-of-sight
-            integration. Default is 32.
+            Retained for API compatibility. The line-of-sight projection
+            is evaluated analytically and does not use numerical quadrature.
 
         Returns
         -------
@@ -180,8 +187,8 @@ class ClusterClustering:
             If true, also return the intermediate quantities used in the
             computation. Default is true.
         n_mu : int, optional
-            Number of Gauss-Legendre nodes used for the line-of-sight
-            integration. Default is 32.
+            Retained for API compatibility. The line-of-sight projection
+            is evaluated analytically and does not use numerical quadrature.
 
         Returns
         -------
@@ -238,8 +245,8 @@ class ClusterClustering:
             If true, also return the intermediate quantities used in the
             computation.
         n_mu : int
-            Number of Gauss-Legendre nodes used for the line-of-sight
-            integration.
+            Retained for API compatibility. The line-of-sight projection
+            is evaluated analytically and does not use numerical quadrature.
 
         Returns
         -------
@@ -284,29 +291,136 @@ class ClusterClustering:
         )
         b_eff = (bias_density / number_density).T
 
-        mu, weights = np.polynomial.legendre.leggauss(n_mu)
-        pk_mean_values = 0.0
-        legendre_coefficients = [0.0] * ell + [1.0]
+        # The previous implementation first averaged the fixed-mu amplitude
+        # over true redshift and then performed the multipole projection with
+        # Gauss-Legendre quadrature.  Preserve that ordering exactly, but carry
+        # out the mu integral analytically.
+        #
+        # For redshift contributions za and zb,
+        #
+        #   A_a(mu) A_b(mu)
+        #   = sqrt(P_a P_b)
+        #     [b_a b_b + (b_a f_b + f_a b_b) mu^2 + f_a f_b mu^4]
+        #     exp[-x_ab^2 mu^2],
+        #
+        # with x_ab^2 = (q_a^2 + q_b^2)/2 and q = k sigma_r.
+        # Therefore the exact multipole projection is
+        #
+        #   b_a b_b A_l(x_ab)
+        #   + (b_a f_b + f_a b_b) B_l(x_ab)/2
+        #   + f_a f_b C_l(x_ab).
+        #
+        # The double-redshift sum below uses exactly the same Simpson weights,
+        # dV/dz factor, observed-redshift window, number density, and cluster-
+        # count normalization as integrate_probe_function_in_redshift.
+        _ = n_mu  # retained for API compatibility
 
-        for mu_i, weight in zip(mu, weights):
-            amplitude = self.clustering.power_spectrum_RSD_amplitude(
-                z, k, z_obs_scatter, b_eff, mu_i
-            ).transpose(2, 0, 1)
-            amplitude = (
-                self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-                    amplitude * number_density[:, :, np.newaxis],
-                    window_z_obs,
+        coefficient_function = {
+            0: dispersion_model_monopole_coefficients,
+            2: dispersion_model_quadrupole_coefficients,
+            4: dispersion_model_hexadecapole_coefficients,
+        }[ell]
+
+        background = self.clustering.core.matter_statistics.background
+        pk = self.clustering.core.matter_statistics.matter_power_spectrum_cb(z, k)
+        sqrt_pk = np.sqrt(pk)
+
+        f_gr, k_sigma = _photoz_rsd_parameters(background, z, k, z_obs_scatter)
+        f_gr = f_gr[:, 0, 0]
+        # k_sigma has shape (ztrue, k, lambda_obs).
+
+        # Simpson integration is linear.  Integrating the identity matrix gives
+        # the exact one-dimensional quadrature weights used by scipy.simpson for
+        # this z grid, including its treatment of an even number of samples.
+        z_simpson_weights = simpson(np.eye(z.size), x=z, axis=1)
+        dvdz = self.cluster_statitstics_modeling.tabulated_integrands["dv/dz(ztrue)"]
+
+        redshift_weights = (
+            window_z_obs
+            * number_density[np.newaxis, :, :]
+            * dvdz[np.newaxis, np.newaxis, :]
+            * z_simpson_weights[np.newaxis, np.newaxis, :]
+            / cluster_counts[:, :, np.newaxis]
+        )
+
+        n_z_obs = len(z_obs_edges) - 1
+        n_lambda_obs = len(lambda_obs_edges) - 1
+        pk_mean_values = np.zeros(
+            (n_z_obs, n_lambda_obs, n_lambda_obs, k.size), dtype=float
+        )
+
+        # Avoid allocating the full (ztrue, ztrue, k) kernel.  The result is
+        # still the exact double-redshift Simpson sum; only the evaluation is
+        # split into small blocks along the first true-redshift axis.
+        z_block_size = 2
+
+        for ind_lambda_i in range(n_lambda_obs):
+            weight_b_i = (
+                redshift_weights[:, ind_lambda_i, :]
+                * b_eff[:, ind_lambda_i][np.newaxis, :]
+            )
+            weight_f_i = redshift_weights[:, ind_lambda_i, :] * f_gr[np.newaxis, :]
+            q_i = k_sigma[:, :, ind_lambda_i]
+
+            for ind_lambda_j in range(ind_lambda_i, n_lambda_obs):
+                weight_b_j = (
+                    redshift_weights[:, ind_lambda_j, :]
+                    * b_eff[:, ind_lambda_j][np.newaxis, :]
                 )
-                / cluster_counts[:, :, np.newaxis]
-            )
-            pk_mean_values += (
-                0.5
-                * (2 * ell + 1)
-                * weight
-                * np.polynomial.legendre.legval(mu_i, legendre_coefficients)
-                * amplitude[:, :, np.newaxis, :]
-                * amplitude[:, np.newaxis, :, :]
-            )
+                weight_f_j = redshift_weights[:, ind_lambda_j, :] * f_gr[np.newaxis, :]
+                q_j = k_sigma[:, :, ind_lambda_j]
+
+                pair_multipole = np.zeros((n_z_obs, k.size), dtype=float)
+
+                for z_start in range(0, z.size, z_block_size):
+                    z_stop = min(z_start + z_block_size, z.size)
+                    z_slice = slice(z_start, z_stop)
+
+                    x_pair = np.sqrt(
+                        0.5
+                        * (
+                            q_i[z_slice, np.newaxis, :] ** 2
+                            + q_j[np.newaxis, :, :] ** 2
+                        )
+                    )
+                    A_ell, B_ell, C_ell = coefficient_function(x_pair)
+
+                    sqrt_pk_pair = (
+                        sqrt_pk[z_slice, np.newaxis, :] * sqrt_pk[np.newaxis, :, :]
+                    )
+
+                    pair_multipole += np.einsum(
+                        "oi,oj,ijk->ok",
+                        weight_b_i[:, z_slice],
+                        weight_b_j,
+                        sqrt_pk_pair * A_ell,
+                        optimize=True,
+                    )
+                    pair_multipole += np.einsum(
+                        "oi,oj,ijk->ok",
+                        weight_b_i[:, z_slice],
+                        weight_f_j,
+                        sqrt_pk_pair * (0.5 * B_ell),
+                        optimize=True,
+                    )
+                    pair_multipole += np.einsum(
+                        "oi,oj,ijk->ok",
+                        weight_f_i[:, z_slice],
+                        weight_b_j,
+                        sqrt_pk_pair * (0.5 * B_ell),
+                        optimize=True,
+                    )
+                    pair_multipole += np.einsum(
+                        "oi,oj,ijk->ok",
+                        weight_f_i[:, z_slice],
+                        weight_f_j,
+                        sqrt_pk_pair * C_ell,
+                        optimize=True,
+                    )
+
+                pk_mean_values[:, ind_lambda_i, ind_lambda_j, :] = pair_multipole
+                if ind_lambda_i != ind_lambda_j:
+                    pk_mean_values[:, ind_lambda_j, ind_lambda_i, :] = pair_multipole
 
         radial_shell_window, radial_shell_volume = (
             self.clustering.core.radial_shell_multipole_window_and_volume(
