@@ -182,7 +182,6 @@ class HaloClusteringCore:
 
         return shell_window, shell_volume
 
-
     def radial_shell_quadrupole_window_and_volume(
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray, n_quad: int = 32
     ) -> tuple[np.ndarray, np.ndarray]:

@@ -63,7 +63,7 @@ def dispersion_model_monopole_coefficients(k_sigma):
 
         P_0(k) = \left[A_0 + B_0\beta + C_0\beta^2\right] b^2 P_m(k),
 
-    with :math:`\beta=f/b`. 
+    with :math:`\beta=f/b`.
 
     For :math:`|k\sigma| < 0.5`, even Taylor expansions are used to avoid
     catastrophic cancellation in the exact expressions. For larger
@@ -286,7 +286,7 @@ def dispersion_model_hexadecapole_coefficients(k_sigma):
 
         P_4(k) = \left[A_4 + B_4\beta + C_4\beta^2\right] b^2 P_m(k),
 
-    with :math:`\beta=f/b`. 
+    with :math:`\beta=f/b`.
 
     For :math:`|k\sigma| < 0.5`, even Taylor expansions are used to avoid
     catastrophic cancellation in the exact expressions. For larger
