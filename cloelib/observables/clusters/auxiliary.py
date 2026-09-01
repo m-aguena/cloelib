@@ -63,8 +63,7 @@ def dispersion_model_monopole_coefficients(k_sigma):
 
         P_0(k) = \left[A_0 + B_0\beta + C_0\beta^2\right] b^2 P_m(k),
 
-    with :math:`\beta=f/b`. They correspond to Equations 4--6 of the
-    dispersion-model derivation.
+    with :math:`\beta=f/b`. 
 
     For :math:`|k\sigma| < 0.5`, even Taylor expansions are used to avoid
     catastrophic cancellation in the exact expressions. For larger
@@ -165,8 +164,7 @@ def dispersion_model_quadrupole_coefficients(k_sigma):
 
         P_2(k) = \left[A_2 + B_2\beta + C_2\beta^2\right] b^2 P_m(k),
 
-    with :math:`\beta=f/b`. They correspond to Equations 7--9 of the
-    dispersion-model derivation.
+    with :math:`\beta=f/b`.
 
     For :math:`|k\sigma| < 0.5`, even Taylor expansions are used to avoid
     catastrophic cancellation in the exact expressions. For larger
@@ -288,17 +286,12 @@ def dispersion_model_hexadecapole_coefficients(k_sigma):
 
         P_4(k) = \left[A_4 + B_4\beta + C_4\beta^2\right] b^2 P_m(k),
 
-    with :math:`\beta=f/b`. They correspond to Equations 10--12 of the
-    dispersion-model derivation.
+    with :math:`\beta=f/b`. 
 
     For :math:`|k\sigma| < 0.5`, even Taylor expansions are used to avoid
     catastrophic cancellation in the exact expressions. For larger
     arguments, the closed-form expressions involving the error function are
     evaluated directly.
-
-    The prefactor of :math:`C_4` is :math:`9/[256(k\sigma)^9]`. The value
-    ``256`` follows from the defining multipole integral; a prefactor of
-    ``64`` in Equation 12 is a typographical error.
     """
     x = np.abs(np.asarray(k_sigma, dtype=float))
     A4 = np.empty_like(x)
@@ -626,8 +619,6 @@ def photoz_rsd_monopole_correction(
         + b\,\mathrm{corr1}
         + \mathrm{corr2}\right] P_m(k).
 
-    The analytic coefficients implement Equations 4--6 of the
-    dispersion-model derivation.
     """
     f_gr, k_sigma = _photoz_rsd_parameters(background, z, k, z_obs_scatter)
     A0, B0, C0 = dispersion_model_monopole_coefficients(k_sigma)
@@ -680,8 +671,6 @@ def photoz_rsd_quadrupole_correction(
         + b\,\mathrm{corr1}
         + \mathrm{corr2}\right] P_m(k).
 
-    The analytic coefficients implement Equations 7--9 of the
-    dispersion-model derivation.
     """
     f_gr, k_sigma = _photoz_rsd_parameters(background, z, k, z_obs_scatter)
     A2, B2, C2 = dispersion_model_quadrupole_coefficients(k_sigma)
@@ -733,10 +722,6 @@ def photoz_rsd_hexadecapole_correction(
         \left[b^2\,\mathrm{corr0}
         + b\,\mathrm{corr1}
         + \mathrm{corr2}\right] P_m(k).
-
-    The analytic coefficients implement Equations 10--12 of the
-    dispersion-model derivation. The :math:`C_4` implementation uses the
-    corrected prefactor :math:`9/[256(k\sigma)^9]`.
     """
     f_gr, k_sigma = _photoz_rsd_parameters(background, z, k, z_obs_scatter)
     A4, B4, C4 = dispersion_model_hexadecapole_coefficients(k_sigma)

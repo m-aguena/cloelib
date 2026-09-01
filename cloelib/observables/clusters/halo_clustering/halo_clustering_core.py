@@ -37,11 +37,6 @@ def _radial_window_f2(x):
     -------
     float or np.ndarray
         Value of :math:`F_2(x)`, with the same shape as ``x``.
-
-    Notes
-    -----
-    This is the primitive entering the analytic shell-averaged quadrupole
-    window of Eq. (19) in the dispersion-model multipole implementation.
     """
     x = np.asarray(x, dtype=float)
     result = np.empty_like(x)
@@ -85,11 +80,6 @@ def _radial_window_f4(x):
     float or np.ndarray
         Value of :math:`F_4(x)`, with the same shape as ``x``.
 
-    Notes
-    -----
-    This is the primitive entering the analytic shell-averaged
-    hexadecapole window of Eq. (21) in the dispersion-model multipole
-    implementation.
     """
     x = np.asarray(x, dtype=float)
     result = np.empty_like(x)
@@ -175,9 +165,7 @@ class HaloClusteringCore:
 
             W_0(k;\Delta r) =
             \frac{r_2^3 W_{\rm th}(kr_2)-r_1^3 W_{\rm th}(kr_1)}
-                 {r_2^3-r_1^3},
-
-        corresponding to Eq. (17) of the analytic multipole implementation.
+                 {r_2^3-r_1^3}.
         """
 
         r_z = (
@@ -193,6 +181,7 @@ class HaloClusteringCore:
         shell_volume = 4.0 * np.pi / 3.0 * np.diff(r_z[:, :, 0] ** 3, axis=1)
 
         return shell_window, shell_volume
+
 
     def radial_shell_quadrupole_window_and_volume(
         self, z: np.ndarray, k: np.ndarray, r: np.ndarray, n_quad: int = 32
@@ -312,10 +301,7 @@ class HaloClusteringCore:
             = \frac{4\pi}{V_{\Delta r}}
               \int_{r_1}^{r_2} dr\,r^2 j_\ell(kr),
 
-        with :math:`V_{\Delta r}=4\pi(r_2^3-r_1^3)/3`. The closed forms used
-        for :math:`\ell=0,2,4` correspond to Eqs. (17), (18), and (20) of the
-        analytic multipole implementation. Small arguments are evaluated with
-        the spherical-Bessel power series to avoid cancellation.
+        with :math:`V_{\Delta r}=4\pi(r_2^3-r_1^3)/3`.
         """
         if ell not in (0, 2, 4):
             raise ValueError(f"ell (={ell}) must be one of 0, 2, or 4")
@@ -411,9 +397,6 @@ class HaloClusteringCore:
 
         where :math:`D_V` is the isotropic volume distance and :math:`r_d` is
         the sound horizon at the drag epoch.
-
-        Entries of the input array equal to zero are replaced in place by
-        ``1e-5`` before evaluating the distances.
         """
 
         # units don't matter here, they cancel out
