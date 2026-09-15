@@ -332,7 +332,7 @@ class GaussianSelectionFunction:
             Dimensions: (len(z_obs_edges)-1, len(lambda_obs_edges)-1, len(z_true), len(mass))
         """
 
-        window_lambda_true = (
+        return (
             # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, 1).
             self.window_z_observed(z_obs_edges, lambda_obs_edges, z_true)[
                 :, :, :, np.newaxis
@@ -345,5 +345,3 @@ class GaussianSelectionFunction:
                 lambda_true,
             )[np.newaxis, :, :, :]
         )
-
-        return window_lambda_true
