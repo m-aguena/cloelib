@@ -1,3 +1,11 @@
+"""
+
+## Notes :
+
+- Cluster statistics modeling
+
+"""
+
 # General imports
 import numpy as np
 from scipy.integrate import simpson
@@ -7,14 +15,6 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_abundance import HaloAbundance
 
 # import jax
-
-"""
-
-## Notes :
-
-- Cluster statistics modeling
-
-"""
 
 
 class ClusterStatisticsModeling:
