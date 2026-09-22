@@ -380,16 +380,16 @@ def test_clustersummmarystatitistics():
         cov_cluster_clustering,
     ) = get_values(get_sf_gaussian)
 
-    assert_allclose(cluster_counts, benchmark_values.cluster_counts, rtol=1e-1)
+    assert_allclose(cluster_counts, benchmark_values.cluster_counts, rtol=1e-2)
 
-    assert_allclose(gt_mean_values[0:2], benchmark_values.deltasigma, rtol=1e-1)
+    assert_allclose(gt_mean_values[0:2], benchmark_values.deltasigma, rtol=1e-2)
 
     assert_allclose(
-        cluster_clustering[0:2], benchmark_values.cluster_clustering, atol=5e-1
+        cluster_clustering[0:2], benchmark_values.cluster_clustering, atol=1e-2
     )
 
     assert_allclose(
-        cov_cluster_counts[1:2], benchmark_values.cov_cluster_counts, rtol=5e-1
+        cov_cluster_counts[1:2], benchmark_values.cov_cluster_counts, rtol=5e-2
     )
 
     assert_allclose(
