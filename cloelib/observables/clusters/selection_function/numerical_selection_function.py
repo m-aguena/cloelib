@@ -53,6 +53,17 @@ class NumericalSelectionFunction:
         self._prob_contains_completeness = prob_contains_completeness
         self._extrapolate = extrapolate
 
+    # These properties are setup as z_true/lambda_true will be used internally and externally
+    @property
+    def z_true(self):
+        """Internal value of true redshift in the internal table"""
+        return self._sel_cl_data["arrays"]["z_true"]
+
+    @property
+    def lambda_true(self):
+        """Internal value of true richness in the internal table"""
+        return self._sel_cl_data["arrays"]["lambda_true"]
+
     def _compute_prob_comp_pur(self, z_obs_edges, lambda_obs_edges):
         """Computes Prob(lambda_obs, z_obs)*completeness/purity
         with SEL_CL data shaped to contain obs bins ranges.
@@ -121,8 +132,8 @@ class NumericalSelectionFunction:
             slice(self._sel_cl_data["area_tile"].size),
             _zobs_orig_slice,
             _lobs_orig_slice,
-            slice(self._sel_cl_data["arrays"]["z_true"].size),
-            slice(self._sel_cl_data["arrays"]["lambda_true"].size),
+            slice(self.z_true.size),
+            slice(self.lambda_true.size),
         )
 
         # Istanciate output
@@ -131,8 +142,8 @@ class NumericalSelectionFunction:
                 self._sel_cl_data["area_tile"].size,
                 prob_data["z_obs"].size,
                 prob_data["lambda_obs"].size,
-                self._sel_cl_data["arrays"]["z_true"].size,
-                self._sel_cl_data["arrays"]["lambda_true"].size,
+                self.z_true.size,
+                self.lambda_true.size,
             )
         )
 
@@ -227,8 +238,8 @@ class NumericalSelectionFunction:
             (
                 len(z_obs_edges) - 1,
                 len(lambda_obs_edges) - 1,
-                len(self._sel_cl_data["arrays"]["z_true"]),
-                len(self._sel_cl_data["arrays"]["lambda_true"]),
+                self.z_true.size,
+                self.lambda_true.size,
             )
         )
         for ztab, z_slice in enumerate(prob_data["z_obs_bins_slices"]):
@@ -248,8 +259,8 @@ class NumericalSelectionFunction:
         interpolators = [
             [
                 interpolate.RectBivariateSpline(
-                    self._sel_cl_data["arrays"]["z_true"],
-                    self._sel_cl_data["arrays"]["lambda_true"],
+                    self.z_true,
+                    self.lambda_true,
                     window_ltrue_zobs_lobs,
                 )
                 for window_ltrue_zobs_lobs in window_ltrue_zobs
@@ -314,8 +325,8 @@ class NumericalSelectionFunction:
             (
                 len(z_obs_edges) - 1,
                 len(lambda_obs_edges) - 1,
-                len(self._sel_cl_data["arrays"]["z_true"]),
-                len(self._sel_cl_data["arrays"]["lambda_true"]),
+                self.z_true.size,
+                self.lambda_true.size,
             )
         )
 
@@ -372,13 +383,9 @@ class NumericalSelectionFunction:
         if mass is None:
             raise ValueError("You need to provide a value for M")
 
-        z_true = np.array(
-            self._sel_cl_data["arrays"]["z_true"],
-        )
-        lambda_true = np.array(self._sel_cl_data["arrays"]["lambda_true"])
         # Dimensions: (z, M, lambda_true)
         pdf_mass_richness_scaling = self.halo_mass_observable.pdf_richness(
-            z_true, mass, lambda_true
+            self.z_true, mass, self.lambda_true
         )
         # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, lambda_true)
         window_lambda_true = self._window_redshift_richness_observed_by_lambda_true(
@@ -387,7 +394,7 @@ class NumericalSelectionFunction:
         return np.trapezoid(  # se uso trapz qui non migliora il match con il mio codice
             pdf_mass_richness_scaling[np.newaxis, np.newaxis, :, :, :]
             * window_lambda_true[:, :, :, np.newaxis, :],
-            x=lambda_true,
+            x=self.lambda_true,
             axis=-1,
         )
 
@@ -428,10 +435,7 @@ class NumericalSelectionFunction:
         # lambda_obs = lambda_obs_edges[:-1], I pick the lambda_true values closer to lambda_obs_edges[:-1]
         # IN FUTURE WE NEED TO CHANGE THIS FUNCTION DEPENDING ON THE ACTUAL DEPENDENCY OF P(zob):
         idx_ltr = np.argmin(
-            abs(
-                lambda_obs_edges[:-1, np.newaxis]
-                - self._sel_cl_data["arrays"]["lambda_true"][np.newaxis, :]
-            ),
+            abs(lambda_obs_edges[:-1, np.newaxis] - self.lambda_true[np.newaxis, :]),
             axis=1,
         )
 
