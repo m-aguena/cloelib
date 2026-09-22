@@ -423,13 +423,13 @@ class NumericalSelectionFunction:
         """
         # Get window with already corresponding obs edges
         # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, lambda_true)
-        window_Dlob_Dzob__ztr_ltr = (
+        window_Dlob_Dzob_ztr_ltr = (
             self._window_redshift_richness_observed_by_lambda_true(
                 z_obs_edges, lambda_obs_edges
             )
         )
         # Dimensions: (z_obs_edges-1, z_true, lambda_true) -> (z_obs_edges-1, lambda_true, z_true)
-        window_Dzob__ztr_ltr = window_Dlob_Dzob__ztr_ltr.sum(axis=1).transpose(0, 2, 1)
+        window_Dzob_ztr_ltr = window_Dlob_Dzob_ztr_ltr.sum(axis=1).transpose(0, 2, 1)
 
         # For consistency with the gaussian_sf.window_z_observed, which is computed at
         # lambda_obs = lambda_obs_edges[:-1], I pick the lambda_true values closer to lambda_obs_edges[:-1]
@@ -439,7 +439,7 @@ class NumericalSelectionFunction:
             axis=1,
         )
 
-        return window_Dzob__ztr_ltr[:, idx_ltr, :]
+        return window_Dzob_ztr_ltr[:, idx_ltr, :]
 
     def window_richness_observed(
         self,
