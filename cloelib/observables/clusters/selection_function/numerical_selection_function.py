@@ -414,7 +414,7 @@ class NumericalSelectionFunction:
             Integral of P(z_obs|lambda_true, z_true) in z_obs bins.
             Dimensions: (len(z_obs_edges)-1, len(z_true), len(lambda_true)).
         """
-
+        # Get window with already corresponding obs edges
         # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, lambda_true)
         window_Dlob_Dzob__ztr_ltr = (
             self._window_redshift_richness_observed_by_lambda_true(
@@ -422,9 +422,7 @@ class NumericalSelectionFunction:
             )
         )
         # Dimensions: (z_obs_edges-1, z_true, lambda_true) -> (z_obs_edges-1, lambda_true, z_true)
-        window_Dzob__ztr_ltr = np.sum(window_Dlob_Dzob__ztr_ltr, axis=1).transpose(
-            0, 2, 1
-        )
+        window_Dzob__ztr_ltr = window_Dlob_Dzob__ztr_ltr.sum(axis=1).transpose(0, 2, 1)
 
         # For consistency with the gaussian_sf.window_z_observed, which is computed at
         # lambda_obs = lambda_obs_edges[:-1], I pick the lambda_true values closer to lambda_obs_edges[:-1]
