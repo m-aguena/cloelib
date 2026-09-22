@@ -290,10 +290,8 @@ class ClusterStatisticsModeling:
         # Add lambda_obs_edges dimension to probe_function
         _probe_function = probe_function[np.newaxis, np.newaxis, ...]
 
-        # to make window_lambda_obs, hmf same shape as probe_function
+        # reshape HMF to make it same shape as probe_function
         extra_axes = tuple(range(4, 4 + len(_probe_function.shape[4:])))
-
-        # reshape HMF
         _hmf = np.expand_dims(
             self.tabulated_integrands["dn/dM(ztrue,M)"], axis=(0, 1, *extra_axes)
         )
@@ -324,10 +322,8 @@ class ClusterStatisticsModeling:
             Dimension (z_obs, lambda_obs, ...).
         """
 
-        # to make dvdz same shape as probe_function
+        # reshape dvdz to be the same shape as probe_function
         extra_axes = tuple(range(3, 3 + len(probe_function.shape[3:])))
-
-        # reshape dvdz
         _dvdz = np.expand_dims(
             self.tabulated_integrands["dv/dz(ztrue)"], axis=(0, 1, *extra_axes)
         )
