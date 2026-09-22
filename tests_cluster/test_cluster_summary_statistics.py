@@ -395,7 +395,7 @@ def test_clustersummmarystatitistics():
     assert_allclose(
         cov_cluster_clustering[1, 1, 1:3, 1:3, 10:20, 10:20],
         benchmark_values.cov_cluster_clustering,
-        rtol=5e-1,
+        rtol=5e-2,
     )
 
 
