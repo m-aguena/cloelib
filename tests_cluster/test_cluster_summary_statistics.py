@@ -3,7 +3,7 @@ import time
 
 import benchmark_values
 import numpy as np
-from numpy.testing import assert_allclose, assert_equal, assert_raises
+from numpy.testing import assert_allclose
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.clusters.covariance import HaloCovariance
@@ -98,10 +98,11 @@ def _gen_gaussian_selcl_data(gaussian_sf, arrays):
 
 
 def get_sf_interp(**sel_pars):
-
     test_arrays = {
-        "z_true": np.linspace(0.05, 2.0 , 40), # this has to be equal to integ_ztrue_arr
-        "lambda_true": np.geomspace(5.0, 250.0, 51), # this has to be equal to integ_lambda_true_arr
+        "z_true": np.linspace(0.05, 2.0, 40),  # this has to be equal to integ_ztrue_arr
+        "lambda_true": np.geomspace(
+            5.0, 250.0, 51
+        ),  # this has to be equal to integ_lambda_true_arr
         "z_obs": np.linspace(0.2, 1.8, 81),
         "lambda_obs": np.linspace(20, 500, 481),
     }
@@ -168,7 +169,7 @@ background_fid = CAMBBackground(**_cosmo_pars_fid)
 print(f"cosmo     :  {time.time()-t0:.4f} seconds")
 
 
-def get_values(get_sf):
+def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
 
     t0 = time.time()
 
@@ -179,9 +180,11 @@ def get_values(get_sf):
     # Parameters
 
     integ_k_arr = np.geomspace(1e-4, 10, 500)
-    integ_mass_arr = np.logspace(12.0, 16.0, 41)
     integ_lambda_true_arr = np.geomspace(5.0, 250.0, 51)
-    integ_ztrue_arr = np.linspace(0.05, 2.0 , 40)
+    if integ_mass_arr is None:
+        integ_mass_arr = np.logspace(12.0, 16.0, 51)
+    if integ_ztrue_arr is None:
+        integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
 
     halo_concentration = 0.1
     area = 10313
@@ -403,7 +406,11 @@ def test_clustersummmarystatitistics_interp():
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
-    ) = get_values(get_sf_interp)
+    ) = get_values(
+        get_sf_interp,
+        integ_mass_arr=np.logspace(12.0, 16.0, 41),
+        integ_ztrue_arr=np.linspace(0.05, 2.0, 40),
+    )
     # results to be evaluated
     """
     assert_allclose(cluster_counts, benchmark_values.cluster_counts, rtol=1e-2)
@@ -431,4 +438,8 @@ if __name__ == "__main__":
     get_values(get_sf_gaussian)
 
     print("\nInterp")
-    get_values(get_sf_interp)
+    get_values(
+        get_sf_interp,
+        integ_mass_arr=np.logspace(12.0, 16.0, 41),
+        integ_ztrue_arr=np.linspace(0.05, 2.0, 40),
+    )
