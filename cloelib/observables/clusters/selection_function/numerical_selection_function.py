@@ -233,8 +233,6 @@ class NumericalSelectionFunction:
         )
         for ztab, z_slice in enumerate(prob_data["z_obs_bins_slices"]):
             for ltab, l_slice in enumerate(prob_data["lambda_obs_bins_slices"]):
-                #         window_ltrue[ztab, ltab, :, :] = integrate.simpson(
-                #             integrate.simpson(
                 window_ltrue[ztab, ltab, :, :] = np.trapezoid(
                     np.trapezoid(
                         integrand[z_slice, l_slice, :, :],
@@ -386,7 +384,6 @@ class NumericalSelectionFunction:
         window_lambda_true = self._window_redshift_richness_observed_by_lambda_true(
             z_obs_edges, lambda_obs_edges
         )
-        # return simpson(
         return np.trapezoid(  # se uso trapz qui non migliora il match con il mio codice
             pdf_mass_richness_scaling[np.newaxis, np.newaxis, :, :, :]
             * window_lambda_true[:, :, :, np.newaxis, :],
@@ -432,11 +429,13 @@ class NumericalSelectionFunction:
         # For consistency with the gaussian_sf.window_z_observed, which is computed at
         # lambda_obs = lambda_obs_edges[:-1], I pick the lambda_true values closer to lambda_obs_edges[:-1]
         # IN FUTURE WE NEED TO CHANGE THIS FUNCTION DEPENDING ON THE ACTUAL DEPENDENCY OF P(zob):
-        lambda_true = np.array(self._sel_cl_data["arrays"]["lambda_true"])
-        idx_ltr = [
-            np.argmin(np.abs(lambda_obs_edges[i] - lambda_true))
-            for i in range(lambda_obs_edges.size - 1)
-        ]
+        idx_ltr = np.argmin(
+            abs(
+                lambda_obs_edges[:-1, np.newaxis]
+                - self._sel_cl_data["arrays"]["lambda_true"][np.newaxis, :]
+            ),
+            axis=1,
+        )
 
         return window_Dzob__ztr_ltr[:, idx_ltr, :]
 
