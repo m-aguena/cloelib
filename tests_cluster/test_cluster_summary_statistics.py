@@ -385,7 +385,7 @@ def test_clustersummmarystatitistics():
     assert_allclose(gt_mean_values[0:2], benchmark_values.deltasigma, rtol=1e-2)
 
     assert_allclose(
-        cluster_clustering[0:2], benchmark_values.cluster_clustering, atol=1e-2
+        cluster_clustering[0:2], benchmark_values.cluster_clustering, rtol=1e-2
     )
 
     assert_allclose(
