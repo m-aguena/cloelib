@@ -9,7 +9,6 @@
 # General imports
 import numpy as np
 
-
 # cloelib imports
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 from cloelib.observables.clusters.halo_profile import HaloProfile
