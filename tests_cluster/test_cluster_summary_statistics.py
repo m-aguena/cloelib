@@ -251,29 +251,30 @@ def get_values(get_sf):
     integ_k_arr_new[0] += 1.0e-10
     integ_k_arr_new[-1] -= 1.0e-10
 
-    cluster_statitstics_modeling = ClusterStatisticsModeling(
-        HSCastro,
-        integ_k_arr=integ_k_arr_new,
-        integ_mass_arr=integ_mass_arr,
-        integ_lambda_true_arr=integ_lambda_true_arr,
-        integ_ztrue_arr=integ_ztrue_arr_new,
-        area=area,
-    )
+    modeling_counts, modeling_profiles, modeling_clustering = [
+        ClusterStatisticsModeling(
+            HSCastro,
+            selection_function=sf,
+            integ_k_arr=integ_k_arr_new,
+            integ_mass_arr=integ_mass_arr,
+            integ_lambda_true_arr=integ_lambda_true_arr,
+            integ_ztrue_arr=integ_ztrue_arr_new,
+            area=area,
+        )
+        for sf in (sf_counts, sf_profiles, sf_clustering)
+    ]
     cluster_counts_statistics = ClusterCounts(
-        cluster_statitstics_modeling,
+        modeling_counts,
         covariance,
-        selection_function=sf_counts,
     )
     cluster_wl_statistics = ClusterWeakLensing(
-        cluster_statitstics_modeling,
+        modeling_profiles,
         profileNFW,
         halo_concentration=halo_concentration,
-        selection_function=sf_profiles,
     )
     cluster_clustering_statistics = ClusterClustering(
-        cluster_statitstics_modeling,
+        modeling_clustering,
         haloClustering,
-        selection_function=sf_clustering,
     )
 
     print(f"init stat :  {time.time()-t0:.4f} seconds")

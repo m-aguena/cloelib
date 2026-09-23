@@ -142,7 +142,7 @@ class ShiftedPoissonHaloMassObservable:
         x = lambda_true + std_richness**2.0
         lam = std**2.0
         ln_gamma_fun = spc.gammaln(x)
-        return np.exp(-lam + (x - 1.0) * np.log(lam) - ln_gamma_fun, dtype="float128")
+        return np.exp(-lam + (x - 1.0) * np.log(lam) - ln_gamma_fun, dtype=np.longdouble)
 
     def pdf_richness(self, z, M, lambda_true):
         r"""

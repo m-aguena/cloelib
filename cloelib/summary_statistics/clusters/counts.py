@@ -12,7 +12,6 @@ import numpy as np
 # cloelib imports
 from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
 from cloelib.observables.clusters.covariance import HaloCovariance
-from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -27,7 +26,6 @@ class ClusterCounts:
         self,
         cluster_statitstics_modeling: ClusterStatisticsModeling,
         covariance: HaloCovariance,
-        selection_function: SelectionFunction,
     ):
         """
         Initializes the cluster counts
@@ -39,8 +37,6 @@ class ClusterCounts:
             for cluster statistics and tabled values for integration.
         covariance : HaloCovariance
             Halo covariance object
-        selection_function : SelectionFunction
-            Selection function object
         """
         # cluster counts summary statistics, contains tables for integrals
         # and functions to compute binned integrals of counts
@@ -48,7 +44,6 @@ class ClusterCounts:
 
         # observable objects
         self.covariance = covariance
-        self.selection_function = selection_function
 
     def get_NC(
         self,
@@ -86,11 +81,11 @@ class ClusterCounts:
         ############################################
         # integral of P(lambda_obs|M, z) on lambda_obs bins : (lambda_obs, M, ztrue)
         window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
-            self.selection_function, lambda_obs_edges
+            lambda_obs_edges
         )
         # integral of P(z_obs|lambda_obs, z) on z_obs bins : (z_obs, lambda_obs, ztrue)
         window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
-            self.selection_function, z_obs_edges, lambda_obs_edges
+            z_obs_edges, lambda_obs_edges
         )
         # cluster counts : (z_obs, lambda_obs)
         cluster_counts = self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
@@ -141,7 +136,7 @@ class ClusterCounts:
             self.cluster_statitstics_modeling.matter_statistics.background,
             z_mid,
             self.cluster_statitstics_modeling.tabulated_integrands["k"],
-            self.selection_function.scatter_z_obs(0, z_mid),
+            self.cluster_statitstics_modeling.selection_function.scatter_z_obs(0, z_mid),
         )[0]
 
         # spherical harmonic expansion coefficients (covariance)
