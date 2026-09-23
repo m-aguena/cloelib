@@ -8,7 +8,6 @@ from typing import Protocol, TypeVar, Union, runtime_checkable
 import jax.numpy as jnp
 import numpy as np  # type: ignore
 
-
 T = TypeVar("T", bound=Union[jnp.ndarray, np.ndarray])
 
 

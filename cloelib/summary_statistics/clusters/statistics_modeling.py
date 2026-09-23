@@ -13,6 +13,7 @@ from scipy.integrate import simpson
 # cloelib imports
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.clusters.halo_abundance import HaloAbundance
+from cloelib.observables.clusters.selection_function import SelectionFunction
 
 # import jax
 
@@ -39,6 +40,7 @@ class ClusterStatisticsModeling:
     def __init__(
         self,
         halo_abundance: HaloAbundance,
+        selection_function: SelectionFunction,
         integ_k_arr: np.ndarray,
         integ_mass_arr: np.ndarray,
         integ_lambda_true_arr: np.ndarray,
@@ -52,6 +54,8 @@ class ClusterStatisticsModeling:
         ----------
         HaloAbundance : HaloAbundance
             Halo mass function and bias object
+        selection_function : SelectionFunction
+            Selection function object
         integ_k_arr : numpy.ndarray
             Values of k to be used in integrations, stored in tabulated_integrands
         integ_mass_arr : numpy.ndarray
@@ -65,6 +69,7 @@ class ClusterStatisticsModeling:
         """
         # observable objects
         self.halo_abundance = halo_abundance
+        self.selection_function = selection_function
 
         # check if the integration points lie within the interpolation ranges
         if self.matter_statistics.interpolate_pk:
@@ -124,7 +129,7 @@ class ClusterStatisticsModeling:
     # cluster statistics functions
     # ----------------------------
 
-    def window_z_observed(self, selection_function, z_obs_edges, lambda_obs_edges):
+    def window_z_observed(self, z_obs_edges, lambda_obs_edges):
         r"""Compute the window function of each observed redshift bin, given by:
 
         ..math:
@@ -132,8 +137,6 @@ class ClusterStatisticsModeling:
 
         Parameters
         ---------
-        selection_function : SelectionFunction
-            Selection function object
         z_obs_edges : numpy.ndarray
             Edges of redshift bins for the integration.
         lambda_obs_edges : numpy.ndarray
@@ -146,14 +149,14 @@ class ClusterStatisticsModeling:
             where (ztrue) are the values in self.tabulated_integrands.
             Dimensions: (z_obs_edges, lambda_obs_edges, ztrue).
         """
-        return selection_function.window_z_observed(
+        return self.selection_function.window_z_observed(
             z_obs_edges,
             lambda_obs_edges,
             self.tabulated_integrands["ztrue"],
             self.tabulated_integrands["lambda_true"],
         )
 
-    def window_richness_observed(self, selection_function, lambda_obs_edges):
+    def window_richness_observed(self, lambda_obs_edges):
         r"""Compute the window function of each observed richness bin, given by:
 
         ..math:
@@ -161,8 +164,6 @@ class ClusterStatisticsModeling:
 
         Parameters
         ----------
-        selection_function : SelectionFunction
-            Selection function object
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
 
@@ -174,7 +175,7 @@ class ClusterStatisticsModeling:
             Dimensions: (lambda_obs_edges, ztrue, M).
         """
 
-        return selection_function.window_richness_observed(
+        return self.selection_function.window_richness_observed(
             lambda_obs_edges,
             self.tabulated_integrands["ztrue"],
             self.tabulated_integrands["M"],
