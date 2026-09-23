@@ -8,7 +8,6 @@ from .halo_mass_observable import HaloMassObservable
 from .lognormal_powerlaw import LognormalPowerLawHaloMassObservable
 from .shifted_poisson import ShiftedPoissonHaloMassObservable
 
-
 __all__ = [
     "HaloMassObservable",
     "LognormalPowerLawHaloMassObservable",
