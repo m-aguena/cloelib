@@ -3,9 +3,7 @@
 import numpy as np
 from scipy import interpolate
 
-from cloelib.observables.clusters.halo_mass_observable import (
-    HaloMassObservable,
-)
+from cloelib.observables.clusters.halo_mass_observable import HaloMassObservable
 
 
 class NumericalSelectionFunction:
@@ -218,9 +216,7 @@ class NumericalSelectionFunction:
         interpolators = [
             [
                 interpolate.RectBivariateSpline(
-                    self.z_true,
-                    self.lambda_true,
-                    window_ltrue_zobs_lobs,
+                    self.z_true, self.lambda_true, window_ltrue_zobs_lobs
                 )
                 for window_ltrue_zobs_lobs in window_ltrue_zobs
             ]
@@ -614,12 +610,7 @@ if __name__ == "__main__":
     sel_cl_data = read_sel_cl_output(in_file)
     sfn = NumericalSelectionFunction(
         halo_mass_observable=LognormalPowerLawHaloMassObservable(
-            A_l=None,
-            B_l=None,
-            C_l=None,
-            sig_A_l=None,
-            sig_B_l=None,
-            sig_C_l=None,
+            A_l=None, B_l=None, C_l=None, sig_A_l=None, sig_B_l=None, sig_C_l=None
         ),
         sel_cl_data=sel_cl_data,
         extrapolate=0,
