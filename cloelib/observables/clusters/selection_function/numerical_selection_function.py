@@ -318,9 +318,6 @@ class NumericalSelectionFunction:
             Edges of richness bins for the integration.
         mass : numpy.ndarray
             Mass to compute the window.
-            Note: to keep the order of the parameters consistent
-            with other window_redshift_richness_observed mass is
-            set to None, even if the value of the parameter is needed by the function
 
         Returns
         -------
