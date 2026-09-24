@@ -347,9 +347,7 @@ class NumericalSelectionFunction:
         self,
         z_obs_edges,
         lambda_obs_edges,
-        z_true=None,
-        mass=None,
-        lambda_true=None,
+        mass,
     ):
         r"""Computes the window function for observed redshift and richness bins, i. e.:
 
@@ -380,9 +378,6 @@ class NumericalSelectionFunction:
             Window function for observed redshift and richness bins.
             Dimensions: (len(z_obs_edges)-1, len(lambda_obs_edges)-1, len(z_true), len(mass))
         """
-        if mass is None:
-            raise ValueError("You need to provide a value for M")
-
         # Dimensions: (z, M, lambda_true)
         pdf_mass_richness_scaling = self.halo_mass_observable.pdf_richness(
             self.z_true, mass, self.lambda_true
@@ -398,9 +393,7 @@ class NumericalSelectionFunction:
             axis=-1,
         )
 
-    def window_z_observed(
-        self, z_obs_edges, lambda_obs_edges, z_true=None, lambda_true=None
-    ):
+    def window_z_observed(self, z_obs_edges, lambda_obs_edges):
         r"""Compute the window function of each observed redshift bin, given by:
 
         ..math:
@@ -441,13 +434,7 @@ class NumericalSelectionFunction:
 
         return window_Dzob_ztr_ltr[:, idx_ltr, :]
 
-    def window_richness_observed(
-        self,
-        lambda_obs_edges,
-        z_true=None,
-        mass=None,
-        lambda_true=None,
-    ):
+    def window_richness_observed(self, lambda_obs_edges, mass):
         r"""Compute the window function of each observed richness bin, given by:
 
         ..math:

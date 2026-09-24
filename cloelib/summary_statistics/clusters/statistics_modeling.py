@@ -76,7 +76,8 @@ class ClusterStatisticsModeling:
         self.selection_function = selection_function
 
         # check the consistency between the selection function and the integration arrays
-        if hasattr(selection_function, "_sel_cl_data"):
+        self._numerical_sf = hasattr(selection_function, "_sel_cl_data")
+        if self._numerical_sf:
             if any(arr is not None for arr in (integ_lambda_true_arr, integ_ztrue_arr)):
                 raise ValueError(
                     "integ_lambda_true_arr and integ_ztrue_arr should be None"
@@ -168,12 +169,18 @@ class ClusterStatisticsModeling:
             where (ztrue) are the values in self.tabulated_integrands.
             Dimensions: (z_obs_edges, lambda_obs_edges, ztrue).
         """
-        return self.selection_function.window_z_observed(
+        args = (
             z_obs_edges,
             lambda_obs_edges,
             self.tabulated_integrands["ztrue"],
             self.tabulated_integrands["lambda_true"],
         )
+        if self._numerical_sf:
+            args = (
+                z_obs_edges,
+                lambda_obs_edges,
+            )
+        return self.selection_function.window_z_observed(*args)
 
     def window_richness_observed(self, lambda_obs_edges):
         r"""Compute the window function of each observed richness bin, given by:
@@ -193,13 +200,19 @@ class ClusterStatisticsModeling:
             where (M, ztrue) are the values in self.tabulated_integrands.
             Dimensions: (lambda_obs_edges, ztrue, M).
         """
-
-        return self.selection_function.window_richness_observed(
+        args = (
             lambda_obs_edges,
             self.tabulated_integrands["ztrue"],
             self.tabulated_integrands["M"],
             self.tabulated_integrands["lambda_true"],
         )
+        if self._numerical_sf:
+            args = (
+                lambda_obs_edges,
+                self.tabulated_integrands["M"],
+            )
+
+        return self.selection_function.window_richness_observed(*args)
 
     # ---------------------
     # integration functions
