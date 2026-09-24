@@ -209,50 +209,9 @@ class NumericalSelectionFunction:
         interpolators: list[list[RectBivariateSpline]]
             Interpolator of W(z_true, lambda_true) per (z_obs_bins, lambda_obs_bins).
         """
-
-        if self._extrapolate is None:
-            err = []
-            if z_obs_edges[0] < self._sel_cl_data["arrays"]["z_obs"][0]:
-                err.append("lower z_obs_edges")
-            if z_obs_edges[-1] > self._sel_cl_data["arrays"]["z_obs"][-1]:
-                err.append("upper z_obs_edges")
-            if lambda_obs_edges[0] < self._sel_cl_data["arrays"]["lambda_obs"][0]:
-                err.append("lower lambda_obs_edges")
-            if lambda_obs_edges[-1] > self._sel_cl_data["arrays"]["lambda_obs"][-1]:
-                err.append("upper lambda_obs_edges")
-            if len(err) > 0:
-                err = ",".join(err)
-                raise ValueError(f"Cannot use these bins: {err} out of bounds.")
-
-        # Prob*completeness/purity formatted with obs bins
-        prob_data = self._compute_prob_comp_pur(z_obs_edges, lambda_obs_edges)
-
-        # Integrate with Omega_alpha/Sum(Omega_alpha)
-
-        integrand = (
-            self._sel_cl_data["area_tile"][:, None, None, None, None]
-            * prob_data["prob_comp_pur"]
-        ).sum(axis=0) / self._sel_cl_data["area_tile"].sum()
-
-        window_ltrue = np.zeros(
-            (
-                len(z_obs_edges) - 1,
-                len(lambda_obs_edges) - 1,
-                self.z_true.size,
-                self.lambda_true.size,
-            )
+        window_ltrue = self._window_redshift_richness_observed_by_lambda_true(
+            z_obs_edges, lambda_obs_edges
         )
-        for ztab, z_slice in enumerate(prob_data["z_obs_bins_slices"]):
-            for ltab, l_slice in enumerate(prob_data["lambda_obs_bins_slices"]):
-                window_ltrue[ztab, ltab, :, :] = np.trapezoid(
-                    np.trapezoid(
-                        integrand[z_slice, l_slice, :, :],
-                        x=prob_data["z_obs"][z_slice],
-                        axis=0,
-                    ),
-                    x=prob_data["lambda_obs"][l_slice],
-                    axis=0,
-                )
 
         # build interpolator
 
@@ -317,7 +276,7 @@ class NumericalSelectionFunction:
         # Integrate with Omega_alpha/Sum(Omega_alpha)
 
         integrand = (
-            np.expand_dims(self._sel_cl_data["area_tile"], axis=(1, 2, 3, 4))
+            self._sel_cl_data["area_tile"][:, None, None, None, None]
             * prob_data["prob_comp_pur"]
         ).sum(axis=0) / self._sel_cl_data["area_tile"].sum()
 
@@ -343,12 +302,7 @@ class NumericalSelectionFunction:
                 )
         return window_ltrue
 
-    def window_redshift_richness_observed(
-        self,
-        z_obs_edges,
-        lambda_obs_edges,
-        mass,
-    ):
+    def window_redshift_richness_observed(self, z_obs_edges, lambda_obs_edges, mass):
         r"""Computes the window function for observed redshift and richness bins, i. e.:
 
         ..math:
