@@ -43,8 +43,8 @@ class ClusterStatisticsModeling:
         selection_function: SelectionFunction,
         integ_k_arr: np.ndarray,
         integ_mass_arr: np.ndarray,
-        integ_lambda_true_arr: np.ndarray,
-        integ_ztrue_arr: np.ndarray,
+        integ_lambda_true_arr: np.ndarray | None = None,
+        integ_ztrue_arr: np.ndarray | None = None,
         area: float = 10313,
     ):
         """
@@ -61,15 +61,34 @@ class ClusterStatisticsModeling:
         integ_mass_arr : numpy.ndarray
             Values of mass to be used in integrations, stored in tabulated_integrands
         integ_lambda_true_arr : numpy.ndarray
-            Values of true richness to be used in integrations, stored in tabulated_integrands
+            Values of true richness to be used in integrations, stored in tabulated_integrands.
+            Should be None when a NumericalSelectionFunction is passed as the internal
+            lambda_true stored in NumericalSelectionFunction will be used.
         integ_ztrue_arr : numpy.ndarray
-            Values of true redshift to be used in integrations, stored in tabulated_integrands
+            Values of true redshift to be used in integrations, stored in tabulated_integrands.
+            Should be None when a NumericalSelectionFunction is passed as the internal
+            lambda_true stored in NumericalSelectionFunction will be used.
         area : float
             Effective area of the survey in deg2.
         """
         # observable objects
         self.halo_abundance = halo_abundance
         self.selection_function = selection_function
+
+        # check the consistency between the selection function and the integration arrays
+        if hasattr(selection_function, "_sel_cl_data"):
+            if any(arr is not None for arr in (integ_lambda_true_arr, integ_ztrue_arr)):
+                raise ValueError(
+                    "integ_lambda_true_arr and integ_ztrue_arr should be None"
+                    " when type(selection_function) == NumericalSelectionFunction."
+                )
+            integ_lambda_true_arr = selection_function.lambda_true
+            integ_ztrue_arr = selection_function.z_true
+        elif any(arr is None for arr in (integ_lambda_true_arr, integ_ztrue_arr)):
+            raise ValueError(
+                "integ_lambda_true_arr and integ_ztrue_arr should be provided"
+                " when type(selection_function) != NumericalSelectionFunction."
+            )
 
         # check if the integration points lie within the interpolation ranges
         if self.matter_statistics.interpolate_pk:
