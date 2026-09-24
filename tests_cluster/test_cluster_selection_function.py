@@ -354,16 +354,14 @@ def test_interpolated_selectionfunction_compare_with_gauss():
     wf_g = gaussian_sf.window_redshift_richness_observed(
         z_obs_edges=np.array([ 0.5  , 0.8]),
         lambda_obs_edges=np.array([ 25.  , 31.50557620817844]),
-        z_true=np.linspace(0, 3, 31),
         mass=1e14 * np.ones(3),
+        z_true=np.linspace(0, 3, 31),
         lambda_true=np.linspace(5, 300, 29),
     )
     wf_n = sfn.window_redshift_richness_observed(
         z_obs_edges=np.array([ 0.5  , 0.8]),
         lambda_obs_edges=np.array([ 25.  , 31.50557620817844]),
-        z_true=np.linspace(0, 3, 31),
         mass=1e14 * np.ones(3),
-        lambda_true=np.linspace(5, 300, 29),
     )
 
     assert_allclose(wf_g, wf_n, atol=2.5e-3)
@@ -389,8 +387,6 @@ def test_interpolated_selectionfunction_compare_with_tabulated_values():
     wf_n = sfn._window_redshift_richness_observed_by_lambda_true(
         z_obs_edges=np.array([ 0.5  , 0.8]),
         lambda_obs_edges=np.array([ 40.  , 55]),
-        # z_true=np.arange(0.05, 1.05, 0.1), # this array is equal to sel_cl_data["arrays"]["z_true"]
-        # lambda_true=np.geomspace(15., 300., 50), # this array is equal to sel_cl_data["arrays"]["lambda_true"]
     )
 
     # This reference table has been derived using np.trapz integration
@@ -413,9 +409,7 @@ def test_interpolated_selectionfunction_compare_with_tabulated_values():
     wf_n = sfn.window_redshift_richness_observed(
         z_obs_edges=np.array([ 0.5  , 0.8]),
         lambda_obs_edges=np.array([ 40.  , 55]),
-        # z_true=np.arange(0.05, 1.05, 0.1), # this array is equal to sel_cl_data["arrays"]["z_true"]
         mass=np.array([5.0e13,1.0e14,5.0e14]),
-        # lambda_true=np.geomspace(15., 300., 50), # this array is equal to sel_cl_data["arrays"]["lambda_true"]
     )
 
     # This reference table has been derived using np.trapz integration
