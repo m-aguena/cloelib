@@ -99,10 +99,8 @@ def _gen_gaussian_selcl_data(gaussian_sf, arrays):
 
 def get_sf_interp(**sel_pars):
     test_arrays = {
-        "z_true": np.linspace(0.05, 2.0, 40),  # this has to be equal to integ_ztrue_arr
-        "lambda_true": np.geomspace(
-            5.0, 250.0, 51
-        ),  # this has to be equal to integ_lambda_true_arr
+        "z_true": np.linspace(0.05 + 1e-5, 2.0 - 1e-5, 40),
+        "lambda_true": np.geomspace(5.0, 250.0, 51),
         "z_obs": np.linspace(0.2, 1.8, 81),
         "lambda_obs": np.linspace(20, 500, 481),
     }
@@ -254,9 +252,11 @@ def get_summ_stats(
     print("---------------------------")
 
     # Istanciate objects
-    integ_ztrue_arr_new = integ_ztrue_arr.copy()
-    integ_ztrue_arr_new[0] += 1.0e-10
-    integ_ztrue_arr_new[-1] -= 1.0e-10
+    integ_ztrue_arr_new = None
+    if integ_ztrue_arr is not None:
+        integ_ztrue_arr_new = integ_ztrue_arr.copy()
+        integ_ztrue_arr_new[0] += 1.0e-10
+        integ_ztrue_arr_new[-1] -= 1.0e-10
 
     integ_k_arr_new = integ_k_arr.copy()
     integ_k_arr_new[0] += 1.0e-10
@@ -412,46 +412,37 @@ def print_diff(name, value_test, value_ref, min_comparison_value=0):
 
 def test_clustersummmarystatitistics():
     # benchmark values should be recoputed
-    (
-        HSCastro,
-        covariance,
-        profileNFW,
-        haloClustering,
-        sf_counts,
-        sf_profiles,
-        sf_clustering,
-    ) = get_observables(get_sf=get_sf_gaussian)
+
+    # cl_observables contains
+    #   halo_abundance
+    #   halo_covariance
+    #   halo_profile
+    #   clustering
+    #   sf_counts
+    #   sf_profiles
+    #   sf_clustering
+    cl_observables = get_observables(get_sf=get_sf_gaussian)
+
     t1 = time.time()
-    (
-        modeling_counts,
-        modeling_profiles,
-        modeling_clustering,
-        cluster_counts_statistics,
-        cluster_wl_statistics,
-        cluster_clustering_statistics,
-    ) = get_summ_stats(
-        HSCastro,
-        covariance,
-        profileNFW,
-        haloClustering,
-        sf_counts,
-        sf_profiles,
-        sf_clustering,
-    )
+
+    # cl_summ_stats contains
+    #   modeling_counts
+    #   modeling_profiles
+    #   modeling_clustering
+    #   cluster_counts_statistics
+    #   cluster_wl_statistics
+    #   cluster_clustering_statistics
+    cl_summ_stats = get_summ_stats(*cl_observables)
+
+    # get values
     (
         cluster_counts,
         gt_mean_values,
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
-    ) = get_values(
-        modeling_counts,
-        modeling_profiles,
-        modeling_clustering,
-        cluster_counts_statistics,
-        cluster_wl_statistics,
-        cluster_clustering_statistics,
-    )
+    ) = get_values(*cl_summ_stats)
+
     print("---------------------------")
     print(f"tot like  :  {time.time() - t1:.4f} seconds")
     print_rel_diff(
@@ -482,16 +473,29 @@ def test_clustersummmarystatitistics():
 
 
 def test_clustersummmarystatitistics_interp():
+    cl_observables = get_observables(get_sf=get_sf_interp)
+    t1 = time.time()
+    cl_summ_stats = get_summ_stats(
+        *cl_observables,
+        integ_lambda_true_arr=None,
+        integ_ztrue_arr=None,
+    )
     (
         cluster_counts,
         gt_mean_values,
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
-    ) = get_values(
-        get_sf_interp,
-        integ_mass_arr=np.logspace(12.0, 16.0, 41),
-        integ_ztrue_arr=np.linspace(0.05, 2.0, 40),
+    ) = get_values(*cl_summ_stats)
+
+    print("---------------------------")
+    print(f"tot like  :  {time.time() - t1:.4f} seconds")
+    print_rel_diff(
+        cluster_counts,
+        gt_mean_values,
+        cluster_clustering,
+        cov_cluster_counts,
+        cov_cluster_clustering,
     )
     # results to be evaluated
     """
@@ -517,59 +521,23 @@ def test_clustersummmarystatitistics_interp():
 
 if __name__ == "__main__":
     print("Gaussian")
-    (
-        HSCastro,
-        covariance,
-        profileNFW,
-        haloClustering,
-        sf_counts,
-        sf_profiles,
-        sf_clustering,
-    ) = get_observables(get_sf=get_sf_gaussian)
+    cl_observables = get_observables(get_sf=get_sf_gaussian)
     t1 = time.time()
-    (
-        modeling_counts,
-        modeling_profiles,
-        modeling_clustering,
-        cluster_counts_statistics,
-        cluster_wl_statistics,
-        cluster_clustering_statistics,
-    ) = get_summ_stats(
-        HSCastro,
-        covariance,
-        profileNFW,
-        haloClustering,
-        sf_counts,
-        sf_profiles,
-        sf_clustering,
-    )
-    (
-        cluster_counts,
-        gt_mean_values,
-        cluster_clustering,
-        cov_cluster_counts,
-        cov_cluster_clustering,
-    ) = get_values(
-        modeling_counts,
-        modeling_profiles,
-        modeling_clustering,
-        cluster_counts_statistics,
-        cluster_wl_statistics,
-        cluster_clustering_statistics,
-    )
+    cl_summ_stats = get_summ_stats(*cl_observables)
+    cl_pred_vals = get_values(*cl_summ_stats)
     print("---------------------------")
     print(f"tot like  :  {time.time() - t1:.4f} seconds")
-    print_rel_diff(
-        cluster_counts,
-        gt_mean_values,
-        cluster_clustering,
-        cov_cluster_counts,
-        cov_cluster_clustering,
-    )
+    print_rel_diff(*cl_pred_vals)
 
     print("\nInterp")
-    get_values(
-        get_sf_interp,
-        integ_mass_arr=np.logspace(12.0, 16.0, 41),
-        integ_ztrue_arr=np.linspace(0.05, 2.0, 40),
+    cl_observables = get_observables(get_sf=get_sf_interp)
+    t1 = time.time()
+    cl_summ_stats = get_summ_stats(
+        *cl_observables,
+        integ_lambda_true_arr=None,
+        integ_ztrue_arr=None,
     )
+    cl_pred_vals = get_values(*cl_summ_stats)
+    print("---------------------------")
+    print(f"tot like  :  {time.time() - t1:.4f} seconds")
+    print_rel_diff(*cl_pred_vals)
