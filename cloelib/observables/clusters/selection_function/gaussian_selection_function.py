@@ -3,9 +3,7 @@
 import numpy as np
 from scipy.integrate import simpson
 
-from cloelib.observables.clusters.halo_mass_observable import (
-    HaloMassObservable,
-)
+from cloelib.observables.clusters.halo_mass_observable import HaloMassObservable
 
 
 class GaussianSelectionFunction:
@@ -191,13 +189,7 @@ class GaussianSelectionFunction:
         _z_true = z_true[np.newaxis, np.newaxis, :]
 
         # Window function
-        window_z_obs = np.zeros(
-            (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                z_true.size,
-            )
-        )
+        window_z_obs = np.zeros((z_obs_bins_size, lambda_obs_bins_size, z_true.size))
         for ind_z in range(z_obs_bins_size):
             window_z_obs[ind_z] = simpson(
                 self._prob_z_obs(_z_obs_tabs[ind_z], _lambda_obs, _z_true),
@@ -206,13 +198,7 @@ class GaussianSelectionFunction:
             )
         return window_z_obs
 
-    def window_richness_observed(
-        self,
-        lambda_obs_edges,
-        mass,
-        z_true,
-        lambda_true,
-    ):
+    def window_richness_observed(self, lambda_obs_edges, mass, z_true, lambda_true):
         r"""Compute the window function of each observed richness bin, given by:
 
         ..math:
@@ -253,11 +239,7 @@ class GaussianSelectionFunction:
         ################################################
 
         windows_lambda_obs_lambda_true = np.zeros(
-            (
-                lambda_obs_bins_size,
-                z_true.size,
-                lambda_true.size,
-            )
+            (lambda_obs_bins_size, z_true.size, lambda_true.size)
         )
         for ind_lambda in range(len(windows_lambda_obs_lambda_true)):
             # integrate P(lambda_obs|lambda_true, z) in lambda_obs
@@ -292,12 +274,7 @@ class GaussianSelectionFunction:
         )
 
     def window_redshift_richness_observed(
-        self,
-        z_obs_edges,
-        lambda_obs_edges,
-        mass,
-        z_true,
-        lambda_true,
+        self, z_obs_edges, lambda_obs_edges, mass, z_true, lambda_true
     ):
         r"""
         Computes the window function for observed redshift and richness bins, i. e.:
@@ -339,9 +316,6 @@ class GaussianSelectionFunction:
             ]
             # Dimensions: (1, lambda_obs_edges-1, z_true, M)
             * self.window_richness_observed(
-                lambda_obs_edges,
-                z_true,
-                mass,
-                lambda_true,
+                lambda_obs_edges, mass, z_true, lambda_true
             )[np.newaxis, :, :, :]
         )
