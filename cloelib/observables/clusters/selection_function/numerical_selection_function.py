@@ -207,7 +207,7 @@ class NumericalSelectionFunction:
         interpolators: list[list[RectBivariateSpline]]
             Interpolator of W(z_true, lambda_true) per (z_obs_bins, lambda_obs_bins).
         """
-        window_ltrue = self._window_redshift_richness_observed_by_lambda_true(
+        window_lambda_true = self._window_redshift_richness_observed_by_lambda_true(
             z_obs_edges, lambda_obs_edges
         )
 
@@ -220,7 +220,7 @@ class NumericalSelectionFunction:
                 )
                 for window_ltrue_zobs_lobs in window_ltrue_zobs
             ]
-            for window_ltrue_zobs in window_ltrue
+            for window_ltrue_zobs in window_lambda_true
         ]
 
         return interpolators
@@ -276,7 +276,7 @@ class NumericalSelectionFunction:
             * prob_data["prob_comp_pur"]
         ).sum(axis=0) / self._sel_cl_data["area_tile"].sum()
 
-        window_ltrue = np.zeros(
+        window_lambda_true = np.zeros(
             (
                 len(z_obs_edges) - 1,
                 len(lambda_obs_edges) - 1,
@@ -287,7 +287,7 @@ class NumericalSelectionFunction:
 
         for ztab, z_slice in enumerate(prob_data["z_obs_bins_slices"]):
             for ltab, l_slice in enumerate(prob_data["lambda_obs_bins_slices"]):
-                window_ltrue[ztab, ltab, :, :] = np.trapezoid(
+                window_lambda_true[ztab, ltab, :, :] = np.trapezoid(
                     np.trapezoid(
                         integrand[z_slice, l_slice, :, :],
                         x=prob_data["z_obs"][z_slice],
@@ -296,7 +296,7 @@ class NumericalSelectionFunction:
                     x=prob_data["lambda_obs"][l_slice],
                     axis=0,
                 )
-        return window_ltrue
+        return window_lambda_true
 
     def window_redshift_richness_observed(self, z_obs_edges, lambda_obs_edges, mass):
         r"""Computes the window function for observed redshift and richness bins, i. e.:
