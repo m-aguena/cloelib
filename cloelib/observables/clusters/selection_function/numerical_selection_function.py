@@ -230,7 +230,7 @@ class NumericalSelectionFunction:
         # Integrate with Omega_alpha/Sum(Omega_alpha)
 
         integrand = (
-            np.expand_dims(self._sel_cl_data["area_tile"], axis=(1, 2, 3, 4))
+            self._sel_cl_data["area_tile"][:, None, None, None, None]
             * prob_data["prob_comp_pur"]
         ).sum(axis=0) / self._sel_cl_data["area_tile"].sum()
 
