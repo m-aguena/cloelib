@@ -209,8 +209,8 @@ class GaussianSelectionFunction:
     def window_richness_observed(
         self,
         lambda_obs_edges,
-        z_true,
         mass,
+        z_true,
         lambda_true,
     ):
         r"""Compute the window function of each observed richness bin, given by:
@@ -295,8 +295,8 @@ class GaussianSelectionFunction:
         self,
         z_obs_edges,
         lambda_obs_edges,
-        z_true,
         mass,
+        z_true,
         lambda_true,
     ):
         r"""

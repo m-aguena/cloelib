@@ -30,7 +30,6 @@ class ClusterStatisticsModeling:
             * M (numpy.ndarray) : Values of mass to be used in integrations
             * lambda_true (numpy.ndarray) : Values of true richness to be used in integrations
             * ztrue (numpy.ndarray) : Values of true redshift to be used in integrations
-            * PDF_mass_richness_scaling (numpy.ndarray) : Values for P(lambda_true|M, ztrue)
             * dv/dz(ztrue) (numpy.ndarray) : Values for volume element at each redshift
             * dn/dM(ztrue,M) (numpy.ndarray) : Values for the halo mass function dn/dmdz
             * bias(ztrue,M) (numpy.ndarray) : Values for the halo bias halo_bias
@@ -202,8 +201,8 @@ class ClusterStatisticsModeling:
         """
         args = (
             lambda_obs_edges,
-            self.tabulated_integrands["ztrue"],
             self.tabulated_integrands["M"],
+            self.tabulated_integrands["ztrue"],
             self.tabulated_integrands["lambda_true"],
         )
         if self._numerical_sf:
