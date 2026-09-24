@@ -166,41 +166,23 @@ perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 _cosmo_pars_fid = {**_cosmo_pars}
 _cosmo_pars_fid["H0"] = 73.0
 background_fid = CAMBBackground(**_cosmo_pars_fid)
-print(f"cosmo     :  {time.time()-t0:.4f} seconds")
+print(f"cosmo     :  {time.time() - t0:.4f} seconds")
+
+#############
+# Observables
+#############
 
 
-def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
-
+def get_observables(
+    get_sf,
+    integ_k_arr=np.geomspace(1e-4, 10, 500),
+    integ_lambda_true_arr=np.geomspace(5.0, 250.0, 51),
+    integ_mass_arr=np.logspace(12.0, 16.0, 51),
+    integ_ztrue_arr=np.linspace(1.0e-5, 6.0 - 1.0e-5, 200),
+    area=10313,
+    z_obs_nc_edges=np.linspace(0.2, 1.8, 9),
+):
     t0 = time.time()
-
-    #############
-    # Observables
-    #############
-
-    # Parameters
-
-    integ_k_arr = np.geomspace(1e-4, 10, 500)
-    integ_lambda_true_arr = np.geomspace(5.0, 250.0, 51)
-    if integ_mass_arr is None:
-        integ_mass_arr = np.logspace(12.0, 16.0, 51)
-    if integ_ztrue_arr is None:
-        integ_ztrue_arr = np.linspace(1.0e-5, 6.0 - 1.0e-5, 200)
-
-    halo_concentration = 0.1
-    area = 10313
-
-    # Integration bins
-
-    z_obs_nc_edges = np.linspace(0.2, 1.8, 9)
-    lambda_obs_nc_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
-    z_obs_profile_edges = np.linspace(0.2, 1.8, 9)
-    lambda_obs_profile_edges = np.array([20.0, 30.0, 45.0, 60.0, 500.0])
-    radius_profile_edges = np.linspace(5.0, 100.0, 11)
-    lambda_obs_clustering_edges = np.array([20, 30, 500])
-    radius_clustering_edges = np.geomspace(20.0, 130.0, 31)
-    zed_obs_clustering_edges = np.arange(0.2, 1.81, 0.4)
-
-    # Istanciate objects
 
     matter_stat = MatterStatistics(
         perturbations,
@@ -235,15 +217,41 @@ def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
         ),
     )
 
-    print(f"init obs  :  {time.time()-t0:.4f} seconds")
+    print(f"init obs  :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
 
-    ####################
-    # Summary Statistics
-    ####################
+    return (
+        HSCastro,
+        covariance,
+        profileNFW,
+        haloClustering,
+        sf_counts,
+        sf_profiles,
+        sf_clustering,
+    )
 
+
+####################
+# Summary Statistics
+####################
+
+
+def get_summ_stats(
+    HSCastro,
+    covariance,
+    profileNFW,
+    haloClustering,
+    sf_counts,
+    sf_profiles,
+    sf_clustering,
+    integ_k_arr=np.geomspace(1e-4, 10, 500),
+    integ_lambda_true_arr=np.geomspace(5.0, 250.0, 51),
+    integ_mass_arr=np.logspace(12.0, 16.0, 51),
+    integ_ztrue_arr=np.linspace(1.0e-5, 6.0 - 1.0e-5, 200),
+    halo_concentration=0.1,
+):
+    t0 = time.time()
     print("---------------------------")
-    t1 = time.time()
 
     # Istanciate objects
     integ_ztrue_arr_new = integ_ztrue_arr.copy()
@@ -262,7 +270,7 @@ def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
             integ_mass_arr=integ_mass_arr,
             integ_lambda_true_arr=integ_lambda_true_arr,
             integ_ztrue_arr=integ_ztrue_arr_new,
-            area=area,
+            area=covariance.area,
         )
         for sf in (sf_counts, sf_profiles, sf_clustering)
     ]
@@ -280,9 +288,35 @@ def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
         haloClustering,
     )
 
-    print(f"init stat :  {time.time()-t0:.4f} seconds")
-    t0 = time.time()
+    print(f"init stat :  {time.time() - t0:.4f} seconds")
 
+    return (
+        modeling_counts,
+        modeling_profiles,
+        modeling_clustering,
+        cluster_counts_statistics,
+        cluster_wl_statistics,
+        cluster_clustering_statistics,
+    )
+
+
+def get_values(
+    modeling_counts,
+    modeling_profiles,
+    modeling_clustering,
+    cluster_counts_statistics,
+    cluster_wl_statistics,
+    cluster_clustering_statistics,
+    z_obs_nc_edges=np.linspace(0.2, 1.8, 9),
+    lambda_obs_nc_edges=np.array([20.0, 30.0, 45.0, 60.0, 500.0]),
+    z_obs_profile_edges=np.linspace(0.2, 1.8, 9),
+    lambda_obs_profile_edges=np.array([20.0, 30.0, 45.0, 60.0, 500.0]),
+    radius_profile_edges=np.linspace(5.0, 100.0, 11),
+    lambda_obs_clustering_edges=np.array([20, 30, 500]),
+    radius_clustering_edges=np.geomspace(20.0, 130.0, 31),
+    zed_obs_clustering_edges=np.arange(0.2, 1.81, 0.4),
+):
+    t0 = time.time()
     # Compute values
 
     cluster_counts, counts_intermediate_integration_products = (
@@ -291,7 +325,7 @@ def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
             lambda_obs_edges=lambda_obs_nc_edges,
         )
     )
-    print(f"nc        :  {time.time()-t0:.4f} seconds")
+    print(f"nc        :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
     cov_cluster_counts = cluster_counts_statistics.get_NC_covariance(
         z_obs_nc_edges,
@@ -299,14 +333,14 @@ def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
         counts_intermediate_integration_products["window_lambda_obs"],
         counts_intermediate_integration_products["window_z_obs"],
     )
-    print(f"nc_cov    :  {time.time()-t0:.4f} seconds")
+    print(f"nc_cov    :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
     gt_mean_values = cluster_wl_statistics.get_gt(
         z_obs_edges=z_obs_profile_edges,
         lambda_obs_edges=lambda_obs_profile_edges,
         radius_edges=radius_profile_edges,
     )
-    print(f"dsig      :  {time.time()-t0:.4f} seconds")
+    print(f"dsig      :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
     cluster_clustering, clustering_intermediate_integration_products = (
         cluster_clustering_statistics.get_xi(
@@ -315,7 +349,7 @@ def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
             z_obs_edges=zed_obs_clustering_edges,
         )
     )
-    print(f"xi        :  {time.time()-t0:.4f} seconds")
+    print(f"xi        :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
     cov_cluster_clustering = cluster_clustering_statistics.get_xi_covariance(
         clustering_intermediate_integration_products["pk_mean_values"],
@@ -324,11 +358,23 @@ def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
         clustering_intermediate_integration_products["window_z_obs"],
         clustering_intermediate_integration_products["cluster_counts"],
     )
-    print(f"xi_cov    :  {time.time()-t0:.4f} seconds")
-    t0 = time.time()
-    print("---------------------------")
-    print(f"tot like  :  {time.time()-t1:.4f} seconds")
+    print(f"xi_cov    :  {time.time() - t0:.4f} seconds")
+    return (
+        cluster_counts,
+        gt_mean_values,
+        cluster_clustering,
+        cov_cluster_counts,
+        cov_cluster_clustering,
+    )
 
+
+def print_rel_diff(
+    cluster_counts,
+    gt_mean_values,
+    cluster_clustering,
+    cov_cluster_counts,
+    cov_cluster_clustering,
+):
     # Max relative difference
     print()
     print("Max relative differences to the reference values:")
@@ -357,29 +403,64 @@ def get_values(get_sf, integ_mass_arr=None, integ_ztrue_arr=None):
         cov_cluster_clustering[1, 1, 1:3, 1:3, 10:20, 10:20],
         benchmark_values.cov_cluster_clustering,
     )
-    return (
-        cluster_counts,
-        gt_mean_values,
-        cluster_clustering,
-        cov_cluster_counts,
-        cov_cluster_clustering,
-    )
 
 
 def print_diff(name, value_test, value_ref, min_comparison_value=0):
     _msk = abs(value_ref) > min_comparison_value
-    print(f"  {name:6} : {abs(value_test[_msk]/value_ref[_msk]-1).max():.2e}")
+    print(f"  {name:6} : {abs(value_test[_msk] / value_ref[_msk] - 1).max():.2e}")
 
 
 def test_clustersummmarystatitistics():
-    # benchmark values should be recoputed 
+    # benchmark values should be recoputed
+    (
+        HSCastro,
+        covariance,
+        profileNFW,
+        haloClustering,
+        sf_counts,
+        sf_profiles,
+        sf_clustering,
+    ) = get_observables(get_sf=get_sf_gaussian)
+    t1 = time.time()
+    (
+        modeling_counts,
+        modeling_profiles,
+        modeling_clustering,
+        cluster_counts_statistics,
+        cluster_wl_statistics,
+        cluster_clustering_statistics,
+    ) = get_summ_stats(
+        HSCastro,
+        covariance,
+        profileNFW,
+        haloClustering,
+        sf_counts,
+        sf_profiles,
+        sf_clustering,
+    )
     (
         cluster_counts,
         gt_mean_values,
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
-    ) = get_values(get_sf_gaussian)
+    ) = get_values(
+        modeling_counts,
+        modeling_profiles,
+        modeling_clustering,
+        cluster_counts_statistics,
+        cluster_wl_statistics,
+        cluster_clustering_statistics,
+    )
+    print("---------------------------")
+    print(f"tot like  :  {time.time() - t1:.4f} seconds")
+    print_rel_diff(
+        cluster_counts,
+        gt_mean_values,
+        cluster_clustering,
+        cov_cluster_counts,
+        cov_cluster_clustering,
+    )
 
     assert_allclose(cluster_counts, benchmark_values.cluster_counts, rtol=1e-2)
 
@@ -436,7 +517,55 @@ def test_clustersummmarystatitistics_interp():
 
 if __name__ == "__main__":
     print("Gaussian")
-    get_values(get_sf_gaussian)
+    (
+        HSCastro,
+        covariance,
+        profileNFW,
+        haloClustering,
+        sf_counts,
+        sf_profiles,
+        sf_clustering,
+    ) = get_observables(get_sf=get_sf_gaussian)
+    t1 = time.time()
+    (
+        modeling_counts,
+        modeling_profiles,
+        modeling_clustering,
+        cluster_counts_statistics,
+        cluster_wl_statistics,
+        cluster_clustering_statistics,
+    ) = get_summ_stats(
+        HSCastro,
+        covariance,
+        profileNFW,
+        haloClustering,
+        sf_counts,
+        sf_profiles,
+        sf_clustering,
+    )
+    (
+        cluster_counts,
+        gt_mean_values,
+        cluster_clustering,
+        cov_cluster_counts,
+        cov_cluster_clustering,
+    ) = get_values(
+        modeling_counts,
+        modeling_profiles,
+        modeling_clustering,
+        cluster_counts_statistics,
+        cluster_wl_statistics,
+        cluster_clustering_statistics,
+    )
+    print("---------------------------")
+    print(f"tot like  :  {time.time() - t1:.4f} seconds")
+    print_rel_diff(
+        cluster_counts,
+        gt_mean_values,
+        cluster_clustering,
+        cov_cluster_counts,
+        cov_cluster_clustering,
+    )
 
     print("\nInterp")
     get_values(
