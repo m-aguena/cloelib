@@ -173,10 +173,10 @@ print(f"cosmo     :  {time.time() - t0:.4f} seconds")
 
 def get_observables(
     get_sf,
-    integ_k_arr=np.geomspace(1e-4, 10, 500),
-    integ_lambda_true_arr=np.geomspace(5.0, 250.0, 51),
-    integ_mass_arr=np.logspace(12.0, 16.0, 51),
-    integ_ztrue_arr=np.linspace(1.0e-5, 6.0 - 1.0e-5, 200),
+    interp_k_arr=np.geomspace(1e-4, 10, 500),
+    interp_lambda_true_arr=np.geomspace(5.0, 250.0, 51),
+    interp_mass_arr=np.logspace(12.0, 16.0, 51),
+    interp_ztrue_arr=np.linspace(1.0e-5, 6.0 - 1.0e-5, 200),
     area=10313,
     z_obs_nc_edges=np.linspace(0.2, 1.8, 9),
 ):
@@ -184,19 +184,19 @@ def get_observables(
 
     matter_stat = MatterStatistics(
         perturbations,
-        z=integ_ztrue_arr,
-        k=integ_k_arr,
+        z=interp_ztrue_arr,
+        k=interp_k_arr,
     )
-    HSCastro = CastroHaloAbundance(matter_statistics=matter_stat)
+    halo_abundance = CastroHaloAbundance(matter_statistics=matter_stat)
     covariance = HaloCovariance(
         perturbations,
         area=area,
         nbins_zob=len(z_obs_nc_edges),
-        k=integ_k_arr,
+        k=interp_k_arr,
         z_tab_integ=31,
     )
-    profileNFW = NFWHaloProfile(matter_stat, two_halo="None")
-    haloClustering = TwoPoint3DHaloClustering(matter_stat, background_fid)
+    halo_profile = NFWHaloProfile(matter_stat, two_halo="None")
+    halo_clustering = TwoPoint3DHaloClustering(matter_stat, background_fid)
 
     # set a selection function per probe
     sf_counts, sf_profiles, sf_clustering = get_sf(
@@ -219,10 +219,10 @@ def get_observables(
     t0 = time.time()
 
     return (
-        HSCastro,
+        halo_abundance,
         covariance,
-        profileNFW,
-        haloClustering,
+        halo_profile,
+        halo_clustering,
         sf_counts,
         sf_profiles,
         sf_clustering,
@@ -235,10 +235,10 @@ def get_observables(
 
 
 def get_summ_stats(
-    HSCastro,
+    halo_abundance,
     covariance,
-    profileNFW,
-    haloClustering,
+    halo_profile,
+    halo_clustering,
     sf_counts,
     sf_profiles,
     sf_clustering,
@@ -264,7 +264,7 @@ def get_summ_stats(
 
     modeling_counts, modeling_profiles, modeling_clustering = [
         ClusterStatisticsModeling(
-            HSCastro,
+            halo_abundance,
             selection_function=sf,
             integ_k_arr=integ_k_arr_new,
             integ_mass_arr=integ_mass_arr,
@@ -280,12 +280,12 @@ def get_summ_stats(
     )
     cluster_wl_statistics = ClusterWeakLensing(
         modeling_profiles,
-        profileNFW,
+        halo_profile,
         halo_concentration=halo_concentration,
     )
     cluster_clustering_statistics = ClusterClustering(
         modeling_clustering,
-        haloClustering,
+        halo_clustering,
     )
 
     print(f"init stat :  {time.time() - t0:.4f} seconds")
