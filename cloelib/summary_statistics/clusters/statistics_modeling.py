@@ -30,7 +30,6 @@ class ClusterStatisticsModeling:
             * M (numpy.ndarray) : Values of mass to be used in integrations
             * lambda_true (numpy.ndarray) : Values of true richness to be used in integrations
             * ztrue (numpy.ndarray) : Values of true redshift to be used in integrations
-            * PDF_mass_richness_scaling (numpy.ndarray) : Values for P(lambda_true|M, ztrue)
             * dv/dz(ztrue) (numpy.ndarray) : Values for volume element at each redshift
             * dn/dM(ztrue,M) (numpy.ndarray) : Values for the halo mass function dn/dmdz
             * bias(ztrue,M) (numpy.ndarray) : Values for the halo bias halo_bias
@@ -43,8 +42,8 @@ class ClusterStatisticsModeling:
         selection_function: SelectionFunction,
         integ_k_arr: np.ndarray,
         integ_mass_arr: np.ndarray,
-        integ_lambda_true_arr: np.ndarray,
-        integ_ztrue_arr: np.ndarray,
+        integ_lambda_true_arr: np.ndarray | None = None,
+        integ_ztrue_arr: np.ndarray | None = None,
         area: float = 10313,
     ):
         """
@@ -61,15 +60,35 @@ class ClusterStatisticsModeling:
         integ_mass_arr : numpy.ndarray
             Values of mass to be used in integrations, stored in tabulated_integrands
         integ_lambda_true_arr : numpy.ndarray
-            Values of true richness to be used in integrations, stored in tabulated_integrands
+            Values of true richness to be used in integrations, stored in tabulated_integrands.
+            Should be None when a NumericalSelectionFunction is passed as the internal
+            lambda_true stored in NumericalSelectionFunction will be used.
         integ_ztrue_arr : numpy.ndarray
-            Values of true redshift to be used in integrations, stored in tabulated_integrands
+            Values of true redshift to be used in integrations, stored in tabulated_integrands.
+            Should be None when a NumericalSelectionFunction is passed as the internal
+            lambda_true stored in NumericalSelectionFunction will be used.
         area : float
             Effective area of the survey in deg2.
         """
         # observable objects
         self.halo_abundance = halo_abundance
         self.selection_function = selection_function
+
+        # check the consistency between the selection function and the integration arrays
+        self._numerical_sf = hasattr(selection_function, "_sel_cl_data")
+        if self._numerical_sf:
+            if any(arr is not None for arr in (integ_lambda_true_arr, integ_ztrue_arr)):
+                raise ValueError(
+                    "integ_lambda_true_arr and integ_ztrue_arr should be None"
+                    " when type(selection_function) == NumericalSelectionFunction."
+                )
+            integ_lambda_true_arr = selection_function.lambda_true
+            integ_ztrue_arr = selection_function.z_true
+        elif any(arr is None for arr in (integ_lambda_true_arr, integ_ztrue_arr)):
+            raise ValueError(
+                "integ_lambda_true_arr and integ_ztrue_arr should be provided"
+                " when type(selection_function) != NumericalSelectionFunction."
+            )
 
         # check if the integration points lie within the interpolation ranges
         if self.matter_statistics.interpolate_pk:
@@ -149,12 +168,16 @@ class ClusterStatisticsModeling:
             where (ztrue) are the values in self.tabulated_integrands.
             Dimensions: (z_obs_edges, lambda_obs_edges, ztrue).
         """
-        return self.selection_function.window_z_observed(
-            z_obs_edges,
-            lambda_obs_edges,
-            self.tabulated_integrands["ztrue"],
-            self.tabulated_integrands["lambda_true"],
-        )
+        kwargs = {
+            "z_obs_edges": z_obs_edges,
+            "lambda_obs_edges": lambda_obs_edges,
+            "z_true": self.tabulated_integrands["ztrue"],
+            "lambda_true": self.tabulated_integrands["lambda_true"],
+        }
+        if self._numerical_sf:
+            kwargs.pop("z_true")
+            kwargs.pop("lambda_true")
+        return self.selection_function.window_z_observed(**kwargs)
 
     def window_richness_observed(self, lambda_obs_edges):
         r"""Compute the window function of each observed richness bin, given by:
@@ -174,13 +197,16 @@ class ClusterStatisticsModeling:
             where (M, ztrue) are the values in self.tabulated_integrands.
             Dimensions: (lambda_obs_edges, ztrue, M).
         """
-
-        return self.selection_function.window_richness_observed(
-            lambda_obs_edges,
-            self.tabulated_integrands["ztrue"],
-            self.tabulated_integrands["M"],
-            self.tabulated_integrands["lambda_true"],
-        )
+        kwargs = {
+            "lambda_obs_edges": lambda_obs_edges,
+            "mass": self.tabulated_integrands["M"],
+            "z_true": self.tabulated_integrands["ztrue"],
+            "lambda_true": self.tabulated_integrands["lambda_true"],
+        }
+        if self._numerical_sf:
+            kwargs.pop("z_true")
+            kwargs.pop("lambda_true")
+        return self.selection_function.window_richness_observed(**kwargs)
 
     # ---------------------
     # integration functions

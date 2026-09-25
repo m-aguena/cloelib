@@ -168,7 +168,7 @@ class LognormalPowerLawHaloMassObservable:
         -------
         pdf_richness: numpy.ndarray
             pdf_richness[i,j,k], where i is the redshift, j is the mass,
-            and k is the observed richness index
+            and k is the true richness index
         """
         return tabulated_return(
             self._tabulated_pdf_richness,
