@@ -60,15 +60,16 @@ def _gen_gaussian_selcl_data(gaussian_sf, arrays):
     sel_cl_data["area_tile"] = np.ones(3)
 
     # tables
-    _prob_func = lambda zob, lob, ztr, ltr, alpha: (
-        gaussian_sf._prob_lambda_obs(ztr[:, None, None], ltr[None, :, None], lob[None, None, :]).transpose(2, 0, 1)[
-            None, None, :, :, :
-        ]
-        * gaussian_sf._prob_z_obs(
-            zob[:, None, None], lob[None, :, None], ztr[None, None, :]
-        )[None, :, :, :, None]
-        * alpha[:, None, None, None, None]
-    )
+    def _prob_func(zob, lob, ztr, ltr, alpha):
+        return (
+            gaussian_sf._prob_lambda_obs(
+                ztr[:, None, None], ltr[None, :, None], lob[None, None, :]
+            ).transpose(2, 0, 1)[None, None, :, :, :]
+            * gaussian_sf._prob_z_obs(
+                zob[:, None, None], lob[None, :, None], ztr[None, None, :]
+            )[None, :, :, :, None]
+            * alpha[:, None, None, None, None]
+        )
 
     sel_cl_data["tables"] = {
         "prob_lambda_z_obs": _prob_func(
