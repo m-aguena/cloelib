@@ -114,6 +114,52 @@ class BMOHaloProfile:
         if x > 1.0:
             return (1.0 - self._f_term(x)) / (x**2.0 - 1.0)
 
+    @staticmethod
+    def _rho_s(Delta, c, tau):
+        r"""
+        BMO characteristic density.
+
+        Computes the BMO characteristic density.
+
+        Parameters
+        ----------
+        Delta: np.ndarray
+            Critical overdensity.
+        c: float
+            Concentration.
+        tau : float
+            Truncation factor multiplied by concentration.
+
+        Returns
+        -------
+        rho_s: float
+            BMO characteristic density.
+        """
+        m = (
+            tau**2.0
+            / (2.0 * (tau**2.0 + 1.0) ** 3.0 * (1.0 + c) * (tau**2.0 + c**2.0))
+            * (
+                c
+                * (tau**2.0 + 1.0)
+                * (
+                    c * (c + 1.0)
+                    - tau**2.0 * (c - 1.0) * (2.0 + 3.0 * c)
+                    - 2.0 * tau**4.0
+                )
+                + tau
+                * (c + 1.0)
+                * (tau**2.0 + c**2.0)
+                * (
+                    2.0 * (3.0 * tau**2.0 - 1.0) * np.arctan(c / tau)
+                    + tau
+                    * (tau**2.0 - 3.0)
+                    * np.log(tau**2.0 * (1.0 + c) ** 2.0 / (tau**2.0 + c**2.0))
+                )
+            )
+        )
+
+        return Delta * c**3.0 / (3.0 * m)
+
     def _surface_mass_density_1h(self, R, RDelta, Delta, c):
         r"""
         BMO surface mass density profile.
@@ -143,30 +189,7 @@ class BMOHaloProfile:
         Rt = self.trunc_fact * RDelta
         tau = Rt / Rs
 
-        m_bmo = (
-            tau**2.0
-            / (2.0 * (tau**2.0 + 1.0) ** 3.0 * (1.0 + c) * (tau**2.0 + c**2.0))
-            * (
-                c
-                * (tau**2.0 + 1.0)
-                * (
-                    c * (c + 1.0)
-                    - tau**2.0 * (c - 1.0) * (2.0 + 3.0 * c)
-                    - 2.0 * tau**4.0
-                )
-                + tau
-                * (c + 1.0)
-                * (tau**2.0 + c**2.0)
-                * (
-                    2.0 * (3.0 * tau**2.0 - 1.0) * np.arctan(c / tau)
-                    + tau
-                    * (tau**2.0 - 3.0)
-                    * np.log(tau**2.0 * (1.0 + c) ** 2.0 / (tau**2.0 + c**2.0))
-                )
-            )
-        )
-
-        rho_s_bmo = Delta * c**3.0 / (3.0 * m_bmo)
+        rho_s_bmo = self._rho_s(Delta, c, tau)
 
         const = rho_s_bmo * Rs
 
@@ -222,30 +245,7 @@ class BMOHaloProfile:
         Rt = self.trunc_fact * RDelta
         tau = Rt / Rs
 
-        m_bmo = (
-            tau**2.0
-            / (2.0 * (tau**2.0 + 1.0) ** 3.0 * (1.0 + c) * (tau**2.0 + c**2.0))
-            * (
-                c
-                * (tau**2.0 + 1.0)
-                * (
-                    c * (c + 1.0)
-                    - tau**2.0 * (c - 1.0) * (2.0 + 3.0 * c)
-                    - 2.0 * tau**4.0
-                )
-                + tau
-                * (c + 1.0)
-                * (tau**2.0 + c**2.0)
-                * (
-                    2.0 * (3.0 * tau**2.0 - 1.0) * np.arctan(c / tau)
-                    + tau
-                    * (tau**2.0 - 3.0)
-                    * np.log(tau**2.0 * (1.0 + c) ** 2.0 / (tau**2.0 + c**2.0))
-                )
-            )
-        )
-
-        rho_s_bmo = Delta * c**3.0 / (3.0 * m_bmo)
+        rho_s_bmo = self._rho_s(Delta, c, tau)
 
         const = 2.0 * np.pi * rho_s_bmo * Rs**3.0
         term1 = tau**4.0 / (tau**2.0 + 1.0) ** 3.0
