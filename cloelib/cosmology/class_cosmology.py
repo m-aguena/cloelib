@@ -12,7 +12,7 @@ import warnings
 
 # Cosmology imports
 try:
-    from classy import Class  # type: ignore
+    from classy import Class
 except ImportError as e:
     raise ImportError("classy could not be imported.") from e
 
@@ -36,6 +36,8 @@ class CLASSBackground:
         gamma_MG: float,
         N_mnu: int,
         N_ur: Optional[float] = None,
+        alpha_s: float = 0.0,
+        **kwargs,
     ) -> None:
         """
         Initialize the CLASSBackground instance with cosmological parameters.
@@ -47,6 +49,7 @@ class CLASSBackground:
             Omega_k0 (float): Curvature density parameter.
             As (float): Scalar amplitude of primordial fluctuations.
             ns (float): Scalar spectral index.
+            alpha_s (float): Running of the scalar spectral index (d ns / d ln k).
             mnu (Union[float, Sequence[float], np.ndarray]): Total neutrino mass in eV.
                 Can be a single float for degenerate masses, an array (or a sequence of floats) for individual species.
             w0 (float): Equation of state parameter for dark energy.
@@ -63,6 +66,7 @@ class CLASSBackground:
         self.Omega_k0 = Omega_k0
         self.As = As
         self.ns = ns
+        self.alpha_s = alpha_s
         self.w0 = w0
         self.wa = wa
         self.gamma_MG = gamma_MG  # Kept for protocol, but CLASS doesn't directly use it
@@ -87,6 +91,7 @@ class CLASSBackground:
         )
         self.interface_args["CLASSparams"]["Omega_k"] = self.Omega_k0
         self.interface_args["CLASSparams"]["n_s"] = self.ns
+        self.interface_args["CLASSparams"]["alpha_s"] = self.alpha_s
         self.interface_args["CLASSparams"]["A_s"] = self.As
         self.interface_args["CLASSparams"]["w0_fld"] = self.w0  # or w0
         self.interface_args["CLASSparams"]["wa_fld"] = self.wa  # or wa
@@ -295,7 +300,6 @@ class CLASSLinearPerturbations:
         self.background = background
         self.z = redshifts
         self.kmax = 100
-        self.results = None  # Store CLASS results
 
         # Ensure CLASS is initialized with necessary parameters
         self.interface_args = copy.deepcopy(self.background.interface_args)
@@ -333,7 +337,7 @@ class CLASSLinearPerturbations:
         """
         if hubble_units or k_hunit:
             raise ValueError("This CLASS method does not yet support h-units")
-        self.Pk_linear = np.array([[self.results.pk(ki, zi) for ki in ks] for zi in zs])  # type: ignore[union-attr]
+        self.Pk_linear = np.array([[self.results.pk(ki, zi) for ki in ks] for zi in zs])
         # To match array convention of CAMB
         return self.Pk_linear
 
@@ -377,7 +381,7 @@ class CLASSLinearPerturbations:
             )
         else:
             self.Pk_cb_linear = np.array(
-                [[self.results.pk_cb(ki, zi) for ki in ks] for zi in zs]  # type: ignore[union-attr]
+                [[self.results.pk_cb(ki, zi) for ki in ks] for zi in zs]
             )
         # To match array convention of CAMB
         return self.Pk_cb_linear
@@ -414,7 +418,7 @@ class CLASSLinearPerturbations:
         Returns:
             (np.ndarray): Scale-independent growth rate f(z)
         """
-        arr = [self.results.scale_independent_growth_factor_f(zi) for zi in self.z]  # type: ignore[union-attr]
+        arr = [self.results.scale_independent_growth_factor_f(zi) for zi in self.z]
         return np.array(arr)
 
     def sigma8_0(self) -> float:
@@ -427,7 +431,7 @@ class CLASSLinearPerturbations:
             The sigma8 value.
         """
 
-        return self.results.sigma8()  # type: ignore[union-attr]
+        return self.results.sigma8()
 
 
 class CLASSNonLinearPerturbations:
@@ -436,11 +440,22 @@ class CLASSNonLinearPerturbations:
     def __init__(
         self,
         background: Background,
+        linearperturbations: Optional[object],
         redshifts: np.ndarray,
         nonlinear_model: Optional[str] = None,
         hmcode_version: Optional[str] = None,
     ):
-        """Initialize the CLASSNonLinearPerturbation instance."""
+        """Initialize the CLASSNonLinearPerturbation instance.
+
+        Args:
+            background: Background cosmology object.
+            linearperturbations: Linear perturbations object (unused by CLASS, which computes
+                nonlinear corrections internally; accepted for interface compatibility with
+                emulator-based NonLinPerturbations classes).
+            redshifts (np.ndarray): Array of redshifts for the calculations.
+            nonlinear_model (Optional[str]): The nonlinear model to use. Defaults to None (no nonlinear).
+            hmcode_version (Optional[str]): The HMcode version to use. Defaults to None.
+        """
         self.background = background
         self.z = redshifts
         self.kmax = 100
@@ -529,7 +544,7 @@ class CLASSNonLinearPerturbations:
             )
         else:
             self.Pk_cb_nonlinear = np.array(
-                [[self.results.pk_cb(ki, zi) for ki in ks] for zi in zs]  # type: ignore[union-attr]
+                [[self.results.pk_cb(ki, zi) for ki in ks] for zi in zs]
             )
         # To match array convention of CAMB
         return self.Pk_cb_nonlinear
@@ -566,7 +581,7 @@ class CLASSNonLinearPerturbations:
         Returns:
             (np.ndarray): Scale-independent growth rate f(z)
         """
-        arr = [self.results.scale_independent_growth_factor_f(zi) for zi in self.z]  # type: ignore[union-attr]
+        arr = [self.results.scale_independent_growth_factor_f(zi) for zi in self.z]
         return np.array(arr)
 
     def sigma8_0(self) -> float:
@@ -579,4 +594,4 @@ class CLASSNonLinearPerturbations:
             The sigma8 value.
         """
 
-        return self.results.sigma8()  # type: ignore[union-attr]
+        return self.results.sigma8()
