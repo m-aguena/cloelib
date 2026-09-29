@@ -12,6 +12,7 @@ This module addresses:
 
 - Window functions for weak lensing surveys and CMB lensing
 - Galaxy bias modeling and corrections
+- Gravitational-wave source number counts and weak lensing
 - Redshift-space power spectra P(k, μ)
 - Halo mass function
 
@@ -20,7 +21,9 @@ This module addresses:
 **cloelib** has different types of observable protocols, each serving different purposes for:
 
 - Large Scale Structure
-  - [**Tracer Protocol**](photo.md): For photometric observables (angular correlations, weak lensing).
+  - **Tracer Protocol**: For photometric and gravitational-wave observables
+    - [Photometric tracers](photo.md)
+    - [Gravitational-wave tracers](gw.md)
   - [**SpectroPower Protocol**](spectro.md): For spectroscopic observables (3D clustering, redshift-space distortions).
 - Galaxy Clusters
   - [**HaloAbundance Protocol**](halo_abundance.md): For halo mass function and halo bias.

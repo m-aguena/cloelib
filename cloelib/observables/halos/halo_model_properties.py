@@ -2,11 +2,58 @@ import numpy as np
 from scipy import interpolate
 from scipy.integrate import quad_vec
 from scipy.special import j0, j1
+import importlib
+
+from cloelib.auxiliary.halo_helpers import convert_distance
 
 from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.cosmology import Perturbations
 
-from cloelib.auxiliary.halo_helpers import convert_distance
+# Get classes for verification of units argument
+
+modules_and_functions = {
+    "cloelib.cosmology.class_cosmology": (
+        "CLASSLinearPerturbations",
+        "CLASSNonLinearPerturbations",
+    ),
+    "cloelib.cosmology.camb_cosmology": (
+        "CAMBLinearPerturbations",
+        "CAMBNonLinearPerturbations",
+    ),
+    "cloelib.cosmology.jax_cosmology": (
+        "JAXLinearPerturbations",
+        "JAXNonLinearPerturbations",
+    ),
+    "cloelib.cosmology.HMcode2020Emu_cosmology": (
+        "HMemuLinearPerturbations",
+        "HMemuNonLinearPerturbations",
+    ),
+    "cloelib.cosmology.mochi_class_cosmology": (
+        "mochiCLASSLinearPerturbations",
+        "mochiCLASSNonLinearPerturbations",
+    ),
+    "cloelib.cosmology.hi_class_cosmology": (
+        "hi_classLinearPerturbations",
+        "hi_classNonLinearPerturbations",
+    ),
+    "cloelib.cosmology.mgclass_cosmology": (
+        "MGCLASSLinearPerturbations",
+        "MGCLASSNonLinearPerturbations",
+    ),
+}
+
+_COSMOLOGY_TYPES_WITH_UNITS = ()
+for module_name, cosmo_classes in modules_and_functions.items():
+    try:
+        module = importlib.import_module(module_name)
+
+        for cosmo_class in cosmo_classes:
+            _COSMOLOGY_TYPES_WITH_UNITS = (
+                *_COSMOLOGY_TYPES_WITH_UNITS,
+                getattr(module, cosmo_class),
+            )
+    except ImportError:
+        pass
 
 
 def _bessel_j2(x):
@@ -79,35 +126,31 @@ class HaloModelProperties:
         r"""Returns the Background class instance"""
         return self.perturbations.background
 
-    @property
-    def interpolate_pk(self):
-        r"""If true, class uses interpolation for matter power spectrum computation."""
-        return self.__interpolate_pk
+    def angular_diameter_distance(self, z):
+        """
+        Return the angular diameter distance as a function of redshift.
 
-    @property
-    def interpolate_da(self):
-        r"""If true, class uses interpolation for angular diameter distance computation."""
-        return self.__interpolate_da
+        Parameters
+        ----------
+        z : np.ndarray
+            Array of redshifts.
 
-    @interpolate_pk.setter
-    def interpolate_pk(self, interpolate_pk):
-        """If true, makes class uses interpolation for matter power spectrum computation."""
-        if interpolate_pk:
-            self.matter_power_spectrum_cb = self.Pk_interp_cb
+        Returns
+        -------
+        np.ndarray
+            Angular diameter distance values.
+        """
+        if self.interpolate_da:
+            _angular_diameter_distance_func = self.da_interp
         else:
-            self.matter_power_spectrum_cb = self._matter_power_spectrum_cb_exact
-        self.__interpolate_pk = interpolate_pk
+            _angular_diameter_distance_func = self.background.angular_diameter_distance
+        if _angular_diameter_distance_func is None:
+            raise ValueError(
+                "Cosmology not instanciated, matter power spectrum function is None!"
+            )
+        return _angular_diameter_distance_func(z)
 
-    @interpolate_da.setter
-    def interpolate_da(self, interpolate_da):
-        """If true, makes class uses interpolation for angular diameter distance computation."""
-        if interpolate_da:
-            self.angular_diameter_distance = self.da_interp
-        else:
-            self.angular_diameter_distance = self.background.angular_diameter_distance
-        self.__interpolate_da = interpolate_da
-
-    def _matter_power_spectrum_cb_exact(self, z, k):
+    def matter_power_spectrum_cb(self, z, k):
         r"""Computes the non interpolated matter power spectrum.
 
         This function computes the cold dark matter + baryons power spectrum,
@@ -126,12 +169,31 @@ class HaloModelProperties:
         float or np.ndarray
             Matter power spectrum.
         """
-        return self.perturbations.matter_power_spectrum_cb(
-            z,
-            k,
-            hubble_units=True,
-            k_hunit=True,
-        )
+        if self.interpolate_pk:
+            _matter_power_spectrum_cb_func = self.Pk_interp_cb
+        else:
+            _matter_power_spectrum_cb_func = self._matter_power_spectrum_cb_exact
+        if _matter_power_spectrum_cb_func is None:
+            raise ValueError(
+                "Cosmology not instanciated, matter power spectrum function is None!"
+            )
+        return _matter_power_spectrum_cb_func(z, k)
+
+    def _matter_power_spectrum_cb_exact(self, z, k):
+        r"""Computes the non interpolated matter power spectrum.
+
+        Just as wrapper of self.perturbations.matter_power_spectrum_cb
+        """
+        _kwargs = {}
+        if isinstance(
+            self.perturbations,
+            _COSMOLOGY_TYPES_WITH_UNITS,
+        ):
+            _kwargs = {
+                "hubble_units": True,
+                "k_hunit": True,
+            }
+        return self.perturbations.matter_power_spectrum_cb(z, k, **_kwargs)
 
     def set_matter_power_spectrum_interpolation(self, z, k):
         r"""Create internal interpolation of matter power spectrum.
