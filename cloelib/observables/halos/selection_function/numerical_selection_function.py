@@ -4,7 +4,7 @@ import numpy as np  # type: ignore
 from scipy import integrate, interpolate
 from scipy.integrate import simpson
 
-from cloelib.observables.clusters.halo_mass_observable import (
+from cloelib.observables.halos.halo_mass_observable import (
     HaloMassObservable,
 )
 
@@ -603,7 +603,7 @@ if __name__ == "__main__":
     # Read data
     import sys
 
-    from cloelib.observables.clusters.halo_mass_observable import (
+    from cloelib.observables.halos.halo_mass_observable import (
         LognormalPowerLawHaloMassObservable,
     )
 

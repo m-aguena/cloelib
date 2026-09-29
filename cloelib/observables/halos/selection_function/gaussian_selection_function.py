@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.integrate import simpson
 
-from cloelib.observables.clusters.halo_mass_observable import (
+from cloelib.observables.halos.halo_mass_observable import (
     HaloMassObservable,
 )
 

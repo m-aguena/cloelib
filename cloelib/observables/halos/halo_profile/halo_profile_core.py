@@ -3,18 +3,18 @@ from scipy.integrate import simpson
 from scipy.stats import skewnorm
 
 from cloelib.auxiliary import units
-from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.auxiliary import (
+from cloelib.auxiliary.halo_helpers import (
     convert_distance,
     convert_to_Delta_crit,
 )
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.cosmology import derived_cosmology
+from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
 
 class HaloProfileCore:
     def __init__(
         self,
-        matter_statistics: MatterStatistics,
+        halo_model_properties: HaloModelProperties,
         overdensity_type: str = "vir",
         overdensity: int = 200,
         z=np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
@@ -29,10 +29,10 @@ class HaloProfileCore:
 
         Parameters
         ----------
-        matter_statistics : MatterStatistics
-            An object from the `MatterStatistics` class.
+        halo_model_properties : HaloModelProperties
+            An object from the `HaloModelProperties` class.
         """
-        self.matter_statistics = matter_statistics
+        self.halo_model_properties = halo_model_properties
         self.overdensity_type = overdensity_type
         self.overdensity = overdensity
 
@@ -50,7 +50,7 @@ class HaloProfileCore:
     @property
     def background(self):
         r"""Returns the Background class instance"""
-        return self.matter_statistics.background
+        return self.halo_model_properties.background
 
     def sigma_crit(self, z, z_sources):
         r"""
@@ -74,9 +74,11 @@ class HaloProfileCore:
         fact = (units.SPEED_OF_LIGHT / 1.0e3 / units.MPC_TO_KM) ** 2.0 / (
             4.0 * np.pi * units.GRAVITATIONAL_CONSTANT
         )  # Msun/Mpc
-        d_a_sources = self.matter_statistics.angular_diameter_distance(z_sources)  # Mpc
+        d_a_sources = self.halo_model_properties.angular_diameter_distance(
+            z_sources
+        )  # Mpc
         d_m_sources = (1.0 + z_sources) * d_a_sources
-        d_a_lens = self.matter_statistics.angular_diameter_distance(z)[
+        d_a_lens = self.halo_model_properties.angular_diameter_distance(z)[
             :, np.newaxis
         ]  # Mpc
         d_m_lens = (1.0 + z[:, np.newaxis]) * d_a_lens
@@ -222,7 +224,8 @@ class HaloProfileCore:
 
         if radius_units.lower() != "mpc/h":
             D_A = (
-                self.matter_statistics.angular_diameter_distance(z) * self.background.h
+                self.halo_model_properties.angular_diameter_distance(z)
+                * self.background.h
             )  # Mpc / h
             R_outshape = convert_distance(R, radius_units, "Mpc/h", D_A[:, np.newaxis])[
                 :, np.newaxis
@@ -332,7 +335,7 @@ class HaloProfileCore:
         return self._include_2h_term(
             inclusion_type,
             Sigma_1h,
-            func_2h=self.matter_statistics.surface_mass_density_2h,
+            func_2h=self.halo_model_properties.surface_mass_density_2h,
             R=R,
             z=z,
             halo_bias=halo_bias,
@@ -373,7 +376,7 @@ class HaloProfileCore:
         return self._include_2h_term(
             inclusion_type,
             DeltaSigma_1h,
-            func_2h=self.matter_statistics.excess_surface_mass_density_2h,
+            func_2h=self.halo_model_properties.excess_surface_mass_density_2h,
             R=R,
             z=z,
             halo_bias=halo_bias,

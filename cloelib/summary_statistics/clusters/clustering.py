@@ -10,8 +10,8 @@
 import numpy as np
 
 # cloelib imports
-from cloelib.observables.clusters.halo_clustering import HaloClustering
-from cloelib.observables.clusters.selection_function import SelectionFunction
+from cloelib.observables.halos.halo_clustering import HaloClustering
+from cloelib.observables.halos.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )

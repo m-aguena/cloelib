@@ -3,19 +3,19 @@ import numpy as np
 from scipy.integrate import simpson
 from scipy.special import spherical_jn
 
-from cloelib.cosmology.cosmology import Background
-from cloelib.observables.clusters.auxiliary import (
+from cloelib.auxiliary.halo_helpers import (
     isotropic_volume_distance,
     photoz_rsd_correction,
     tophat_window,
 )
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.cosmology.cosmology import Background
+from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
 
 class HaloClusteringCore:
     def __init__(
         self,
-        matter_statistics: MatterStatistics,
+        halo_model_properties: HaloModelProperties,
         background_fid: Background,
     ):
         r"""Auxiliary class computing quantities used in halo clustering models.
@@ -24,12 +24,12 @@ class HaloClusteringCore:
 
         Parameters
         ----------
-        matter_statistics : MatterStatistics
-            An object from the `MatterStatistics` class.
+        halo_model_properties : HaloModelProperties
+            An object from the `HaloModelProperties` class.
         background_fid : Background
             Fiducial `Background` adopted for the measurements.
         """
-        self.matter_statistics = matter_statistics
+        self.halo_model_properties = halo_model_properties
         self.background_fid = background_fid
 
     def radial_shell_window_and_volume(
@@ -92,8 +92,8 @@ class HaloClusteringCore:
         # isotropic volume distance
         Dv = isotropic_volume_distance(
             z,
-            self.matter_statistics.angular_diameter_distance(z),
-            self.matter_statistics.background.hubble_parameter(z),
+            self.halo_model_properties.angular_diameter_distance(z),
+            self.halo_model_properties.background.hubble_parameter(z),
         )
 
         # isotropic volume distance at fiducial cosmology (assumed for measuring the 2pcf)
@@ -104,7 +104,7 @@ class HaloClusteringCore:
         )
 
         return (Dv / Dv_fid) * (
-            self.background_fid.rdrag / self.matter_statistics.background.rdrag
+            self.background_fid.rdrag / self.halo_model_properties.background.rdrag
         )
 
     def photoz_rsd_halo_correction(self, z, k, z_obs_scatter, b_eff):
@@ -137,7 +137,7 @@ class HaloClusteringCore:
         # correct power specrum for photo-z uncertainties and RSD (eqs. 80-83)
         # rsd corrections (z, k, ...)
         photoz_corr0, photoz_corr1, photoz_corr2 = photoz_rsd_correction(
-            self.matter_statistics.background, z, k, z_obs_scatter
+            self.halo_model_properties.background, z, k, z_obs_scatter
         )
 
         # halo correction (z, k, ...)
@@ -171,10 +171,10 @@ class HaloClusteringCore:
 
         """
 
-        ns = self.matter_statistics.background.ns
-        h = self.matter_statistics.background.h
-        Obh2 = self.matter_statistics.Omega_b_0 * h**2
-        Omh2 = self.matter_statistics.Omega_m_0 * h**2
+        ns = self.halo_model_properties.background.ns
+        h = self.halo_model_properties.background.h
+        Obh2 = self.halo_model_properties.Omega_b_0 * h**2
+        Omh2 = self.halo_model_properties.Omega_m_0 * h**2
         Tcmb = 2.73
 
         k *= h  #  1/Mpc

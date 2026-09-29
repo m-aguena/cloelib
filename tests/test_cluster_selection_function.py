@@ -3,10 +3,10 @@
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
 
-from cloelib.observables.clusters.halo_mass_observable import (
+from cloelib.observables.halos.halo_mass_observable import (
     LognormalPowerLawHaloMassObservable,
 )
-from cloelib.observables.clusters.selection_function import (
+from cloelib.observables.halos.selection_function import (
     GaussianSelectionFunction,
     NumericalSelectionFunction,
 )

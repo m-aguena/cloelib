@@ -1,6 +1,6 @@
 import numpy as np
 
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
 from .halo_profile_core import HaloProfileCore
 
@@ -8,7 +8,7 @@ from .halo_profile_core import HaloProfileCore
 class BMOHaloProfile:
     def __init__(
         self,
-        matter_statistics: MatterStatistics,
+        halo_model_properties: HaloModelProperties,
         overdensity_type: str = "vir",
         overdensity: int = 200,
         two_halo: str = "None",
@@ -27,8 +27,8 @@ class BMOHaloProfile:
 
         Parameters
         ----------
-        matter_statistics : MatterStatistics
-            MatterStatistics object.
+        halo_model_properties : HaloModelProperties
+            HaloModelProperties object.
         two_halo : str, optional
             If "sum", the 1-halo and 2-halo profile are summed.
             If "max", the maximum between them is considered at each point.
@@ -45,7 +45,7 @@ class BMOHaloProfile:
             Shape parameter of the source redshift distribution.
         """
         self.core = HaloProfileCore(
-            matter_statistics,
+            halo_model_properties,
             overdensity_type=overdensity_type,
             overdensity=overdensity,
             z=z,

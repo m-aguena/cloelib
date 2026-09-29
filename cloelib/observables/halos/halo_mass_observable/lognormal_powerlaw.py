@@ -2,7 +2,9 @@
 # import jax.numpy as np
 import numpy as np
 
-from cloelib.observables.clusters.auxiliary import tabulated_return
+from cloelib.observables.halos.halo_abundance.halo_abundance_base import (
+    tabulated_return,
+)
 
 
 class LognormalPowerLawHaloMassObservable:

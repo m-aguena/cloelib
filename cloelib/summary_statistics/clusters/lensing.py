@@ -9,11 +9,11 @@
 # General imports
 import numpy as np
 
-from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
+from cloelib.observables.halos.halo_abundance import CastroHaloAbundance
 
 # cloelib imports
-from cloelib.observables.clusters.halo_profile import HaloProfile
-from cloelib.observables.clusters.selection_function import SelectionFunction
+from cloelib.observables.halos.halo_profile import HaloProfile
+from cloelib.observables.halos.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )

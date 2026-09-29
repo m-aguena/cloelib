@@ -4,12 +4,12 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
-from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
-from cloelib.observables.clusters.halo_profile import BMOHaloProfile, NFWHaloProfile
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.halos.halo_abundance import CastroHaloAbundance
+from cloelib.observables.halos.halo_profile import BMOHaloProfile, NFWHaloProfile
+from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
 
-def _get_matter_statistics():
+def _get_halo_model_properties():
     # Cosmology parameters
     print("# Cosmology parameters")
     _H0 = 67.7
@@ -33,11 +33,11 @@ def _get_matter_statistics():
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 
-    return MatterStatistics(perturbations)
+    return HaloModelProperties(perturbations)
 
 
 def _get_castro():
-    return CastroHaloAbundance(_get_matter_statistics())
+    return CastroHaloAbundance(_get_halo_model_properties())
 
 
 def test_array_shapes():
@@ -52,13 +52,13 @@ def test_array_shapes():
         alpha_nz=0.4,
     )
 
-    profile_nfw = NFWHaloProfile(_get_matter_statistics(), **_prof_kwargs)
+    profile_nfw = NFWHaloProfile(_get_halo_model_properties(), **_prof_kwargs)
 
     R_test = np.linspace(0.01, 1.0, 9)
     z_test = np.linspace(0.01, 0.5, 4)
     M_test = np.linspace(1e14, 5e14, 6)
     c_test = 4.0
-    HS = _get_matter_statistics()
+    HS = _get_halo_model_properties()
     profile = NFWHaloProfile(HS)
 
     _kwargs = {"R": R_test, "z": z_test, "M": M_test}
@@ -94,7 +94,7 @@ def _test_profile(profile, reference_vals):
     z_sources_test = np.linspace(0.6, 1, 5)
     zbin_test = 1
 
-    HS = _get_matter_statistics()
+    HS = _get_halo_model_properties()
     castro = _get_castro()
     halo_bias = castro.bias(z_test, M_test)
 
@@ -119,7 +119,7 @@ def _test_profile(profile, reference_vals):
     )
     print("    _surface_mass_density_2h")
     profile_2h = (
-        profile.core.matter_statistics.surface_mass_density_2h(R_test, z_test)[
+        profile.core.halo_model_properties.surface_mass_density_2h(R_test, z_test)[
             :, np.newaxis, :
         ]
         * halo_bias[:, :, np.newaxis]
@@ -130,7 +130,7 @@ def _test_profile(profile, reference_vals):
     )
     print("    _excess_surface_mass_density_2h")
     profile_2h = (
-        profile.core.matter_statistics.excess_surface_mass_density_2h(R_test, z_test)[
+        profile.core.halo_model_properties.excess_surface_mass_density_2h(R_test, z_test)[
             :, np.newaxis, :
         ]
         * halo_bias[:, :, np.newaxis]
@@ -154,7 +154,7 @@ def test_profiles():
         sigma_nz=0.3,
         alpha_nz=0.4,
     )
-    profile_nfw = NFWHaloProfile(_get_matter_statistics(), **_prof_kwargs)
+    profile_nfw = NFWHaloProfile(_get_halo_model_properties(), **_prof_kwargs)
     _reference_vals = {
         # All validation values have to be updated with extarnal values
         "sigma_crit": {
@@ -220,5 +220,5 @@ def test_profiles():
         sigma_nz=0.3,
         alpha_nz=0.4,
     )
-    profile_bmo = BMOHaloProfile(_get_matter_statistics(), **_prof_kwargs)
+    profile_bmo = BMOHaloProfile(_get_halo_model_properties(), **_prof_kwargs)
     _test_profile(profile_bmo, _reference_vals)

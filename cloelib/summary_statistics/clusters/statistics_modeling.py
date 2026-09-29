@@ -12,7 +12,7 @@ from scipy.integrate import simpson
 
 # cloelib imports
 from cloelib.cosmology import derived_cosmology
-from cloelib.observables.clusters.halo_abundance import HaloAbundance
+from cloelib.observables.halos.halo_abundance import HaloAbundance
 
 # import jax
 
@@ -67,8 +67,8 @@ class ClusterStatisticsModeling:
         self.halo_abundance = halo_abundance
 
         # check if the integration points lie within the interpolation ranges
-        if self.matter_statistics.interpolate_pk:
-            z_knots, k_knots = self.matter_statistics.Pk_interp_cb.get_knots()
+        if self.halo_model_properties.interpolate_pk:
+            z_knots, k_knots = self.halo_model_properties.Pk_interp_cb.get_knots()
             if (
                 integ_ztrue_arr.min() <= z_knots.min()
                 or integ_ztrue_arr.max() >= z_knots.max()
@@ -81,8 +81,8 @@ class ClusterStatisticsModeling:
                     "integ_k_arr points lie outside the P(k,z) interpolation range."
                 )
 
-        if self.matter_statistics.interpolate_da:
-            z_knots = self.matter_statistics.da_interp.get_knots()
+        if self.halo_model_properties.interpolate_da:
+            z_knots = self.halo_model_properties.da_interp.get_knots()
             if (
                 integ_ztrue_arr.min() <= z_knots.min()
                 or integ_ztrue_arr.max() >= z_knots.max()
@@ -99,7 +99,7 @@ class ClusterStatisticsModeling:
             "ztrue": integ_ztrue_arr,  # true redshift array
             # volume element at each point of z array
             "dv/dz(ztrue)": derived_cosmology.dV_dzdO(
-                self.matter_statistics.perturbations.background,
+                self.halo_model_properties.perturbations.background,
                 integ_ztrue_arr,
                 hubble_units=True,
             )
@@ -117,8 +117,8 @@ class ClusterStatisticsModeling:
         }
 
     @property
-    def matter_statistics(self):
-        return self.halo_abundance.core.matter_statistics
+    def halo_model_properties(self):
+        return self.halo_abundance.halo_model_properties
 
     # ----------------------------
     # cluster statistics functions

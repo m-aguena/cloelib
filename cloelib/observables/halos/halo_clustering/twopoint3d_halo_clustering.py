@@ -2,19 +2,19 @@
 import numpy as np
 
 from cloelib.cosmology.cosmology import Background
-from cloelib.observables.clusters.halo_clustering.halo_clustering_core import (
+from cloelib.observables.halos.halo_clustering.halo_clustering_core import (
     HaloClusteringCore,
 )
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
 
 class TwoPoint3DHaloClustering:
     def __init__(
         self,
-        matter_statistics: MatterStatistics,
+        halo_model_properties: HaloModelProperties,
         background_fid: Background,
     ):
-        self.core = HaloClusteringCore(matter_statistics, background_fid)
+        self.core = HaloClusteringCore(halo_model_properties, background_fid)
 
     def power_spectrum_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
         """Computes Pk with RSD correction.
@@ -46,7 +46,7 @@ class TwoPoint3DHaloClustering:
         )
 
         # dark matter power spectrum (z, k)
-        pk = self.core.matter_statistics.matter_power_spectrum_cb(z, k)
+        pk = self.core.halo_model_properties.matter_power_spectrum_cb(z, k)
 
         # check if z_obs_scatter has more dimensions
         ndim_z_obs_scatter = len(np.array(z_obs_scatter).shape)

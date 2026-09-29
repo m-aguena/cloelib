@@ -6,15 +6,15 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_raises
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
-from cloelib.observables.clusters.covariance import HaloCovariance
-from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
-from cloelib.observables.clusters.halo_clustering import TwoPoint3DHaloClustering
-from cloelib.observables.clusters.halo_mass_observable import (
+from cloelib.observables.halos.covariance import HaloCovariance
+from cloelib.observables.halos.halo_abundance import CastroHaloAbundance
+from cloelib.observables.halos.halo_clustering import TwoPoint3DHaloClustering
+from cloelib.observables.halos.halo_mass_observable import (
     LognormalPowerLawHaloMassObservable,
 )
-from cloelib.observables.clusters.halo_profile import NFWHaloProfile
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
-from cloelib.observables.clusters.selection_function import (
+from cloelib.observables.halos.halo_profile import NFWHaloProfile
+from cloelib.observables.halos.halo_model_properties import HaloModelProperties
+from cloelib.observables.halos.selection_function import (
     GaussianSelectionFunction,
     NumericalSelectionFunction,
 )
@@ -199,12 +199,12 @@ def get_values(get_sf):
 
     # Istanciate objects
 
-    matter_stat = MatterStatistics(
+    matter_stat = HaloModelProperties(
         perturbations,
         z=integ_ztrue_arr,
         k=integ_k_arr,
     )
-    HSCastro = CastroHaloAbundance(matter_statistics=matter_stat)
+    HSCastro = CastroHaloAbundance(halo_model_properties=matter_stat)
     covariance = HaloCovariance(
         perturbations,
         area=area,
