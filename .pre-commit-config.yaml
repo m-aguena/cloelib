@@ -32,3 +32,4 @@ repos:
         additional_dependencies: ["ty==0.0.80"]
         pass_filenames: false # scope is set by [tool.ty.src] in pyproject.toml
         files: ^cloelib/(cosmology|observables)/
+exclude: tests_cluster/
