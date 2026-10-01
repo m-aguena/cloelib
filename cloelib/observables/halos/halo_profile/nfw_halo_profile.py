@@ -238,7 +238,7 @@ class NFWHaloProfile:
         """
         Sigma = self._surface_mass_density_1h(
             *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),
-            c,
+            c=c,
         )
 
         if self.two_halo != "None":

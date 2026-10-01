@@ -90,8 +90,8 @@ class EmulatorMiscenteredHaloProfile:
 
     def set_weights(
         self,
-        sigma_weights: dict = None,
-        delta_sigma_weights: dict = None,
+        sigma_weights: dict | str | None = None,
+        delta_sigma_weights: dict | str | None = None,
     ):
         """
         Instantiate and load the two emulator networks from weight dicts,
@@ -258,6 +258,8 @@ class EmulatorMiscenteredHaloProfile:
             Miscentered surface mass density (h Msun / pc²),
             shape ``(Nz, NM, NR)``.
         """
+        if self._emu_sigma is None:
+            raise ValueError("Emulator not set up. Run set_weights first")
         Sigma_off = self._emulator_profile(
             self._emu_sigma,
             *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),
@@ -307,6 +309,8 @@ class EmulatorMiscenteredHaloProfile:
             Miscentered excess surface mass density (h Msun / pc²),
             shape ``(Nz, NM, NR)``.
         """
+        if self._emu_delta_sigma is None:
+            raise ValueError("Emulator not set up. Run set_weights first")
         DeltaSigma_off = self._emulator_profile(
             self._emu_delta_sigma,
             *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),

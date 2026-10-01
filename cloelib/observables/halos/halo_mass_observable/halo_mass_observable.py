@@ -2,7 +2,7 @@
 from typing import Protocol, TypeVar, Union, runtime_checkable
 
 import jax.numpy as jnp
-import numpy as np  # type: ignore
+import numpy as np
 
 T = TypeVar("T", bound=Union[jnp.ndarray, np.ndarray])
 

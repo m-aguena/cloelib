@@ -12,7 +12,7 @@ class NumericalSelectionFunction:
     def __init__(
         self,
         halo_mass_observable: HaloMassObservable,
-        sel_cl_data=None,
+        sel_cl_data: dict,
         prob_contains_completeness=True,
         extrapolate=None,
     ):
@@ -609,7 +609,7 @@ if __name__ == "__main__":
     sel_cl_data = read_sel_cl_output(in_file)
     sfn = NumericalSelectionFunction(
         halo_mass_observable=LognormalPowerLawHaloMassObservable(
-            A_l=None, B_l=None, C_l=None, sig_A_l=None, sig_B_l=None, sig_C_l=None
+            A_l=1, B_l=1, C_l=1, sig_A_l=1, sig_B_l=1, sig_C_l=1
         ),
         sel_cl_data=sel_cl_data,
         extrapolate=0,
