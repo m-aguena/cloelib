@@ -637,17 +637,10 @@ class LegendreMultipoles:
         s: np.ndarray,
         mu: np.ndarray,
         use_AP: Optional[bool] = True,
-<<<<<<< HEAD
         logkmin: Optional[float] = -6.0,
         logkmax: Optional[float] = 2.0,
         nk: Optional[int] = 2048,
         kcut: Optional[float] = 2.0,
-=======
-        logkmin: Optional[float] = -5.0,
-        logkmax: Optional[float] = 2.0,
-        nk: Optional[int] = 2048,
-        kcut: Optional[float] = 0.4,
->>>>>>> cluster_structure
         pow: Optional[float] = 2.0,
         format_type: Optional[str] = None,
     ) -> dict:
@@ -698,17 +691,10 @@ class LegendreMultipoles:
         term_list: list,
         ells: Optional[np.ndarray] = None,
         use_AP: Optional[bool] = True,
-<<<<<<< HEAD
         logkmin: Optional[float] = -6.0,
         logkmax: Optional[float] = 2.0,
         nk: Optional[int] = 2048,
         kcut: Optional[float] = 2.0,
-=======
-        logkmin: Optional[float] = -5.0,
-        logkmax: Optional[float] = 2.0,
-        nk: Optional[int] = 2048,
-        kcut: Optional[float] = 0.4,
->>>>>>> cluster_structure
         pow: Optional[float] = 2.0,
     ) -> dict:
         r"""Two-point correlation function Legendre multipoles of specified terms.
