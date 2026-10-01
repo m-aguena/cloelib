@@ -13,7 +13,7 @@ from scipy.integrate import simpson
 # cloelib imports
 from cloelib.cosmology import derived_cosmology
 from cloelib.observables.halos.halo_abundance import HaloAbundance
-from cloelib.observables.clusters.selection_function import SelectionFunction
+from cloelib.observables.halos.selection_function import SelectionFunction
 
 # import jax
 
