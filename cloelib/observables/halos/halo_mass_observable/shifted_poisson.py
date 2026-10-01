@@ -1,57 +1,45 @@
 # General imports
 # import jax.numpy as np
 import numpy as np
+import scipy.special as spc
 
-from cloelib.observables.halos.halo_abundance.halo_abundance_base import (
-    tabulated_return,
-)
+from cloelib.observables.clusters.auxiliary import tabulated_return
 
 
-class LognormalPowerLawHaloMassObservable:
+class ShiftedPoissonHaloMassObservable:
     def __init__(
         self,
-        A_l: float,
-        B_l: float,
-        C_l: float,
-        sig_A_l: float,
-        sig_B_l: float,
-        sig_C_l: float,
-        M_piv: float = 3.0e14,
-        z_piv: float = 0.45,
+        M_min_cen: float,
+        M_min_sat: float,
+        alpha: float,
+        epsilon: float,
+        sigma_lnltr: float,
+        z_piv: float = 1.25,
     ):
         r"""
-        Class defining the selection function of galaxy clusters, including
-        sample purity, completeness, mass-observable relation, and
-        uncertainties on observed quantities.
+        Class defining the observable-mass relation as
+        a shifted continuos Poisson distribution.
 
         Parameters
         ----------
-        A_l : float
-            Amplitude of the proxy - mass scaling relation. The natural logarithm
-            of this parameter, i.e. `np.log(A_l)`, is used in the scaling relation.
-        B_l : float
+        M_min_cen : float
+            Minimum halo mass to host a central galaxy
+        M_min_sat : float
+            Minimum halo mass to host one satellite galaxy
+        alpha : float
             Mass slope of the proxy - mass scaling relation
-        C_l : float
-            Redshift slope of the proxy - mass scaling relation
-        sig_A_l : float
-            Natural-logarithm amplitude of the intrinsic scatter.
-            Unlike `A_l`, this parameter is logarithmic.
-        sig_B_l : float
-            Mass slope of the intrinsic scatter
-        sig_C_l : float
-            Redshift slope of the intrinsic scatter
-        M_piv: float
-            Mass pivot in the proxy - mass relation, in h^{-1} Msun
+        epsilon : float
+            Redshift evolution of the proxy-mass scaling relation
+        sigma_lnltr: float
+            Variance of the proxy-mass scaling relation
         z_piv: float
             Redshift pivot in the proxy - mass relation
         """
-        self.A_l = A_l
-        self.B_l = B_l
-        self.C_l = C_l
-        self.sig_A_l = sig_A_l
-        self.sig_B_l = sig_B_l
-        self.sig_C_l = sig_C_l
-        self.M_piv = M_piv
+        self.M_min_cen = M_min_cen
+        self.M_min_sat = M_min_sat
+        self.alpha = alpha
+        self.epsilon = epsilon
+        self.sigma_lnltr = sigma_lnltr
         self.z_piv = z_piv
 
         # to avoid recomputing pdf_richness
@@ -64,12 +52,16 @@ class LognormalPowerLawHaloMassObservable:
             "values": None,
         }
 
-    def _mean_lnrichness(self, z, M):
+    def _mean_richness(self, z, M):
         r"""
         Mean of the richness-mass relation PDF.
 
         Computes the theoretical richness at
         the requested true redshift and mass points.
+
+        .. math::
+            \lambda_{\rm true}(z, M) = 1 + \left(\frac{M - M_{\text{min}}}{M_1 - M_{\text{min}}}\right)^{\alpha}
+            \left(\frac{1 + z}{1 + z_{\text{piv}}}\right)^{\epsilon}
 
         Parameters
         ----------
@@ -84,18 +76,22 @@ class LognormalPowerLawHaloMassObservable:
             ln(richness), with the same dimensions of the
             operation z x M.
         """
-        return (
-            np.log(self.A_l)
-            + self.B_l * np.log(M / (self.M_piv))
-            + self.C_l * np.log((1.0 + z) / (1.0 + self.z_piv))
-        )
 
-    def scatter_lnrichness(self, z, M):
+        lsat = (
+            (M - self.M_min_cen) / (self.M_min_sat - self.M_min_cen)
+        ) ** self.alpha * ((1.0 + z) / (1.0 + self.z_piv)) ** self.epsilon
+        return 1.0 + lsat
+
+    def scatter_richness(self, z, M):
         r"""
         Intrinsic scatter of the proxy - mass relation.
 
         Computes the scatter of the theoretical richness probability distribution
         at the requested true redshift and mass points.
+
+        .. math::
+            \text{scatter} = \sigma_{\text{lnltr}} \cdot l_{\text{sat}} =
+            \sigma_{\text{lnltr}} \cdot (\text{\_mean\_lnrichness}(z, M) - 1)
 
         Parameters
         ----------
@@ -111,11 +107,7 @@ class LognormalPowerLawHaloMassObservable:
             operation z x M.
         """
 
-        return (
-            self.sig_A_l
-            + self.sig_B_l * np.log(M / (self.M_piv))
-            + self.sig_C_l * np.log((1.0 + z) / (1.0 + self.z_piv))
-        )
+        return self.sigma_lnltr * (self._mean_richness(z, M) - 1.0)
 
     def _pdf_richness(self, z, M, lambda_true):
         r"""
@@ -123,6 +115,11 @@ class LognormalPowerLawHaloMassObservable:
 
         Computes the theoretical richness probability distribution
         at the requested true mass, redshift, and richness points.
+
+        Continuous Poisson shift-corrected by the variance.
+        .. math::
+            P(\lambda_{\text{true}} \mid z, M) = \frac{e^{-\Lambda} \cdot
+            \Lambda^{X - 1}}{\Gamma(X)}
 
         Parameters
         ----------
@@ -138,16 +135,15 @@ class LognormalPowerLawHaloMassObservable:
         pdf_richness: numpy.ndarray
             PDF of richness.
         """
-        _mean_lnlambda = self._mean_lnrichness(z, M)
-        _sigma_lnrichness = self.scatter_lnrichness(z, M)
 
-        return (
-            1.0
-            / (lambda_true * np.sqrt(2.0 * np.pi * _sigma_lnrichness**2.0))
-            * np.exp(
-                -((np.log(lambda_true) - _mean_lnlambda) ** 2.0)
-                / (2.0 * _sigma_lnrichness**2.0)
-            )
+        m = self._mean_richness(z, M) - 1.0  # lsat
+        std_richness = self.scatter_richness(z, M)
+        std = np.sqrt(m + std_richness**2.0)
+        x = lambda_true + std_richness**2.0
+        lam = std**2.0
+        ln_gamma_fun = spc.gammaln(x)
+        return np.exp(
+            -lam + (x - 1.0) * np.log(lam) - ln_gamma_fun, dtype=np.longdouble
         )
 
     def pdf_richness(self, z, M, lambda_true):

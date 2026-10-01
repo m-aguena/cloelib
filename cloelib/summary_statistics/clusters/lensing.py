@@ -13,7 +13,6 @@ from cloelib.observables.halos.halo_abundance import CastroHaloAbundance
 
 # cloelib imports
 from cloelib.observables.halos.halo_profile import HaloProfile
-from cloelib.observables.halos.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -27,7 +26,6 @@ class ClusterWeakLensing:
         cluster_statitstics_modeling: ClusterStatisticsModeling,
         profile: HaloProfile,
         halo_concentration: float,
-        selection_function: SelectionFunction,
     ):
         """
         Initializes the cluster profile lensing
@@ -41,8 +39,6 @@ class ClusterWeakLensing:
             Halo weak lensing radial profile object
         halo_concentration : float
             Halo concentration
-        selection_function : SelectionFunction
-            Selection function object
         """
         halo_abundance = cluster_statitstics_modeling.halo_abundance
         Delta_abundance = halo_abundance.overdensity_type
@@ -62,7 +58,6 @@ class ClusterWeakLensing:
 
         # observable objects
         self.profile = profile
-        self.selection_function = selection_function
 
         # internal values
         self.halo_concentration = halo_concentration
@@ -102,11 +97,11 @@ class ClusterWeakLensing:
 
         # integral of P(z_obs|lambda_obs, z) on z_obs bins : (z_obs, lambda_obs, ztrue)
         window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
-            self.selection_function, z_obs_edges, lambda_obs_edges
+            z_obs_edges, lambda_obs_edges
         )
         # integral of P(lambda_obs|M, z) on lambda_obs bins : (lambda_obs, M, ztrue)
         window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
-            self.selection_function, lambda_obs_edges
+            lambda_obs_edges
         )
         # cluster counts : (z_obs, lambda_obs)
         cluster_counts = self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
@@ -180,7 +175,9 @@ class ClusterWeakLensing:
             effective_inverse_critical_surface_mass_density=None,
         )
 
-    def get_gt(self, z_obs_edges, lambda_obs_edges, radius_edges):
+    def get_gt(
+        self, z_obs_edges, lambda_obs_edges, radius_edges, opt_sel_bias_params=None
+    ):
         """Compute reduced shear profile.
 
         Parameters
@@ -191,6 +188,13 @@ class ClusterWeakLensing:
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
             Edges of radial bins for the profile.
+        opt_sel_bias_params: tuple, None
+            If not None, applies the optical selection bias correction to the
+            profile multiplying it by
+            ``self.optical_selection_bias_correction(radius_edges, *opt_sel_bias_params)``.
+            The values must be `opt_sel_bias_params=(R0, A, alpha, beta, gamma)``,
+            where each individual parameter must be either float or have shape
+            (redshift, richness, radius) bins.
 
         Returns
         -------
@@ -215,9 +219,53 @@ class ClusterWeakLensing:
             )
 
         # output : (z_obs, lambda_obs, radius)
-        return self._get_profile(
-            z_obs_edges,
-            lambda_obs_edges,
-            radius_edges,
-            effective_inverse_critical_surface_mass_density,
+        opt_sel_corr = 1
+        if opt_sel_bias_params is not None:
+            opt_sel_corr = self.optical_selection_bias_correction(
+                radius_edges, *opt_sel_bias_params
+            )
+        return (
+            self._get_profile(
+                z_obs_edges,
+                lambda_obs_edges,
+                radius_edges,
+                effective_inverse_critical_surface_mass_density,
+            )
+            * opt_sel_corr
+        )
+
+    @staticmethod
+    def optical_selection_bias_correction(R, R0, A, alpha, beta, gamma):
+        """
+        Correction for the weak lensing optical selection bias to account for
+        miscentering and projection effects. To be multiplied directly to the WL
+        profile integrated in observed richness and redshift. Effect measured in
+        Ingrao et al. 2026 (https://doi.org/10.48550/arXiv.2605.02723).
+
+        Parameters
+        ----------
+        R: numpy.ndarray
+            Radius of the profile in Mpc
+        R0: numpy.ndarray
+            Transition scale in Mpc, dimensions should be (z_obs_bins, lambda_obs_bins)
+        A: numpy.ndarray
+            Amplitude of the correction, dimensions should be (z_obs_bins, lambda_obs_bins)
+        alpha: numpy.ndarray
+            Slope at small radii, dimensions should be (z_obs_bins, lambda_obs_bins)
+        beta: numpy.ndarray
+            Slope at large radii, dimensions should be (z_obs_bins, lambda_obs_bins)
+        gamma: numpy.ndarray
+            Smoothness of the transition between slopes, dimensions should be (z_obs_bins, lambda_obs_bins)
+
+
+        Retruns
+        -------
+            Correction for WL optical selection bias. Dimension (z_obs_bins, lambda_obs_bins)
+        """
+        # Note:
+        # Reasonable values for the parameters are: R0=1.20cMpc/h, A=0.20, alpha=4.0,
+        # beta=−0.3 , gamma=1.6
+        return (
+            A * (R / R0) ** alpha * (1 + (R / R0**gamma)) ** ((alpha - beta) / gamma)
+            + 1
         )
