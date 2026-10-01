@@ -3,9 +3,7 @@
 import numpy as np
 from scipy.integrate import simpson
 
-from cloelib.observables.clusters.halo_mass_observable import (
-    HaloMassObservable,
-)
+from cloelib.observables.clusters.halo_mass_observable import HaloMassObservable
 
 
 class GaussianSelectionFunction:
@@ -158,7 +156,8 @@ class GaussianSelectionFunction:
         r"""Compute the window function of each observed redshift bin, given by:
 
         ..math:
-            W_{\Delta z_{\rm obs}}(\lambda_{\rm obs}, z_{\rm true}) = \int_{\Delta z_{\rm obs}}dz_{\rm obs} P(z_{\rm obs}|\lambda_{\rm obs}, z_{\rm true})
+            W_{\Delta z_{\rm obs}}(\lambda_{\rm obs}, z_{\rm true}) =
+            \int_{\Delta z_{\rm obs}}dz_{\rm obs} P(z_{\rm obs}|\lambda_{\rm obs}, z_{\rm true})
 
         Parameters
         ----------
@@ -175,7 +174,7 @@ class GaussianSelectionFunction:
         -------
         window_z_obs : numpy.ndarray
             Integral of P(z_obs|lambda_obs, z_true) in z_obs bins.
-            Dimensions: (z_obs_edges, lambda_obs_edges, z_true).
+            Dimensions: (len(z_obs_edges)-1, len(lambda_obs_edges)-1, len(z_true)).
         """
 
         z_obs_bins_size = len(z_obs_edges) - 1
@@ -190,13 +189,7 @@ class GaussianSelectionFunction:
         _z_true = z_true[np.newaxis, np.newaxis, :]
 
         # Window function
-        window_z_obs = np.zeros(
-            (
-                z_obs_bins_size,
-                lambda_obs_bins_size,
-                z_true.size,
-            )
-        )
+        window_z_obs = np.zeros((z_obs_bins_size, lambda_obs_bins_size, z_true.size))
         for ind_z in range(z_obs_bins_size):
             window_z_obs[ind_z] = simpson(
                 self._prob_z_obs(_z_obs_tabs[ind_z], _lambda_obs, _z_true),
@@ -205,13 +198,7 @@ class GaussianSelectionFunction:
             )
         return window_z_obs
 
-    def window_richness_observed(
-        self,
-        lambda_obs_edges,
-        z_true,
-        mass,
-        lambda_true,
-    ):
+    def window_richness_observed(self, lambda_obs_edges, mass, z_true, lambda_true):
         r"""Compute the window function of each observed richness bin, given by:
 
         ..math:
@@ -236,7 +223,7 @@ class GaussianSelectionFunction:
         -------
         window_lambda_obs : numpy.ndarray
             Integral of P(lambda_obs|\lambda_{\rm true}, z_true) in lambda_obs bins.
-            Dimensions: (lambda_obs_edges, z_true, \lambda_{\rm true}).
+            Dimensions: (len(lambda_obs_edges)-1, len(z_true), len(lambda_true)).
         """
 
         lambda_obs_bins_size = len(lambda_obs_edges) - 1
@@ -252,11 +239,7 @@ class GaussianSelectionFunction:
         ################################################
 
         windows_lambda_obs_lambda_true = np.zeros(
-            (
-                lambda_obs_bins_size,
-                z_true.size,
-                lambda_true.size,
-            )
+            (lambda_obs_bins_size, z_true.size, lambda_true.size)
         )
         for ind_lambda in range(len(windows_lambda_obs_lambda_true)):
             # integrate P(lambda_obs|lambda_true, z) in lambda_obs
@@ -282,7 +265,8 @@ class GaussianSelectionFunction:
             z_true, mass, lambda_true
         )
 
-        return simpson(
+        # return simpson(
+        return np.trapezoid(
             pdf_mass_richness_scaling[np.newaxis, :, :, :]  # (1, z, M, ltr)
             * windows_lambda_obs_lambda_true[:, :, np.newaxis, :],  # (lobs, z, 1, ltr)
             x=lambda_true,
@@ -290,12 +274,7 @@ class GaussianSelectionFunction:
         )
 
     def window_redshift_richness_observed(
-        self,
-        z_obs_edges,
-        lambda_obs_edges,
-        z_true,
-        mass,
-        lambda_true,
+        self, z_obs_edges, lambda_obs_edges, mass, z_true, lambda_true
     ):
         r"""
         Computes the window function for observed redshift and richness bins, i. e.:
@@ -327,29 +306,16 @@ class GaussianSelectionFunction:
         -------
         numpy.ndarray
             Window function for observed redshift and richness bins.
-            Dimensions: (z_obs_edges, lambda_obs_edges, z_true, mass)
+            Dimensions: (len(z_obs_edges)-1, len(lambda_obs_edges)-1, len(z_true), len(mass))
         """
-        # Dimensions: (z, M, lambda_true)
-        pdf_mass_richness_scaling = self.halo_mass_observable.pdf_richness(
-            z_true, mass, lambda_true
-        )
-        # Dimensions: (z_obs_edges, lambda_obs_edges, z_true, lambda_true)
-        window_lambda_true = (
-            # Dimensions: (z_obs_edges, lambda_obs_edges, z_true, 1).
+
+        return (
+            # Dimensions: (z_obs_edges-1, lambda_obs_edges-1, z_true, 1).
             self.window_z_observed(z_obs_edges, lambda_obs_edges, z_true)[
                 :, :, :, np.newaxis
             ]
-            # Dimensions: (1, lambda_obs_edges, z_true, lambda_true)
+            # Dimensions: (1, lambda_obs_edges-1, z_true, M)
             * self.window_richness_observed(
-                lambda_obs_edges,
-                z_true,
-                lambda_true,
-                mass,
+                lambda_obs_edges, mass, z_true, lambda_true
             )[np.newaxis, :, :, :]
-        )
-        return simpson(
-            pdf_mass_richness_scaling[np.newaxis, np.newaxis, :, :, :]
-            * window_lambda_true[:, :, :, np.newaxis, :],
-            x=lambda_true,
-            axis=-1,
         )

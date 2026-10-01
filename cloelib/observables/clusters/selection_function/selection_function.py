@@ -36,7 +36,7 @@ class SelectionFunction(Protocol):
         ...
 
     def window_z_richness_observed(
-        self, z_obs_edges, lambda_obs_edges, z_true, mass, lambda_true
+        self, z_obs_edges, lambda_obs_edges, mass, z_true, lambda_true
     ):
         r"""
         Computes the window function for observed redshift and richness bins, i. e.:
@@ -66,10 +66,10 @@ class SelectionFunction(Protocol):
             Edges of redshift bins for the integration.
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
-        z_true : numpy.ndarray
-            True redshift to compute the window.
         mass : numpy.ndarray
             Mass to compute the window.
+        z_true : numpy.ndarray
+            True redshift to compute the window.
         lambda_true : numpy.ndarray
             Values to be used for marginalization over true richness.
 
@@ -107,8 +107,8 @@ class SelectionFunction(Protocol):
     def window_richness_observed(
         self,
         lambda_obs_edges,
-        z_true,
         mass,
+        z_true,
         lambda_true,
     ):
         r"""Compute the window function of each observed richness bin, given by:
@@ -124,10 +124,10 @@ class SelectionFunction(Protocol):
         ----------
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
-        z_true : numpy.ndarray
-            True redshift to compute the window.
         mass : numpy.ndarray
             Mass to compute the window.
+        z_true : numpy.ndarray
+            True redshift to compute the window.
         lambda_true : numpy.ndarray
             Values to be used for marginalization over true richness.
 
