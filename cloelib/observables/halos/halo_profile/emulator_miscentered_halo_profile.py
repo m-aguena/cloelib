@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from cloelib.auxiliary.cluster_emulators import ClusterEmuNet, get_emulator_data
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
 from .halo_profile_core import HaloProfileCore
 from .bmo_halo_profile import BMOHaloProfile
@@ -28,8 +28,8 @@ class EmulatorMiscenteredHaloProfile:
 
     Parameters
     ----------
-    matter_statistics : MatterStatistics
-        MatterStatistics object carrying the cosmology.
+    halo_model_properties : HaloModelProperties
+        HaloModelProperties object carrying the cosmology.
     overdensity_type : str, optional
         Overdensity type passed to :class:`HaloProfileCore`.  Default ``"vir"``.
     overdensity : int, optional
@@ -64,7 +64,7 @@ class EmulatorMiscenteredHaloProfile:
 
     def __init__(
         self,
-        matter_statistics: MatterStatistics,
+        halo_model_properties: HaloModelProperties,
         overdensity_type: str = "vir",
         overdensity: int = 200,
         z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
@@ -74,7 +74,7 @@ class EmulatorMiscenteredHaloProfile:
         alpha_nz: float = 0.4,
     ):
         self.core = HaloProfileCore(
-            matter_statistics,
+            halo_model_properties,
             overdensity_type=overdensity_type,
             overdensity=overdensity,
             z=z,

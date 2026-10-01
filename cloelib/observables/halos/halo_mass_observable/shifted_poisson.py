@@ -3,7 +3,9 @@
 import numpy as np
 import scipy.special as spc
 
-from cloelib.observables.clusters.auxiliary import tabulated_return
+from cloelib.observables.halos.halo_abundance.halo_abundance_base import (
+    tabulated_return,
+)
 
 
 class ShiftedPoissonHaloMassObservable:

@@ -1,21 +1,16 @@
 # import jax.numpy as np
 import numpy as np
-from numpy.testing import assert_allclose, assert_equal, assert_raises
+from numpy.testing import assert_allclose
 
 from cloelib.auxiliary.halo_helpers import photoz_rsd_correction
-from cloelib.cosmology import derived_cosmology
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.halos.halo_clustering import TwoPoint3DHaloClustering
-from cloelib.observables.halos.halo_mass_observable import (
-    LognormalPowerLawHaloMassObservable,
-)
 from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
 
 def _test_clustering(CL, perturbations):
     z_test = np.array([0.0, 1.0])
     r_test = np.array([30.0, 60.0, 90.0])
-    lob_test = np.array([50.0])
     k_test = np.geomspace(1e-4, 10, 500)
 
     print("    alcock_paczynski_correction_factor")
@@ -91,7 +86,6 @@ def test_clustering():
 
 
 def test_cosmo_photoz_rsd_correction():
-
     print("# Cosmology parameters")
     _cosmo_pars = dict(
         H0=67.7,
@@ -108,7 +102,6 @@ def test_cosmo_photoz_rsd_correction():
     )
 
     z_test = np.array([0.0, 1.0])
-    lob_test = np.array([50.0])
     k_test = np.geomspace(1e-4, 10, 500)
     zobs_scatter = np.array([5.0, 5.1])
 

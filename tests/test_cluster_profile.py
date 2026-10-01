@@ -1,14 +1,13 @@
 # import jax.numpy as np
 
 import numpy as np
-from numpy.testing import assert_allclose, assert_equal, assert_raises
+from numpy.testing import assert_allclose
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
 from cloelib.observables.halos.halo_abundance import CastroHaloAbundance
 from cloelib.observables.halos.halo_profile import BMOHaloProfile, NFWHaloProfile
 from cloelib.observables.halos.halo_model_properties import HaloModelProperties
-from cloelib.observables.clusters.halo_profile import EmulatorMiscenteredHaloProfile
-from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.halos.halo_profile import EmulatorMiscenteredHaloProfile
 
 
 def _get_halo_model_properties():
@@ -43,7 +42,6 @@ def _get_castro():
 
 
 def test_array_shapes():
-
     # Profiles
     print("# Profiles ")
     _prof_kwargs = dict(
@@ -88,15 +86,12 @@ def test_array_shapes():
 
 
 def _test_profile(profile, reference_vals):
-
     R_test = np.array([1])
     z_test = np.linspace(0.01, 0.5, 4)
     M_test = np.array([5e14])
     c_test = 4.0
     z_sources_test = np.linspace(0.6, 1, 5)
-    zbin_test = 1
 
-    HS = _get_halo_model_properties()
     castro = _get_castro()
     halo_bias = castro.bias(z_test, M_test)
 
@@ -132,9 +127,9 @@ def _test_profile(profile, reference_vals):
     )
     print("    _excess_surface_mass_density_2h")
     profile_2h = (
-        profile.core.halo_model_properties.excess_surface_mass_density_2h(R_test, z_test)[
-            :, np.newaxis, :
-        ]
+        profile.core.halo_model_properties.excess_surface_mass_density_2h(
+            R_test, z_test
+        )[:, np.newaxis, :]
         * halo_bias[:, :, np.newaxis]
     )
     assert_allclose(
@@ -144,7 +139,6 @@ def _test_profile(profile, reference_vals):
 
 
 def test_profiles():
-
     # Profiles
     print("# Profiles ")
 
@@ -225,11 +219,12 @@ def test_profiles():
     profile_bmo = BMOHaloProfile(_get_halo_model_properties(), **_prof_kwargs)
     _test_profile(profile_bmo, _reference_vals)
 
+
 def _test_misc_profile(profile, reference_vals):
     r"""
     Test miscentered Sigma_off and DeltaSigma_off profiles against benchmark
     values.
- 
+
     Parameters
     ----------
     profile : MiscBMOHaloProfileEmu
@@ -241,13 +236,13 @@ def _test_misc_profile(profile, reference_vals):
     """
     # Input grid matching the benchmark generation
     R_test = 10.0 ** np.arange(2.0, 4.5, 0.05) / 1.0e3  # physical Mpc/h, (50,)
-    z_test = np.array([1.0])                               # (1,)
-    M_test = np.array([1.0e14])                            # Msun/h, (1,)
+    z_test = np.array([1.0])  # (1,)
+    M_test = np.array([1.0e14])  # Msun/h, (1,)
     c_test = 2.0
-    sigma_off_test = 0.4                                   # physical Mpc/h
- 
-    out_shape = (z_test.size, M_test.size, R_test.size)   # (1, 1, 50)
- 
+    sigma_off_test = 0.4  # physical Mpc/h
+
+    out_shape = (z_test.size, M_test.size, R_test.size)  # (1, 1, 50)
+
     print("    surface_mass_density (misc)")
     Sigma_off = profile.surface_mass_density(
         R_test, z_test, M_test, c_test, sigma_off_test
@@ -257,7 +252,7 @@ def _test_misc_profile(profile, reference_vals):
         f"expected {out_shape}"
     )
     assert_allclose(Sigma_off[0, 0, :], **reference_vals["surface_mass_density"])
- 
+
     print("    excess_surface_mass_density (misc)")
     DeltaSigma_off = profile.excess_surface_mass_density(
         R_test, z_test, M_test, c_test, sigma_off_test

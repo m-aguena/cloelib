@@ -183,12 +183,12 @@ def get_observables(
 ):
     t0 = time.time()
 
-    matter_stat = HaloModelProperties(
+    halo_model_prop = HaloModelProperties(
         perturbations,
         z=interp_ztrue_arr,
         k=interp_k_arr,
     )
-    halo_abundance = CastroHaloAbundance(matter_statistics=matter_stat)
+    halo_abundance = CastroHaloAbundance(halo_model_properties=halo_model_prop)
     covariance = HaloCovariance(
         perturbations,
         area=area,
@@ -196,8 +196,8 @@ def get_observables(
         k=interp_k_arr,
         z_tab_integ=31,
     )
-    halo_profile = NFWHaloProfile(matter_stat, two_halo="None")
-    halo_clustering = TwoPoint3DHaloClustering(matter_stat, background_fid)
+    halo_profile = NFWHaloProfile(halo_model_prop, two_halo="None")
+    halo_clustering = TwoPoint3DHaloClustering(halo_model_prop, background_fid)
 
     # set a selection function per probe
     sf_counts, sf_profiles, sf_clustering = get_sf(
