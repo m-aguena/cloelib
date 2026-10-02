@@ -10,8 +10,8 @@
 import numpy as np
 
 # cloelib imports
-from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
-from cloelib.observables.clusters.covariance import HaloCovariance
+from cloelib.auxiliary.halo_helpers import photoz_rsd_correction
+from cloelib.observables.halos.covariance import HaloCovariance
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -126,14 +126,14 @@ class ClusterCounts:
         z_mid = 0.5 * (z_obs_edges[1:] + z_obs_edges[:-1])
 
         # power spectrum at the center of observed redshift bins (z_obs, k)
-        pk = self.cluster_statitstics_modeling.matter_statistics.matter_power_spectrum_cb(
+        pk = self.cluster_statitstics_modeling.halo_model_properties.matter_power_spectrum_cb(
             z_mid, self.cluster_statitstics_modeling.tabulated_integrands["k"]
         )
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
         # can neglect richness dependence here
         pk *= photoz_rsd_correction(
-            self.cluster_statitstics_modeling.matter_statistics.background,
+            self.cluster_statitstics_modeling.halo_model_properties.background,
             z_mid,
             self.cluster_statitstics_modeling.tabulated_integrands["k"],
             self.cluster_statitstics_modeling.selection_function.scatter_z_obs(

@@ -974,6 +974,17 @@ class AngularTwoPoint:
         n_bin = self.tracer1.n_z_bins
         C_ell_out = {}
 
+        # Helper for POS-SHE symmetry
+        def fill_pos_she(i, j):
+            for a, b in [(i, j), (j, i)]:
+                arr = np.zeros((2, mixing_matrix[("POS", "SHE", a, b)].ell.shape[0]))
+                for idx in [0, 1]:
+                    arr = arr.at[idx].set(
+                        mixing_matrix[("POS", "SHE", a, b)].array
+                        @ C_ell_calc[("POS", "SHE", a, b)].array[idx]
+                    )
+                C_ell_out[("POS", "SHE", a, b)] = arr
+
         # Main logic for each tracer combination
         if tracer_types == (PositionsTracer, PositionsTracer):
             for i in range(1, n_bin + 1):

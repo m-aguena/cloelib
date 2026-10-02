@@ -106,7 +106,7 @@ class ClusterEmuNet:
         return out
 
 
-def get_emulator_data(filename: str, filepath: str, zenodo_url: str = None) -> str:
+def get_emulator_data(filename: str, filepath: str, zenodo_url: str = None) -> dict:
     """Download the emulator data file if it does not exist.
 
     Parameters
