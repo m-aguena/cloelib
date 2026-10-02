@@ -13,11 +13,7 @@ class BMOHaloProfile:
         overdensity: int = 200,
         two_halo: str = "None",
         trunc_fact: float = 3.0,
-        z=np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         zs_max: float = 2.0,
-        mean_nz: float = 0.4,
-        sigma_nz: float = 0.3,
-        alpha_nz: float = 0.4,
     ):
         """
         BMO profile class.
@@ -37,22 +33,12 @@ class BMOHaloProfile:
             Redshift grid for calculations.
         zs_max : float, optional
             Maximum source redshift for lensing calculations.
-        mean_nz : float, optional
-            Mean of the source redshift distribution.
-        sigma_nz : float, optional
-            Width of the source redshift distribution.
-        alpha_nz : float, optional
-            Shape parameter of the source redshift distribution.
         """
         self.core = HaloProfileCore(
             matter_statistics,
             overdensity_type=overdensity_type,
             overdensity=overdensity,
-            z=z,
             zs_max=zs_max,
-            mean_nz=mean_nz,
-            sigma_nz=sigma_nz,
-            alpha_nz=alpha_nz,
         )
 
         self.two_halo = two_halo
