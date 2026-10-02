@@ -996,9 +996,22 @@ class AngularTwoPoint:
             (PositionsTracer, ShearTracer),
             (ShearTracer, PositionsTracer),
         ]:
-            for i in range(1, n_bin + 1):
-                for j in range(i, n_bin + 1):
-                    fill_pos_she(i, j)
+            # Cross-correlation: every (POS bin, SHE bin) pair, and the two
+            # tracers can have a different number of bins.
+            if tracer_types[0] is PositionsTracer:
+                n_pos, n_she = self.tracer1.n_z_bins, self.tracer2.n_z_bins
+            else:
+                n_pos, n_she = self.tracer2.n_z_bins, self.tracer1.n_z_bins
+            for i in range(1, n_pos + 1):
+                for j in range(1, n_she + 1):
+                    key = ("POS", "SHE", i, j)
+                    # The same mixing matrix acts on the E and the B part.
+                    C_ell_out[key] = np.stack(
+                        [
+                            mixing_matrix[key].array @ C_ell_calc[key].array[0],
+                            mixing_matrix[key].array @ C_ell_calc[key].array[1],
+                        ]
+                    )
 
         elif tracer_types == (ShearTracer, ShearTracer):
             for i in range(1, n_bin + 1):
