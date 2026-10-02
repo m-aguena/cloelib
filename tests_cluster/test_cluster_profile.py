@@ -10,7 +10,7 @@ from cloelib.observables.clusters.halo_profile import EmulatorMiscenteredHaloPro
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
 
 
-def _get_matter_statistics():
+def _get_matter_statistics(**kwargs):
     # Cosmology parameters
     print("# Cosmology parameters")
     _H0 = 67.7
@@ -34,7 +34,7 @@ def _get_matter_statistics():
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 
-    return MatterStatistics(perturbations)
+    return MatterStatistics(perturbations, **kwargs)
 
 
 def _get_castro():
@@ -324,10 +324,136 @@ def test_misc_profile():
  
     _prof_kwargs = dict(
         zs_max=2.0,
-        mean_nz=0.4,
-        sigma_nz=0.3,
-        alpha_nz=0.4,
     )
     profile_misc = EmulatorMiscenteredHaloProfile(_get_matter_statistics(), **_prof_kwargs)
     profile_misc.set_weights()
     _test_misc_profile(profile_misc, _reference_vals)
+
+
+def test_misc_profile_2h():
+
+    # Miscentered profile (emulator) with miscentered 2-halo term
+    print("# EmulatorMiscenteredHaloProfile with 2-halo term")
+
+    R_test = np.array([0.1, 0.3, 1.0, 3.0])  # Mpc/h, below and above sigma_off
+    z_test = np.linspace(0.01, 0.5, 4)
+    M_test = np.array([5e14])
+    c_test = 4.0
+    sigma_off_test = 0.2  # Mpc/h
+    halo_bias = _get_castro().bias(z_test, M_test)
+
+    _prof_kwargs = dict(
+        two_halo="None",
+        zs_max=2.0,
+    )
+    # k up to 100 h/Mpc: the default k range (k < 10 h/Mpc) is not enough to
+    # converge the 2-halo excess surface density at R < 1 Mpc/h
+    profile = EmulatorMiscenteredHaloProfile(
+        _get_matter_statistics(k=np.geomspace(1e-4, 100.0, 1000)), **_prof_kwargs
+    )
+    profile.set_weights()
+
+    # Reference values from the notebook
+    # "Check Miscentering model for Sigma and DeltaSigma.ipynb".
+    # Shape (z_test.size, R_test.size), units h * Msun / pc**2.
+    # The 2-halo terms are unbiased (divided by the halo bias). Their tolerance
+    # accounts for the accuracy of the k integration (quad_vec, epsrel=1e-1).
+    # The 1-halo tolerance accounts for the ~0.1% difference between the virial
+    # overdensity used here and the flat LCDM one used in the notebook.
+    _reference_vals = {
+        "surface_mass_density_1h": {
+            "desired": [
+                [431.653054, 295.611906, 52.419616, 3.554117],
+                [479.717595, 325.194688, 53.507305, 3.148945],
+                [531.988558, 353.716848, 53.874628, 2.753409],
+                [582.963035, 381.765723, 54.095692, 2.390876],
+            ],
+            "rtol": 3e-3,
+        },
+        "excess_surface_mass_density_1h": {
+            "desired": [
+                [12.205999, 71.193244, 83.252068, 22.898200],
+                [14.048267, 81.693802, 92.114262, 24.005986],
+                [16.073981, 93.118577, 100.776741, 24.936328],
+                [18.144897, 104.940648, 109.466341, 25.723668],
+            ],
+            "rtol": 3e-3,
+        },
+        "surface_mass_density_2h_off": {
+            "desired": [
+                [4.003221, 3.847079, 3.085107, 2.021469],
+                [4.469531, 4.277211, 3.358121, 2.117295],
+                [4.805877, 4.580837, 3.525509, 2.143991],
+                [5.038332, 4.784210, 3.613157, 2.123500],
+            ],
+            "rtol": 3e-3,
+        },
+        "excess_surface_mass_density_2h_off": {
+            "desired": [
+                [0.174915, 0.209994, 0.353412, 0.484904],
+                [0.215827, 0.258248, 0.425028, 0.563453],
+                [0.253030, 0.301783, 0.486686, 0.625086],
+                [0.286278, 0.340393, 0.538682, 0.671786],
+            ],
+            "rtol": 3e-3,
+        },
+    }
+
+    Sigma_1h = profile.surface_mass_density(
+        R_test, z_test, M_test, c_test, sigma_off_test
+    )
+    DeltaSigma_1h = profile.excess_surface_mass_density(
+        R_test, z_test, M_test, c_test, sigma_off_test
+    )
+    Sigma_2h = profile.core.surface_mass_density_2h_off_semiapprox(
+        R_test, z_test, sigma_off_test
+    )
+    DeltaSigma_2h = profile.core.excess_surface_mass_density_2h_off_semiapprox(
+        R_test, z_test, sigma_off_test
+    )
+
+    # 2-halo inclusion
+    for two_halo in ("sum", "max"):
+        print("    two_halo = %s" % two_halo)
+        profile.two_halo = two_halo
+        combine = np.add if two_halo == "sum" else np.maximum
+
+        assert_allclose(
+            profile.surface_mass_density(
+                R_test, z_test, M_test, c_test, sigma_off_test, halo_bias=halo_bias
+            ),
+            combine(Sigma_1h, Sigma_2h[:, np.newaxis, :] * halo_bias[:, :, np.newaxis]),
+            rtol=1e-10,
+        )
+        assert_allclose(
+            profile.excess_surface_mass_density(
+                R_test, z_test, M_test, c_test, sigma_off_test, halo_bias=halo_bias
+            ),
+            combine(
+                DeltaSigma_1h,
+                DeltaSigma_2h[:, np.newaxis, :] * halo_bias[:, :, np.newaxis],
+            ),
+            rtol=1e-10,
+        )
+
+    # the 2-halo term needs the halo bias
+    assert_raises(
+        ValueError,
+        profile.surface_mass_density,
+        R_test,
+        z_test,
+        M_test,
+        c_test,
+        sigma_off_test,
+    )
+
+    # Comparison with external values
+    _computed_vals = {
+        "surface_mass_density_1h": Sigma_1h[:, 0, :],
+        "excess_surface_mass_density_1h": DeltaSigma_1h[:, 0, :],
+        "surface_mass_density_2h_off": Sigma_2h,
+        "excess_surface_mass_density_2h_off": DeltaSigma_2h,
+    }
+    for key, vals in _reference_vals.items():
+        print("    %s" % key)
+        assert_allclose(_computed_vals[key], **vals)

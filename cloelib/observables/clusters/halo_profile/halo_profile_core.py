@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.integrate import simpson
-from scipy.stats import skewnorm
+from scipy.stats import rayleigh, skewnorm
 
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
@@ -345,7 +345,14 @@ class HaloProfileCore:
             return np.maximum(term_1h, term_2h)
 
     def include_surface_mass_density_2h(
-        self, Sigma_1h, inclusion_type, R, z, halo_bias, radius_units="Mpc/h"
+        self,
+        Sigma_1h,
+        inclusion_type,
+        R,
+        z,
+        halo_bias,
+        radius_units="Mpc/h",
+        sigma_off=None,
     ):
         r"""
         Include the contribution of the cosmological 2-halo term.
@@ -368,6 +375,10 @@ class HaloProfileCore:
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        sigma_off: float, optional
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+            If given, the miscentered 2-halo term is computed in the
+            semi-approximated form, otherwise the centered one is used.
 
         Returns
         -------
@@ -375,10 +386,19 @@ class HaloProfileCore:
             Total surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
+        if sigma_off is None:
+            func_2h = self.matter_statistics.surface_mass_density_2h
+        else:
+
+            def func_2h(R, z, radius_units):
+                return self.surface_mass_density_2h_off_semiapprox(
+                    R, z, sigma_off, radius_units=radius_units
+                )
+
         return self._include_2h_term(
             inclusion_type,
             Sigma_1h,
-            func_2h=self.matter_statistics.surface_mass_density_2h,
+            func_2h=func_2h,
             R=R,
             z=z,
             halo_bias=halo_bias,
@@ -386,7 +406,14 @@ class HaloProfileCore:
         )
 
     def include_excess_surface_mass_density_2h(
-        self, DeltaSigma_1h, inclusion_type, R, z, halo_bias, radius_units="Mpc/h"
+        self,
+        DeltaSigma_1h,
+        inclusion_type,
+        R,
+        z,
+        halo_bias,
+        radius_units="Mpc/h",
+        sigma_off=None,
     ):
         r"""
         Include the contribution of the cosmological 2-halo term.
@@ -409,6 +436,10 @@ class HaloProfileCore:
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        sigma_off: float, optional
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+            If given, the miscentered 2-halo term is computed in the
+            semi-approximated form, otherwise the centered one is used.
 
         Returns
         -------
@@ -416,12 +447,178 @@ class HaloProfileCore:
             Total excess surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
+        if sigma_off is None:
+            func_2h = self.matter_statistics.excess_surface_mass_density_2h
+        else:
+
+            def func_2h(R, z, radius_units):
+                return self.excess_surface_mass_density_2h_off_semiapprox(
+                    R, z, sigma_off, radius_units=radius_units
+                )
+
         return self._include_2h_term(
             inclusion_type,
             DeltaSigma_1h,
-            func_2h=self.matter_statistics.excess_surface_mass_density_2h,
+            func_2h=func_2h,
             R=R,
             z=z,
             halo_bias=halo_bias,
             radius_units=radius_units,
+        )
+
+    def _miscentered_2h_semiapprox(
+        self, func_2h, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=100
+    ):
+        r"""
+        Miscentered 2-halo term in the semi-approximated form.
+
+        For a fixed miscentering offset :math:`R_{\rm off}`, the azimuthal
+        average of the 2-halo profile around the offset centre is approximated as
+        :math:`f(\max(R, R_{\rm off}))`, with :math:`f` the centered 2-halo
+        profile. The result is then averaged over the Rayleigh miscentering
+        distribution of scale `sigma_off`, integrating in :math:`\ln R_{\rm off}`
+        between its 0.01% and 99.99% quantiles.
+
+        Parameters
+        ----------
+        func_2h : function
+            Function that computes the centered 2h term. It must take
+            (R, z, radius_units) inputs, and output shape (z.size, R.size)
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        sigma_off: float
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        roff_grid_size: int, optional
+            Number of grid points used for the integration over the
+            miscentering offset.
+
+        Returns
+        -------
+        profile: np.ndarray
+            Miscentered 2-halo profile (units : h * Msun / pc**2).
+            Shape: (z.size, R.size).
+        """
+        z = np.atleast_1d(z)
+
+        # radius in Mpc/h with shape (z.size, R.size)
+        if radius_units.lower() != "mpc/h":
+            D_A = (
+                self.matter_statistics.angular_diameter_distance(z) * self.background.h
+            )  # Mpc / h
+            R_mpc = convert_distance(R, radius_units, "Mpc/h", D_A[:, np.newaxis])
+        else:
+            R_mpc = np.broadcast_to(np.atleast_1d(R), (z.size, np.size(R)))
+
+        # miscentering offset grid, log-spaced
+        ln_roff = np.linspace(
+            np.log(rayleigh.ppf(1.0e-4, scale=sigma_off)),
+            np.log(rayleigh.ppf(1.0 - 1.0e-4, scale=sigma_off)),
+            roff_grid_size,
+        )
+        roff = np.exp(ln_roff)
+
+        # evaluate the centered 2h term at R and at R_off with a single call
+        R_eval = np.concatenate(
+            [R_mpc, np.broadcast_to(roff, (z.size, roff.size))], axis=1
+        )
+        profile_eval = func_2h(R_eval, z, "Mpc/h")
+        profile_R = profile_eval[:, : R_mpc.shape[1]]
+        profile_roff = profile_eval[:, R_mpc.shape[1] :]
+
+        # profile around each offset centre, shape (z.size, roff.size, R.size)
+        profile_off = np.where(
+            R_mpc[:, np.newaxis, :] > roff[np.newaxis, :, np.newaxis],
+            profile_R[:, np.newaxis, :],
+            profile_roff[:, :, np.newaxis],
+        )
+
+        # average over the Rayleigh distribution, dR_off = R_off dlnR_off
+        weights = rayleigh.pdf(roff, scale=sigma_off) * roff
+        return np.trapezoid(
+            profile_off * weights[np.newaxis, :, np.newaxis], x=ln_roff, axis=1
+        )
+
+    def surface_mass_density_2h_off_semiapprox(
+        self, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=100
+    ):
+        r"""
+        Miscentered surface 2-halo matter density profile.
+
+        Computes the cosmological unbiased surface 2-halo density profile at
+        radius R, averaged over a Rayleigh miscentering distribution in the
+        semi-approximated form (see `_miscentered_2h_semiapprox`).
+
+        Parameters
+        ----------
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        sigma_off: float
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        roff_grid_size: int, optional
+            Number of grid points used for the integration over the
+            miscentering offset.
+
+        Returns
+        -------
+        Sigma: np.ndarray
+            Miscentered 2-halo surface mass density profile
+            (units : h * Msun / pc**2). Shape: (z.size, R.size).
+        """
+        return self._miscentered_2h_semiapprox(
+            self.matter_statistics.surface_mass_density_2h,
+            R,
+            z,
+            sigma_off,
+            radius_units=radius_units,
+            roff_grid_size=roff_grid_size,
+        )
+
+    def excess_surface_mass_density_2h_off_semiapprox(
+        self, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=100
+    ):
+        r"""
+        Miscentered excess surface 2-halo matter density profile.
+
+        Computes the cosmological unbiased excess surface 2-halo density
+        profile at radius R, averaged over a Rayleigh miscentering distribution
+        in the semi-approximated form (see `_miscentered_2h_semiapprox`).
+
+        Parameters
+        ----------
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        sigma_off: float
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        roff_grid_size: int, optional
+            Number of grid points used for the integration over the
+            miscentering offset.
+
+        Returns
+        -------
+        DeltaSigma: np.ndarray
+            Miscentered 2-halo excess surface mass density profile
+            (units : h * Msun / pc**2). Shape: (z.size, R.size).
+        """
+        return self._miscentered_2h_semiapprox(
+            self.matter_statistics.excess_surface_mass_density_2h,
+            R,
+            z,
+            sigma_off,
+            radius_units=radius_units,
+            roff_grid_size=roff_grid_size,
         )
