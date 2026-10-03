@@ -18,7 +18,6 @@ from cloelib.observables.clusters.auxiliary import (
     dispersion_model_quadrupole_coefficients,
 )
 from cloelib.observables.clusters.halo_clustering import HaloClustering
-from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -31,7 +30,6 @@ class ClusterClustering:
         self,
         cluster_statitstics_modeling: ClusterStatisticsModeling,
         clustering: HaloClustering,
-        selection_function: SelectionFunction,
     ):
         """
         Initializes the cluster profile lensing
@@ -43,8 +41,6 @@ class ClusterClustering:
             for cluster statistics and tabled values for integration.
         clustering : HaloClusteringCore
             Halo clustering object
-        selection_function : SelectionFunction
-            Selection function object
         """
         # cluster counts summary statistics, contains tables for integrals
         # and functions to compute binned integrals of counts
@@ -52,7 +48,6 @@ class ClusterClustering:
 
         # observable objects
         self.clustering = clustering
-        self.selection_function = selection_function
 
     def get_xi0(
         self,
@@ -261,10 +256,10 @@ class ClusterClustering:
             raise ValueError(f"Unsupported multipole ell={ell}. Expected 0, 2 or 4.")
 
         window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
-            self.selection_function, z_obs_edges, lambda_obs_edges
+            z_obs_edges, lambda_obs_edges
         )
         window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
-            self.selection_function, lambda_obs_edges
+            lambda_obs_edges
         )
         number_density = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
@@ -285,9 +280,11 @@ class ClusterClustering:
 
         z = self.cluster_statitstics_modeling.tabulated_integrands["ztrue"]
         k = self.cluster_statitstics_modeling.tabulated_integrands["k"]
-        z_obs_scatter = self.selection_function.scatter_z_obs(
-            0.5 * (lambda_obs_edges[1:] + lambda_obs_edges[:-1])[np.newaxis, :],
-            z[:, np.newaxis],
+        z_obs_scatter = (
+            self.cluster_statitstics_modeling.selection_function.scatter_z_obs(
+                0.5 * (lambda_obs_edges[1:] + lambda_obs_edges[:-1])[np.newaxis, :],
+                z[:, np.newaxis],
+            )
         )
         b_eff = (bias_density / number_density).T
 
