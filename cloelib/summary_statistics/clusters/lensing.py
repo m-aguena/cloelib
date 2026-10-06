@@ -195,10 +195,11 @@ class ClusterWeakLensing:
         opt_sel_bias_params: tuple, None
             If not None, applies the optical selection bias correction to the
             profile multiplying it by
-            ``self.optical_selection_bias_correction(radius_edges, *opt_sel_bias_params)``.
-            The values must be `opt_sel_bias_params=(R0, A, alpha, beta, gamma)``,
+            ``self.optical_selection_bias_correction(radius_mean, *opt_sel_bias_params)``,
+            with ``radius_mean`` the centers of the radial bins.
+            The values must be ``opt_sel_bias_params=(R0, A, alpha, beta, gamma)``,
             where each individual parameter must be either float or have shape
-            (redshift, richness, radius) bins.
+            (redshift, richness) bins.
 
         Returns
         -------
@@ -225,8 +226,10 @@ class ClusterWeakLensing:
         # output : (z_obs, lambda_obs, radius)
         opt_sel_corr = 1
         if opt_sel_bias_params is not None:
+            # correction at the center of the radial bins : (z_obs, lambda_obs, radius)
             opt_sel_corr = self.optical_selection_bias_correction(
-                radius_edges, *opt_sel_bias_params
+                0.5 * (radius_edges[:-1] + radius_edges[1:]),
+                *(np.asarray(par)[..., np.newaxis] for par in opt_sel_bias_params),
             )
         return (
             self._get_profile(
@@ -240,36 +243,44 @@ class ClusterWeakLensing:
 
     @staticmethod
     def optical_selection_bias_correction(R, R0, A, alpha, beta, gamma):
-        """
+        r"""
         Correction for the weak lensing optical selection bias to account for
         miscentering and projection effects. To be multiplied directly to the WL
         profile integrated in observed richness and redshift. Effect measured in
-        Ingrao et al. 2026 (https://doi.org/10.48550/arXiv.2605.02723).
+        Ingrao et al. 2026 (https://doi.org/10.48550/arXiv.2605.02723):
+
+        ..math:
+            B(R) = A \left(\frac{R}{R_0}\right)^{\alpha}
+            \left[1 + \left(\frac{R}{R_0}\right)^{\gamma}\right]^{\frac{\beta - \alpha}{\gamma}} + 1
+
+        so that the correction scales as :math:`R^\alpha` at small radii and as
+        :math:`R^\beta` at large radii.
 
         Parameters
         ----------
         R: numpy.ndarray
-            Radius of the profile in Mpc
-        R0: numpy.ndarray
-            Transition scale in Mpc, dimensions should be (z_obs_bins, lambda_obs_bins)
-        A: numpy.ndarray
-            Amplitude of the correction, dimensions should be (z_obs_bins, lambda_obs_bins)
-        alpha: numpy.ndarray
-            Slope at small radii, dimensions should be (z_obs_bins, lambda_obs_bins)
-        beta: numpy.ndarray
-            Slope at large radii, dimensions should be (z_obs_bins, lambda_obs_bins)
-        gamma: numpy.ndarray
-            Smoothness of the transition between slopes, dimensions should be (z_obs_bins, lambda_obs_bins)
+            Radius of the profile in Mpc/h
+        R0: float, numpy.ndarray
+            Transition scale in Mpc/h
+        A: float, numpy.ndarray
+            Amplitude of the correction
+        alpha: float, numpy.ndarray
+            Slope at small radii
+        beta: float, numpy.ndarray
+            Slope at large radii
+        gamma: float, numpy.ndarray
+            Smoothness of the transition between slopes
 
+        All parameters must be broadcastable with R.
 
-        Retruns
+        Returns
         -------
-            Correction for WL optical selection bias. Dimension (z_obs_bins, lambda_obs_bins)
+        numpy.ndarray
+            Correction for WL optical selection bias, with the broadcast shape of
+            the inputs.
         """
         # Note:
         # Reasonable values for the parameters are: R0=1.20cMpc/h, A=0.20, alpha=4.0,
         # beta=−0.3 , gamma=1.6
-        return (
-            A * (R / R0) ** alpha * (1 + (R / R0**gamma)) ** ((alpha - beta) / gamma)
-            + 1
-        )
+        x = R / R0
+        return A * x**alpha * (1 + x**gamma) ** ((beta - alpha) / gamma) + 1
