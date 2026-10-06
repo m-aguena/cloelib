@@ -4,12 +4,12 @@ import numpy as np
 from cloelib.auxiliary.cluster_emulators import ClusterEmuNet, get_emulator_data
 from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
-from .halo_profile_core import HaloProfileCore
+from .halo_profile_base import HaloProfileBase
 from .bmo_halo_profile import BMOHaloProfile
 from .nfw_halo_profile import NFWHaloProfile
 
 
-class EmulatorMiscenteredHaloProfile:
+class EmulatorMiscenteredHaloProfile(HaloProfileBase):
     r"""
     Miscentered halo profile evaluated via neural-network emulators.
 
@@ -73,7 +73,8 @@ class EmulatorMiscenteredHaloProfile:
         sigma_nz: float = 0.3,
         alpha_nz: float = 0.4,
     ):
-        self.core = HaloProfileCore(
+        HaloProfileBase.__init__(
+            self,
             halo_model_properties,
             overdensity_type=overdensity_type,
             overdensity=overdensity,
@@ -262,12 +263,12 @@ class EmulatorMiscenteredHaloProfile:
             raise ValueError("Emulator not set up. Run set_weights first")
         Sigma_off = self._emulator_profile(
             self._emu_sigma,
-            *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),
+            *self.surface_mass_density_args(R, z, M, radius_units=radius_units),
             c=c,
             sigma_off=sigma_off,
         )
 
-        self.core.check_profile_shape(R, z, M, Sigma_off)
+        self.check_profile_shape(R, z, M, Sigma_off)
 
         return Sigma_off
 
@@ -313,11 +314,11 @@ class EmulatorMiscenteredHaloProfile:
             raise ValueError("Emulator not set up. Run set_weights first")
         DeltaSigma_off = self._emulator_profile(
             self._emu_delta_sigma,
-            *self.core.surface_mass_density_args(R, z, M, radius_units=radius_units),
+            *self.surface_mass_density_args(R, z, M, radius_units=radius_units),
             c=c,
             sigma_off=sigma_off,
         )
 
-        self.core.check_profile_shape(R, z, M, DeltaSigma_off)
+        self.check_profile_shape(R, z, M, DeltaSigma_off)
 
         return DeltaSigma_off

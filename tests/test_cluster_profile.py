@@ -68,7 +68,7 @@ def test_array_shapes():
         print(radius_units)
         _kwargs["radius_units"] = radius_units
 
-        _r, _z, _m = profile.core.surface_mass_density_args(**_kwargs)
+        _r, _z, _m = profile.surface_mass_density_args(**_kwargs)
         assert (_r * _z * _m).shape == out_shape
 
         _kwargs["c"] = c_test
@@ -97,13 +97,13 @@ def _test_profile(profile, reference_vals):
 
     print("    sigma_crit")
     assert_allclose(
-        profile.core.sigma_crit(z_test, z_sources_test)[0],
+        profile.sigma_crit(z_test, z_sources_test)[0],
         **reference_vals["sigma_crit"],
     )
     print("    n_zs_norM")
-    assert_allclose(profile.core.n_zs_norM(z_test), **reference_vals["n_zs_norM"])
+    assert_allclose(profile.n_zs_norM(z_test), **reference_vals["n_zs_norM"])
     print("    n_zs")
-    assert_allclose(profile.core.n_zs(z_test)[0][:5], **reference_vals["n_zs"])
+    assert_allclose(profile.n_zs(z_test)[0][:5], **reference_vals["n_zs"])
     print("    surface_mass_density")
     assert_allclose(
         profile.surface_mass_density(R_test, z_test, M_test, c_test)[:, 0, 0],
@@ -116,7 +116,7 @@ def _test_profile(profile, reference_vals):
     )
     print("    _surface_mass_density_2h")
     profile_2h = (
-        profile.core.halo_model_properties.surface_mass_density_2h(R_test, z_test)[
+        profile.halo_model_properties.surface_mass_density_2h(R_test, z_test)[
             :, np.newaxis, :
         ]
         * halo_bias[:, :, np.newaxis]
@@ -127,7 +127,7 @@ def _test_profile(profile, reference_vals):
     )
     print("    _excess_surface_mass_density_2h")
     profile_2h = (
-        profile.core.halo_model_properties.excess_surface_mass_density_2h(
+        profile.halo_model_properties.excess_surface_mass_density_2h(
             R_test, z_test
         )[:, np.newaxis, :]
         * halo_bias[:, :, np.newaxis]
