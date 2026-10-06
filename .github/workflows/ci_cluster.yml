@@ -58,7 +58,7 @@ jobs:
           mamba run -n $ENV_NAME python -m pip install ".[camb,classy,euclidemu2,baccoemu,emantis,react,hiclassy,astropy]"
           mamba run -n $ENV_NAME python -m pip install astropy
       - name: Run tests
-        run: mamba run -n $ENV_NAME python -m pytest tests_cluster/ --cov=cloelib/ --ignore=tests_cluster/benchmark_values.py
+        run: mamba run -n $ENV_NAME python -m pytest tests/test_cluster_* --cov=cloelib/ --ignore=tests/benchmark_values.py
         env:
           DISPLAY: test
 
@@ -76,7 +76,7 @@ jobs:
       - name: Get version from current branch
         id: current_version
         run: |
-          CURRENT_VERSION="$(grep -oP '__version__ = "\K[^"]+' cloelib/observables/clusters/__init__.py)"
+          CURRENT_VERSION="$(grep -oP '__version__ = "\K[^"]+' cloelib/observables/halos/__init__.py)"
           echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
           echo "my branch is ${{ github.ref }}"
           CLOE_ORG_SHA=$(git merge-base HEAD origin/main)
@@ -124,8 +124,8 @@ jobs:
       - name: Get version from cluster_structure branch
         id: cluster_structure_version
         run: |
-          if [[ "$(git show origin/cluster_structure:cloelib/observables/clusters/__init__.py)" == *"__version__"* ]]; then
-            MAIN_VERSION="$(grep -oP '__version__ = "\K[^"]+' cloelib/observables/clusters/__init__.py)"
+          if [[ "$(git show origin/cluster_structure:cloelib/observables/halos/__init__.py)" == *"__version__"* ]]; then
+            MAIN_VERSION="$(grep -oP '__version__ = "\K[^"]+' cloelib/observables/halos/__init__.py)"
           else
             echo "No version found at cluster_structure, assuming version 0.0.0"
             MAIN_VERSION="0.0.0"
@@ -143,7 +143,7 @@ jobs:
               ERROR="  - Version number should increase: $CURRENT_VERSION<$MAIN_VERSION"
             elif [ "$C1" != "$((M1 + 1))" ]; then
               ERROR="  - Increment should be done by 1: $GOAL"
-            elif [ "$CURRENT_VERSION" != "$GOAL" ]; then
+            elif [ "$CURRENT_VERSION" != "$GOAL" ] && [ "$MAIN_VERSION" != "0.0.0" ] ; then
               ERROR="  - When major version is increased, others should be zero: $GOAL"
             fi
           elif [ "$C2" != "$M2" ]; then
@@ -163,7 +163,7 @@ jobs:
               ERROR="  - Increments should be done by 1: $GOAL"
             fi
           else
-            ERROR="  - Version at cloelib/observables/clusters/__init__.py has not been updated!"
+            ERROR="  - Version at cloelib/observables/halos/__init__.py has not been updated!"
           fi
           echo "ERROR=$ERROR" >> $GITHUB_ENV
 

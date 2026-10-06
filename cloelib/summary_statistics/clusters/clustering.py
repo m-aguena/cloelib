@@ -11,13 +11,14 @@ import numpy as np
 from scipy.integrate import simpson
 
 # cloelib imports
-from cloelib.observables.clusters.auxiliary import (
+from cloelib.observables.halos.halo_clustering import HaloClustering
+from cloelib.auxiliary.halo_helpers import (
     _photoz_rsd_parameters,
     dispersion_model_hexadecapole_coefficients,
     dispersion_model_monopole_coefficients,
     dispersion_model_quadrupole_coefficients,
 )
-from cloelib.observables.clusters.halo_clustering import HaloClustering
+
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -318,8 +319,8 @@ class ClusterClustering:
             4: dispersion_model_hexadecapole_coefficients,
         }[ell]
 
-        background = self.clustering.core.matter_statistics.background
-        pk = self.clustering.core.matter_statistics.matter_power_spectrum_cb(z, k)
+        background = self.clustering.core.halo_model_properties.background
+        pk = self.clustering.core.halo_model_properties.matter_power_spectrum_cb(z, k)
         sqrt_pk = np.sqrt(pk)
 
         f_gr, k_sigma = _photoz_rsd_parameters(background, z, k, z_obs_scatter)
