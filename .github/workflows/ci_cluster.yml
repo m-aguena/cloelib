@@ -139,7 +139,7 @@ jobs:
               ERROR="  - Version number should increase: $CURRENT_VERSION<$MAIN_VERSION"
             elif [ "$C1" != "$((M1 + 1))" ]; then
               ERROR="  - Increment should be done by 1: $GOAL"
-            elif [ "$CURRENT_VERSION" != "$GOAL" ]; then
+            elif [ "$CURRENT_VERSION" != "$GOAL" ] && [ "$MAIN_VERSION" != "0.0.0" ] ; then
               ERROR="  - When major version is increased, others should be zero: $GOAL"
             fi
           elif [ "$C2" != "$M2" ]; then
