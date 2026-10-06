@@ -85,7 +85,7 @@ class ClusterWeakLensing:
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
-            Edges of radial bins for the profile.
+            Edges of radial bins for the profile, computed at the center of the bins.
         effective_inverse_critical_surface_mass_density : numpy.array, None
             The effective inverse of the critical surface density.
             If provided, it must be shape (ztrue, M, radius) and this function
@@ -120,9 +120,9 @@ class ClusterWeakLensing:
 
         # mass/richness part
 
-        # excess surface mass density : (ztrue, M, radius)
+        # excess surface mass density at the center of the radial bins : (ztrue, M, radius)
         excess_surface_mass_density = self.profile.excess_surface_mass_density(
-            radius_edges[:-1],
+            0.5 * (radius_edges[:-1] + radius_edges[1:]),
             self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
             self.cluster_statitstics_modeling.tabulated_integrands["M"],
             self.halo_concentration,
@@ -164,7 +164,7 @@ class ClusterWeakLensing:
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
-            Edges of radial bins for the profile.
+            Edges of radial bins for the profile, computed at the center of the bins.
 
         Returns
         -------
@@ -191,7 +191,7 @@ class ClusterWeakLensing:
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
-            Edges of radial bins for the profile.
+            Edges of radial bins for the profile, computed at the center of the bins.
         opt_sel_bias_params: tuple, None
             If not None, applies the optical selection bias correction to the
             profile multiplying it by
