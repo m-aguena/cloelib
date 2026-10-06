@@ -10,9 +10,8 @@
 import numpy as np
 
 # cloelib imports
-from cloelib.observables.clusters.auxiliary import photoz_rsd_correction
+from cloelib.observables.clusters.auxiliary import photoz_rsd_monopole_correction
 from cloelib.observables.clusters.covariance import HaloCovariance
-from cloelib.observables.clusters.selection_function import SelectionFunction
 from cloelib.summary_statistics.clusters.statistics_modeling import (
     ClusterStatisticsModeling,
 )
@@ -27,7 +26,6 @@ class ClusterCounts:
         self,
         cluster_statitstics_modeling: ClusterStatisticsModeling,
         covariance: HaloCovariance,
-        selection_function: SelectionFunction,
     ):
         """
         Initializes the cluster counts
@@ -39,8 +37,6 @@ class ClusterCounts:
             for cluster statistics and tabled values for integration.
         covariance : HaloCovariance
             Halo covariance object
-        selection_function : SelectionFunction
-            Selection function object
         """
         # cluster counts summary statistics, contains tables for integrals
         # and functions to compute binned integrals of counts
@@ -48,7 +44,6 @@ class ClusterCounts:
 
         # observable objects
         self.covariance = covariance
-        self.selection_function = selection_function
 
     def get_NC(
         self,
@@ -86,7 +81,7 @@ class ClusterCounts:
         # P(lambda_obs_bin,z_obs_bin|M, z): (z_obs_bin,lambda_obs_bin, ztrue, mass)
         window_redshift_lambda_obs = (
             self.cluster_statitstics_modeling.window_redshift_richness_observed(
-                self.selection_function, z_obs_edges, lambda_obs_edges
+                z_obs_edges, lambda_obs_edges
             )
         )
         # cluster counts : (z_obs, lambda_obs)
@@ -132,11 +127,11 @@ class ClusterCounts:
 
         # corrected halo Pk (only 0-th order correction is enough for number counts covariance)
         # can neglect richness dependence here
-        pk *= photoz_rsd_correction(
+        pk *= photoz_rsd_monopole_correction(
             self.cluster_statitstics_modeling.matter_statistics.background,
             z_mid,
             self.cluster_statitstics_modeling.tabulated_integrands["k"],
-            self.selection_function.scatter_z_obs(
+            self.cluster_statitstics_modeling.selection_function.scatter_z_obs(
                 0, z_mid
             ),  # Note: rather than lambda_obs= 0 I suggest to use the mean value of the sample
         )[0]
