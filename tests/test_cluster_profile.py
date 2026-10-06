@@ -334,6 +334,6 @@ def test_misc_profile():
         sigma_nz=0.3,
         alpha_nz=0.4,
     )
-    profile_misc = EmulatorMiscenteredHaloProfile(_get_matter_statistics(), **_prof_kwargs)
+    profile_misc = EmulatorMiscenteredHaloProfile(_get_halo_model_properties(), **_prof_kwargs)
     profile_misc.set_weights()
     _test_misc_profile(profile_misc, _reference_vals)
