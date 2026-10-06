@@ -44,11 +44,13 @@ class ClusterWeakLensing:
         Delta_profile = profile.core.overdensity_type
         if isinstance(halo_abundance, CastroHaloAbundance) and Delta_profile != "vir":
             raise ValueError(
-                f"If the Castro HMF is used, only virial overdensities can be considered. The current overdensity in the profile modeling is {Delta_profile}."
+                f"If the Castro HMF is used, only virial overdensities can be considered. "
+                f"The current overdensity in the profile modeling is {Delta_profile}."
             )
         if Delta_abundance != Delta_profile:
             raise ValueError(
-                f"The overdensity definition of the mass profile ({Delta_profile}) differs from the one adopted for halo abundance modeling ({Delta_abundance}).)"
+                f"The overdensity definition of the mass profile ({Delta_profile}) differs "
+                f"from the one adopted for halo abundance modeling ({Delta_abundance}).)"
             )
 
         # cluster counts summary statistics, contains tables for integrals
@@ -77,7 +79,7 @@ class ClusterWeakLensing:
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
-            Edges of radial bins for the profile.
+            Edges of radial bins for the profile, computed at the center of the bins.
         effective_inverse_critical_surface_mass_density : numpy.array, None
             The effective inverse of the critical surface density.
             If provided, it must be shape (ztrue, M, radius) and this function
@@ -89,26 +91,21 @@ class ClusterWeakLensing:
             Weak lensing quantity (excess surface density or reduced shear) in redshift,
             richness, and radial bins.
         """
-
         ############################################
         # Get cluster statistics modeling quantities
         ############################################
-
-        # integral of P(z_obs|lambda_obs, z) on z_obs bins : (z_obs, lambda_obs, ztrue)
-        window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
-            z_obs_edges, lambda_obs_edges
-        )
-        # integral of P(lambda_obs|M, z) on lambda_obs bins : (lambda_obs, M, ztrue)
-        window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
-            lambda_obs_edges
+        # P(lambda_obs_bin,z_obs_bin|M, z): (z_obs_bin,lambda_obs_bin, ztrue, mass)
+        window_redshift_lambda_obs = (
+            self.cluster_statitstics_modeling.window_redshift_richness_observed(
+                z_obs_edges, lambda_obs_edges
+            )
         )
         # cluster counts : (z_obs, lambda_obs)
         cluster_counts = self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-            # integral of P(lambda_obs|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs, ztrue)
+            # integral of P(lambda_obs_bin,z_obs_bin|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs, ztrue)
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-                np.ones((1, 1)), window_lambda_obs
+                np.ones((1, 1)), window_redshift_lambda_obs
             ),
-            window_z_obs,
         )
 
         ########################
@@ -117,34 +114,36 @@ class ClusterWeakLensing:
 
         # mass/richness part
 
-        # excess surface mass density : (ztrue, M, radius)
+        # excess surface mass density at the center of the radial bins : (ztrue, M, radius)
         excess_surface_mass_density = self.profile.excess_surface_mass_density(
-            radius_edges[:-1],
+            0.5 * (radius_edges[:-1] + radius_edges[1:]),
             self.cluster_statitstics_modeling.tabulated_integrands["ztrue"],
             self.cluster_statitstics_modeling.tabulated_integrands["M"],
             self.halo_concentration,
         )
-        # excess surface mass density in a richness bin, integrated on mass w HMF : (lambda_obs, ztrue, radius)
+        # excess surface mass density in a richness bin, integrated on mass w HMF
+        # Dimension: (z_obs_bin, lambda_obs_bin, ztrue, radius)
         excess_surface_density_in_window_lambda_obs_mass_integrated = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-                excess_surface_mass_density, window_lambda_obs
+                excess_surface_mass_density,
+                window_redshift_lambda_obs[:, :, :, :, np.newaxis],
             )
         )
 
         # redshift part
 
         # Apply effective inverse critical surface mass density if provided
-        window_z_obs_use = window_z_obs
         if effective_inverse_critical_surface_mass_density is not None:
-            window_z_obs_use *= effective_inverse_critical_surface_mass_density[
-                :, np.newaxis, :
-            ]
+            excess_surface_density_in_window_lambda_obs_mass_integrated *= (
+                effective_inverse_critical_surface_mass_density[
+                    :, np.newaxis, :, np.newaxis
+                ]
+            )
 
         # output : (z_obs, lambda_obs, radius)
         wl_profile_mean_values = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
                 excess_surface_density_in_window_lambda_obs_mass_integrated,
-                window_z_obs_use,
             )
         ) / cluster_counts[:, :, np.newaxis]
         return wl_profile_mean_values
@@ -159,7 +158,7 @@ class ClusterWeakLensing:
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
-            Edges of radial bins for the profile.
+            Edges of radial bins for the profile, computed at the center of the bins.
 
         Returns
         -------
@@ -186,14 +185,15 @@ class ClusterWeakLensing:
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
-            Edges of radial bins for the profile.
+            Edges of radial bins for the profile, computed at the center of the bins.
         opt_sel_bias_params: tuple, None
             If not None, applies the optical selection bias correction to the
             profile multiplying it by
-            ``self.optical_selection_bias_correction(radius_edges, *opt_sel_bias_params)``.
-            The values must be `opt_sel_bias_params=(R0, A, alpha, beta, gamma)``,
+            ``self.optical_selection_bias_correction(radius_mean, *opt_sel_bias_params)``,
+            with ``radius_mean`` the centers of the radial bins.
+            The values must be ``opt_sel_bias_params=(R0, A, alpha, beta, gamma)``,
             where each individual parameter must be either float or have shape
-            (redshift, richness, radius) bins.
+            (redshift, richness) bins.
 
         Returns
         -------
@@ -220,8 +220,10 @@ class ClusterWeakLensing:
         # output : (z_obs, lambda_obs, radius)
         opt_sel_corr = 1
         if opt_sel_bias_params is not None:
+            # correction at the center of the radial bins : (z_obs, lambda_obs, radius)
             opt_sel_corr = self.optical_selection_bias_correction(
-                radius_edges, *opt_sel_bias_params
+                0.5 * (radius_edges[:-1] + radius_edges[1:]),
+                *(np.asarray(par)[..., np.newaxis] for par in opt_sel_bias_params),
             )
         return (
             self._get_profile(
@@ -235,36 +237,44 @@ class ClusterWeakLensing:
 
     @staticmethod
     def optical_selection_bias_correction(R, R0, A, alpha, beta, gamma):
-        """
+        r"""
         Correction for the weak lensing optical selection bias to account for
         miscentering and projection effects. To be multiplied directly to the WL
         profile integrated in observed richness and redshift. Effect measured in
-        Ingrao et al. 2026 (https://doi.org/10.48550/arXiv.2605.02723).
+        Ingrao et al. 2026 (https://doi.org/10.48550/arXiv.2605.02723):
+
+        ..math:
+            B(R) = A \left(\frac{R}{R_0}\right)^{\alpha}
+            \left[1 + \left(\frac{R}{R_0}\right)^{\gamma}\right]^{\frac{\beta - \alpha}{\gamma}} + 1
+
+        so that the correction scales as :math:`R^\alpha` at small radii and as
+        :math:`R^\beta` at large radii.
 
         Parameters
         ----------
         R: numpy.ndarray
-            Radius of the profile in Mpc
-        R0: numpy.ndarray
-            Transition scale in Mpc, dimensions should be (z_obs_bins, lambda_obs_bins)
-        A: numpy.ndarray
-            Amplitude of the correction, dimensions should be (z_obs_bins, lambda_obs_bins)
-        alpha: numpy.ndarray
-            Slope at small radii, dimensions should be (z_obs_bins, lambda_obs_bins)
-        beta: numpy.ndarray
-            Slope at large radii, dimensions should be (z_obs_bins, lambda_obs_bins)
-        gamma: numpy.ndarray
-            Smoothness of the transition between slopes, dimensions should be (z_obs_bins, lambda_obs_bins)
+            Radius of the profile in Mpc/h
+        R0: float, numpy.ndarray
+            Transition scale in Mpc/h
+        A: float, numpy.ndarray
+            Amplitude of the correction
+        alpha: float, numpy.ndarray
+            Slope at small radii
+        beta: float, numpy.ndarray
+            Slope at large radii
+        gamma: float, numpy.ndarray
+            Smoothness of the transition between slopes
 
+        All parameters must be broadcastable with R.
 
-        Retruns
+        Returns
         -------
-            Correction for WL optical selection bias. Dimension (z_obs_bins, lambda_obs_bins)
+        numpy.ndarray
+            Correction for WL optical selection bias, with the broadcast shape of
+            the inputs.
         """
         # Note:
         # Reasonable values for the parameters are: R0=1.20cMpc/h, A=0.20, alpha=4.0,
         # beta=−0.3 , gamma=1.6
-        return (
-            A * (R / R0) ** alpha * (1 + (R / R0**gamma)) ** ((alpha - beta) / gamma)
-            + 1
-        )
+        x = R / R0
+        return A * x**alpha * (1 + x**gamma) ** ((beta - alpha) / gamma) + 1

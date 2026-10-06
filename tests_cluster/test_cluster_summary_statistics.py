@@ -331,8 +331,7 @@ def get_values(
     cov_cluster_counts = cluster_counts_statistics.get_NC_covariance(
         z_obs_nc_edges,
         cluster_counts,
-        counts_intermediate_integration_products["window_lambda_obs"],
-        counts_intermediate_integration_products["window_z_obs"],
+        counts_intermediate_integration_products["window_z_lambda_obs"],
     )
     print(f"nc_cov    :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
