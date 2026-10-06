@@ -54,7 +54,7 @@ jobs:
           mamba run -n $ENV_NAME python -m pip install ".[camb,classy,euclidemu2,baccoemu,emantis,react,hiclassy,astropy]"
           mamba run -n $ENV_NAME python -m pip install astropy
       - name: Run tests
-        run: mamba run -n $ENV_NAME python -m pytest tests_cluster/ --cov=cloelib/ --ignore=tests_cluster/benchmark_values.py
+        run: mamba run -n $ENV_NAME python -m pytest tests/test_cluster_* --cov=cloelib/ --ignore=tests/benchmark_values.py
         env:
           DISPLAY: test
 
