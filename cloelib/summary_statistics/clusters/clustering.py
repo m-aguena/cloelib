@@ -255,26 +255,32 @@ class ClusterClustering:
         if ell not in (0, 2, 4):
             raise ValueError(f"Unsupported multipole ell={ell}. Expected 0, 2 or 4.")
 
-        window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
-            z_obs_edges, lambda_obs_edges
-        )
-        window_lambda_obs = self.cluster_statitstics_modeling.window_richness_observed(
-            lambda_obs_edges
-        )
-        number_density = (
-            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
-                np.ones((1, 1)), window_lambda_obs
+        # P(lambda_obs_bin,z_obs_bin|M, z)
+        # Dimension: (z_obs_bin, lambda_obs_bin, ztrue, mass)
+        window_redshift_lambda_obs = (
+            self.cluster_statitstics_modeling.window_redshift_richness_observed(
+                z_obs_edges, lambda_obs_edges
             )
         )
+        # integral of P(lambda_obs_bin,z_obs_bin|M, z)*dn/dM over mass
+        # Dimension: (z_obs_bin, lambda_obs_bin, ztrue)
+        number_density = (
+            self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
+                np.ones((1, 1)), window_redshift_lambda_obs
+            )
+        )
+        # integral of P(lambda_obs_bin,z_obs_bin|M, z)*dn/dM*bias over mass
+        # Dimension: (z_obs_bin, lambda_obs_bin, ztrue)
         bias_density = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 self.cluster_statitstics_modeling.tabulated_integrands["bias(ztrue,M)"],
-                window_lambda_obs,
+                window_redshift_lambda_obs,
             )
         )
+        # Dimension: (z_obs_bin, lambda_obs_bin)
         cluster_counts = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-                number_density, window_z_obs
+                number_density
             )
         )
 
@@ -286,7 +292,14 @@ class ClusterClustering:
                 z[:, np.newaxis],
             )
         )
-        b_eff = (bias_density / number_density).T
+        # effective bias, set to zero where the number density vanishes
+        # Dimension: (z_obs_bin, lambda_obs_bin, ztrue)
+        b_eff = np.divide(
+            bias_density,
+            number_density,
+            out=np.zeros_like(bias_density, dtype=float),
+            where=number_density != 0,
+        )
 
         # The previous implementation first averaged the fixed-mu amplitude
         # over true redshift and then performed the multipole projection with
@@ -333,8 +346,7 @@ class ClusterClustering:
         dvdz = self.cluster_statitstics_modeling.tabulated_integrands["dv/dz(ztrue)"]
 
         redshift_weights = (
-            window_z_obs
-            * number_density[np.newaxis, :, :]
+            number_density
             * dvdz[np.newaxis, np.newaxis, :]
             * z_simpson_weights[np.newaxis, np.newaxis, :]
             / cluster_counts[:, :, np.newaxis]
@@ -353,16 +365,14 @@ class ClusterClustering:
 
         for ind_lambda_i in range(n_lambda_obs):
             weight_b_i = (
-                redshift_weights[:, ind_lambda_i, :]
-                * b_eff[:, ind_lambda_i][np.newaxis, :]
+                redshift_weights[:, ind_lambda_i, :] * b_eff[:, ind_lambda_i, :]
             )
             weight_f_i = redshift_weights[:, ind_lambda_i, :] * f_gr[np.newaxis, :]
             q_i = k_sigma[:, :, ind_lambda_i]
 
             for ind_lambda_j in range(ind_lambda_i, n_lambda_obs):
                 weight_b_j = (
-                    redshift_weights[:, ind_lambda_j, :]
-                    * b_eff[:, ind_lambda_j][np.newaxis, :]
+                    redshift_weights[:, ind_lambda_j, :] * b_eff[:, ind_lambda_j, :]
                 )
                 weight_f_j = redshift_weights[:, ind_lambda_j, :] * f_gr[np.newaxis, :]
                 q_j = k_sigma[:, :, ind_lambda_j]
@@ -439,6 +449,12 @@ class ClusterClustering:
         if not return_intermediate_products:
             return cluster_multipole
 
+        # integral of P(z_obs|lambda_obs, z_true) in z_obs bins
+        # Dimension: (z_obs_bin, lambda_obs_bin, z_true)
+        window_z_obs = self.cluster_statitstics_modeling.window_z_observed(
+            z_obs_edges, lambda_obs_edges
+        )
+
         intermediate_integration_products = {
             f"pk{ell}_mean_values": pk_mean_values,
             "radial_shell_window": radial_shell_window,
@@ -496,7 +512,7 @@ class ClusterClustering:
         # Compute observed volume in each redshift bin : (z_obs, lambda_obs)
         volume_mean_values = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-                np.ones((1, 1)), window_z_obs
+                window_z_obs
             )
         )
         # Compute output shot-noise terms : (z_obs, lambda_obs, lambda_obs)
