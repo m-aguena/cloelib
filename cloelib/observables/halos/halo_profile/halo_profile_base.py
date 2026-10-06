@@ -11,7 +11,7 @@ from cloelib.cosmology import derived_cosmology
 from cloelib.observables.halos.halo_model_properties import HaloModelProperties
 
 
-class HaloProfileCore:
+class HaloProfileBase:
     def __init__(
         self,
         halo_model_properties: HaloModelProperties,
@@ -23,7 +23,7 @@ class HaloProfileCore:
         sigma_nz: float = 0.3,
         alpha_nz: float = 0.4,
     ):
-        r"""Auxiliary class computing quantities used in mass profile models.
+        r"""Parent class computing quantities used in mass profile models.
 
         Initialize the class with given perturbations and overdensity definition.
 

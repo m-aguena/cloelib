@@ -319,8 +319,8 @@ class ClusterClustering:
             4: dispersion_model_hexadecapole_coefficients,
         }[ell]
 
-        background = self.clustering.core.halo_model_properties.background
-        pk = self.clustering.core.halo_model_properties.matter_power_spectrum_cb(z, k)
+        background = self.clustering.halo_model_properties.background
+        pk = self.clustering.halo_model_properties.matter_power_spectrum_cb(z, k)
         sqrt_pk = np.sqrt(pk)
 
         f_gr, k_sigma = _photoz_rsd_parameters(background, z, k, z_obs_scatter)
@@ -421,7 +421,7 @@ class ClusterClustering:
                     pk_mean_values[:, ind_lambda_j, ind_lambda_i, :] = pair_multipole
 
         radial_shell_window, radial_shell_volume = (
-            self.clustering.core.radial_shell_multipole_window_and_volume(
+            self.clustering.radial_shell_multipole_window_and_volume(
                 0.5 * (z_obs_edges[1:] + z_obs_edges[:-1]),
                 k,
                 radius_edges,

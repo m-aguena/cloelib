@@ -101,13 +101,13 @@ def _radial_window_f4(x):
     return result
 
 
-class HaloClusteringCore:
+class HaloClusteringBase:
     def __init__(
         self,
         halo_model_properties: HaloModelProperties,
         background_fid: Background,
     ):
-        r"""Initialize the halo-clustering calculation helper.
+        r"""Parent class for halo-clustering calculation.
 
         Parameters
         ----------
