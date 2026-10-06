@@ -71,7 +71,7 @@ def _test_clustering(CL, perturbations):
     print("    alcock_paczynski_correction_factor")
     ref_APcorr = np.array([1.0162, 1.016033])
     assert_allclose(
-        CL.core.alcock_paczynski_correction_factor(z_test), ref_APcorr, rtol=1e-04
+        CL.alcock_paczynski_correction_factor(z_test), ref_APcorr, rtol=1e-04
     )
 
     print("    radial_shell_window_and_volume")
@@ -86,12 +86,12 @@ def _test_clustering(CL, perturbations):
         [[830784.512318, 2254986.533435], [830373.221984, 2253870.173956]]
     )
 
-    WF, VF = CL.core.radial_shell_window_and_volume(z_test, k_test, r_test)
+    WF, VF = CL.radial_shell_window_and_volume(z_test, k_test, r_test)
     assert_allclose(WF[:, :, [0, -1]], ref_radial_shell_window_and_volume0, rtol=1e-03)
     assert_allclose(VF, ref_radial_shell_window_and_volume1, rtol=1e-03)
 
-    WF2, VF2 = CL.core.radial_shell_quadrupole_window_and_volume(z_test, k_test, r_test)
-    WF4, VF4 = CL.core.radial_shell_hexadecapole_window_and_volume(
+    WF2, VF2 = CL.radial_shell_quadrupole_window_and_volume(z_test, k_test, r_test)
+    WF4, VF4 = CL.radial_shell_hexadecapole_window_and_volume(
         z_test, k_test, r_test
     )
     assert_equal(WF2.shape, WF.shape)
@@ -106,7 +106,7 @@ def _test_clustering(CL, perturbations):
         z_test, k_test, hubble_units=True, k_hunit=True
     )
     assert_allclose(
-        CL.core.Pk_IR_func(k_test, Pk_test)[:, [0, -1]], ref_Pk_IR, rtol=1e-4
+        CL.Pk_IR_func(k_test, Pk_test)[:, [0, -1]], ref_Pk_IR, rtol=1e-4
     )
 
 
