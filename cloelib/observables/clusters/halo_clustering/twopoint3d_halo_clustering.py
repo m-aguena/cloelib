@@ -16,7 +16,7 @@ class TwoPoint3DHaloClustering:
     ):
         self.core = HaloClusteringCore(matter_statistics, background_fid)
 
-    def power_spectrum_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
+    def power_spectrum_monopole_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
         """Computes Pk with RSD correction.
 
         Parameters
@@ -59,3 +59,40 @@ class TwoPoint3DHaloClustering:
         pk_halo = photoz_halo_corr * pk
 
         return pk_halo
+
+    def power_spectrum_quadrupole_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
+        """Compute the halo power-spectrum quadrupole."""
+        correction = self.core.photoz_rsd_halo_quadrupole_correction(
+            z, k, z_obs_scatter, b_eff
+        )
+        pk = self.core.matter_statistics.matter_power_spectrum_cb(z, k)
+
+        ndim_z_obs_scatter = np.asarray(z_obs_scatter).ndim
+        if ndim_z_obs_scatter > 1:
+            pk = np.expand_dims(pk, axis=tuple(range(2, ndim_z_obs_scatter + 1)))
+
+        return correction * pk
+
+    def power_spectrum_hexadecapole_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
+        """Compute the halo power-spectrum hexadecapole."""
+        correction = self.core.photoz_rsd_halo_hexadecapole_correction(
+            z, k, z_obs_scatter, b_eff
+        )
+        pk = self.core.matter_statistics.matter_power_spectrum_cb(z, k)
+
+        ndim_z_obs_scatter = np.asarray(z_obs_scatter).ndim
+        if ndim_z_obs_scatter > 1:
+            pk = np.expand_dims(pk, axis=tuple(range(2, ndim_z_obs_scatter + 1)))
+
+        return correction * pk
+
+    def power_spectrum_RSD_amplitude(self, z, k, z_obs_scatter, b_eff, mu):
+        """Compute the square-root halo power amplitude at fixed mu."""
+        correction = self.core.photoz_rsd_halo_amplitude(z, k, z_obs_scatter, b_eff, mu)
+        pk = self.core.matter_statistics.matter_power_spectrum_cb(z, k)
+
+        ndim_z_obs_scatter = np.asarray(z_obs_scatter).ndim
+        if ndim_z_obs_scatter > 1:
+            pk = np.expand_dims(pk, axis=tuple(range(2, ndim_z_obs_scatter + 1)))
+
+        return correction * np.sqrt(pk)
