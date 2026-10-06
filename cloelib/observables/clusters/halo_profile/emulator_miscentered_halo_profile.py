@@ -34,22 +34,18 @@ class EmulatorMiscenteredHaloProfile:
         Overdensity type passed to :class:`HaloProfileCore`.  Default ``"vir"``.
     overdensity : int, optional
         Overdensity value passed to :class:`HaloProfileCore`.  Default ``200``.
-    z : array_like, optional
-        Redshift grid for cosmological calculations.
+    two_halo : str, optional
+        If ``"sum"``, the 1-halo and miscentered 2-halo profile are summed.
+        If ``"max"``, the maximum between them is considered at each point.
+        If ``"None"``, the 2-halo is not included. Default is ``"None"``.
     zs_max : float, optional
         Maximum source redshift for lensing calculations.
-    mean_nz : float, optional
-        Mean of the source redshift distribution.
-    sigma_nz : float, optional
-        Width of the source redshift distribution.
-    alpha_nz : float, optional
-        Shape parameter of the source redshift distribution.
 
     Notes
     -----
     The default case used in the implementation as for the BMO halo profile,
     with the emulater trained setting tau_vir = 3.0 within these boundaries
-    # Bounds #log10R [cMpc/h] # log10 Rvir [pMpc/h] # c # sigma_off
+    # Bounds #log10R [pMpc/h] # log10 Rvir [pMpc/h] # c # sigma_off [pMpc/h]
     lower_bounds = [-4., np.log10(0.15), 0.5, 0.05]
     upper_bounds = [np.log10(30.), np.log10(2.2), 10., 0.8]
 
@@ -67,22 +63,17 @@ class EmulatorMiscenteredHaloProfile:
         matter_statistics: MatterStatistics,
         overdensity_type: str = "vir",
         overdensity: int = 200,
-        z: np.ndarray = np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
+        two_halo: str = "None",
         zs_max: float = 2.0,
-        mean_nz: float = 0.4,
-        sigma_nz: float = 0.3,
-        alpha_nz: float = 0.4,
     ):
         self.core = HaloProfileCore(
             matter_statistics,
             overdensity_type=overdensity_type,
             overdensity=overdensity,
-            z=z,
             zs_max=zs_max,
-            mean_nz=mean_nz,
-            sigma_nz=sigma_nz,
-            alpha_nz=alpha_nz,
         )
+
+        self.two_halo = two_halo
 
         self._trunc_fact = None
         self._emu_sigma = None
@@ -203,18 +194,19 @@ class EmulatorMiscenteredHaloProfile:
             Predicted profile (h Msun/pc²), shape ``(z.size, M.size, R.size)``.
         """
         # Broadcast each quantity to (Nz, NM, NR)
+        out_shape = np.broadcast_shapes(R_mpc.shape, R_vir.shape)
+        n_points = int(np.prod(out_shape))
         inputs = np.column_stack(
             [
-                np.log10(R_mpc).flatten(),
-                # convert Rvir (Nz, NM, 1) -> (Nz*NM*NR)
-                np.broadcast_to(np.log10(R_vir), R_mpc.shape).flatten(),
-                np.full(R_mpc.size, c),
-                np.full(R_mpc.size, sigma_off),
+                np.broadcast_to(np.log10(R_mpc), out_shape).flatten(),
+                np.broadcast_to(np.log10(R_vir), out_shape).flatten(),
+                np.full(n_points, c),
+                np.full(n_points, sigma_off),
             ]
         )  # (Nz*NM*NR, 4)
 
         # Run emulator (Nz*NM*NR), undo log-scaling and multiply by rho_s
-        profile = np.exp(emu.forward(inputs)).reshape(R_mpc.shape) * self._rho_s(
+        profile = np.exp(emu.forward(inputs)).reshape(out_shape) * self._rho_s(
             densityThreshold, c
         )  # Msun h² / Mpc³ · Mpc
 
@@ -228,6 +220,7 @@ class EmulatorMiscenteredHaloProfile:
         M: np.ndarray,
         c: float,
         sigma_off: float,
+        halo_bias: np.ndarray = None,
         radius_units: str = "Mpc/h",
     ) -> np.ndarray:
         r"""
@@ -247,6 +240,9 @@ class EmulatorMiscenteredHaloProfile:
             Scatter of the Rayleigh miscentering PDF (Mpc/h),
             see Eq. 8 of `Johnston et al. 2007
             <https://arxiv.org/pdf/0709.1159.pdf>`_.
+            It is also used for the miscentered 2-halo term.
+        halo_bias : np.ndarray, optional
+            Halo bias used for the 2h term, with shape ``(Nz, NM)``.
         radius_units : str, optional
             Unit for the input radii.  Accepted values are
             ``"Mpc/h"``, ``"radians"``, ``"degrees"``, ``"arcmin"``,
@@ -265,6 +261,17 @@ class EmulatorMiscenteredHaloProfile:
             sigma_off=sigma_off,
         )
 
+        if self.two_halo != "None":
+            Sigma_off = self.core.include_surface_mass_density_2h(
+                Sigma_off,
+                self.two_halo,
+                R,
+                z,
+                halo_bias,
+                radius_units,
+                sigma_off=sigma_off,
+            )
+
         self.core.check_profile_shape(R, z, M, Sigma_off)
 
         return Sigma_off
@@ -276,6 +283,7 @@ class EmulatorMiscenteredHaloProfile:
         M: np.ndarray,
         c: float,
         sigma_off: float,
+        halo_bias: np.ndarray = None,
         radius_units: str = "Mpc/h",
     ) -> np.ndarray:
         r"""
@@ -296,6 +304,9 @@ class EmulatorMiscenteredHaloProfile:
             Scatter of the Rayleigh miscentering PDF (Mpc/h),
             see Eq. 8 of `Johnston et al. 2007
             <https://arxiv.org/pdf/0709.1159.pdf>`_.
+            It is also used for the miscentered 2-halo term.
+        halo_bias : np.ndarray, optional
+            Halo bias used for the 2h term, with shape ``(Nz, NM)``.
         radius_units : str, optional
             Unit for the input radii.  Accepted values are
             ``"Mpc/h"``, ``"radians"``, ``"degrees"``, ``"arcmin"``,
@@ -313,6 +324,17 @@ class EmulatorMiscenteredHaloProfile:
             c=c,
             sigma_off=sigma_off,
         )
+
+        if self.two_halo != "None":
+            DeltaSigma_off = self.core.include_excess_surface_mass_density_2h(
+                DeltaSigma_off,
+                self.two_halo,
+                R,
+                z,
+                halo_bias,
+                radius_units,
+                sigma_off=sigma_off,
+            )
 
         self.core.check_profile_shape(R, z, M, DeltaSigma_off)
 

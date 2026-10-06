@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.integrate import simpson
-from scipy.stats import skewnorm
+from scipy.stats import rayleigh, skewnorm
 
 from cloelib.auxiliary import units
 from cloelib.cosmology import derived_cosmology
@@ -17,11 +17,11 @@ class HaloProfileCore:
         matter_statistics: MatterStatistics,
         overdensity_type: str = "vir",
         overdensity: int = 200,
-        z=np.linspace(1.0e-5, 6.0 - 1.0e-5, 500),
         zs_max: float = 4.0,
-        mean_nz: float = 0.4,
-        sigma_nz: float = 0.3,
-        alpha_nz: float = 0.4,
+        mean_nz: np.ndarray = None,
+        sigma_nz: np.ndarray = None,
+        alpha_nz: np.ndarray = None,
+        z_mean_tomo_bin: np.ndarray = None,
     ):
         r"""Auxiliary class computing quantities used in mass profile models.
 
@@ -31,21 +31,48 @@ class HaloProfileCore:
         ----------
         matter_statistics : MatterStatistics
             An object from the `MatterStatistics` class.
+        mean_nz : np.ndarray
+            Mean redshift per tomographic bin, shape (Number of tomographic source redshift bins,).
+        sigma_nz : np.ndarray
+            Redshift scatter per tomographic bin, shape (Number of tomographic source redshift bins,).
+        alpha_nz : np.ndarray
+            Skewness parameter per tomographic bin, shape (Number of tomographic source redshift bins,).
+        z_mean_tomo_bin : np.ndarray
+            Mean z_obs boundary per tomographic bin, shape (Number of tomographic source redshift bins,),
+            used to select which tomo bin a given mean_z_obs_bin falls into.
         """
         self.matter_statistics = matter_statistics
         self.overdensity_type = overdensity_type
         self.overdensity = overdensity
-
-        # ???
-        self.z = z
         self.zs_max = zs_max
-        self.mean_nz = mean_nz
-        self.sigma_nz = sigma_nz
-        self.alpha_nz = alpha_nz
-
-        # ??? evaluated at true redshift
-        self.nzsnorM = np.vectorize(self.n_zs_norM)(self.z)
-        self.nzs = self.n_zs(self.z)
+        self.mean_nz = np.atleast_1d(
+            mean_nz
+            if mean_nz is not None
+            else np.array(
+                [0.18739829, 0.33775482, 0.50338379, 0.66827123, 0.86322198, 1.30780699]
+            )
+        )
+        self.sigma_nz = np.atleast_1d(
+            sigma_nz
+            if sigma_nz is not None
+            else np.array(
+                [0.85102341, 0.77623404, 0.74479123, 0.79814509, 0.85482975, 0.77782535]
+            )
+        )
+        self.alpha_nz = np.atleast_1d(
+            alpha_nz
+            if alpha_nz is not None
+            else np.array(
+                [7.4511585, 3.12760121, 3.24293517, 6.36498593, 4.32074969, 1.50975262]
+            )
+        )
+        self.z_mean_tomo_bin = np.atleast_1d(
+            z_mean_tomo_bin
+            if z_mean_tomo_bin is not None
+            else np.array(
+                [0.52372988, 0.5987506, 0.7179003, 0.90270588, 1.19243611, 1.71458837]
+            )
+        )
 
     @property
     def background(self):
@@ -95,91 +122,128 @@ class HaloProfileCore:
 
         return 1e-12 * sig_crit / self.background.h  # Msun pc^{-2} h
 
-    def n_zs_norM(self, z):
+    def _get_tomo_bin_index(self, mean_z_obs_bin):
+        r"""
+        Select the tomographic bin index for a given mean_z_obs_bin.
+
+        Returns the first index i such that z_mean_tomo_bin[i] > mean_z_obs_bin.
+
+        Parameters
+        ----------
+        mean_z_obs_bin : float
+            Mean redshift of the observed redshift bin considered.
+
+        Returns
+        -------
+        idx: int
+            Index into mean_nz/sigma_nz/alpha_nz/z_mean_tomo_bin.
+        """
+        mask = self.z_mean_tomo_bin > mean_z_obs_bin
+        if not np.any(mask):
+            raise ValueError(
+                f"mean_z_obs_bin={mean_z_obs_bin} is not below any value in "
+                f"z_mean_tomo_bin={self.z_mean_tomo_bin}"
+            )
+        return np.argmax(mask)
+
+    def n_zs_norM(self, z, idx, Delta_z=0.05):
         r"""
         Galaxy number density normalization.
-
-        Computes the galaxy number density normalization given a lens redshift.
 
         Parameters
         ----------
         z: float or np.ndarray
             Lens redshift.
-
+        idx: int
+            Index into mean_nz/sigma_nz/alpha_nz for the tomographic bin,
+            as returned by `_get_tomo_bin_index`.
+        Delta_z: float, optional
+            Redshift buffer defining the lower edge of the source integration
+            range, z_s > z + Delta_z. Sources within Delta_z of the cluster
+            are excluded to avoid contamination from cluster-member/foreground
+            galaxies scattered into the source sample.
         Returns
         -------
         n_zs_norM: float or np.ndarray
-            Galaxy number density normalization per redshift
+            Galaxy number density normalization per lens redshift and z_obs bin.
         """
         n_zs_norM = 1.0 / (
             skewnorm.cdf(
                 self.zs_max,
-                self.alpha_nz,
-                self.mean_nz,
-                self.sigma_nz,
+                self.alpha_nz[idx],
+                self.mean_nz[idx],
+                self.sigma_nz[idx],
             )
             - skewnorm.cdf(
-                z,
-                self.alpha_nz,
-                self.mean_nz,
-                self.sigma_nz,
+                z + Delta_z,
+                self.alpha_nz[idx],
+                self.mean_nz[idx],
+                self.sigma_nz[idx],
             )
         )
 
         return n_zs_norM
 
-    def n_zs(self, z):
+    def n_zs(self, z, idx):
         r"""
         Galaxy number density.
-
-        Computes the galaxy number density given a lens redshift.
 
         Parameters
         ----------
         z: float or np.ndarray
             Lens redshift.
+        idx: int
+            Index into mean_nz/sigma_nz/alpha_nz for the tomographic bin,
+            as returned by `_get_tomo_bin_index`.
 
         Returns
         -------
         n_zs: float or np.ndarray
-            Galaxy number density per redshift
+            Galaxy number density per source redshift for a given z_obs bin
         """
-        n_zs = np.zeros((z.size, len(self.z)))
-        for z_ind, _z in enumerate(z):
-            z_s = np.linspace(_z + 1.0e-10, self.zs_max, len(self.z))
-            n_zs[z_ind] = skewnorm.pdf(
-                z_s,
-                self.alpha_nz,
-                self.mean_nz,
-                self.sigma_nz,
-            )
+        return skewnorm.pdf(
+            z,
+            self.alpha_nz[idx],
+            self.mean_nz[idx],
+            self.sigma_nz[idx],
+        )
 
-        return n_zs
-
-    def sigma_crit_inv_eff(self, z, zbin):
+    def sigma_crit_inv_eff(self, z, idx, Delta_z=0.05, z_grid_size=50):
         r"""
         Effective inverse critical surface mass density.
 
         Computes the effective critical surface mass density at
-        the given lens redshift.
+        the true cluster redshift.
 
         Parameters
         ----------
         z: float or np.ndarray
-            Lens redshift.
-        zbin: int
-            Index of the lens redshift bin.
-
+            true cluster redshift.
+        idx: int
+            Index into mean_nz/sigma_nz/alpha_nz for the tomographic bin,
+            as returned by `_get_tomo_bin_index`.
+        Delta_z: float, optional
+            Redshift buffer defining the lower edge of the source integration
+            range, z_s > z + Delta_z. Sources within Delta_z of the cluster
+            are excluded to avoid contamination from cluster-member/foreground
+            galaxies scattered into the source sample.
+        z_grid_size: int, optional
+            Number of source-redshift grid points used for the quadrature
         Returns
         -------
         m_sigma_crit_m1: float
             Effective inverse critical surface mass density (units : pc^2 / Msun / h)
         """
-        # z_s is temporarily hard-coded
-        z_s = np.linspace(z + 1.0e-10, self.zs_max, len(self.z), axis=1)
-        sig_crit_m1 = self.nzs[zbin] * 1.0 / self.sigma_crit(z, z_s)
-
-        return self.nzsnorM[zbin] * simpson(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
+        z_s = np.linspace(z + Delta_z, self.zs_max, z_grid_size, axis=1)
+        z_s[z_s >= self.zs_max] = (
+            self.zs_max - 1.0e-5
+        )  # the last term is to avoid problem with the normalization n_zs_norM. It can be removed setting zs_max higer than max z (i.e. z_true)
+        sig_crit_m1 = self.n_zs(z_s, idx) * 1.0 / self.sigma_crit(z, z_s)
+        return self.n_zs_norM(
+            z,
+            idx,
+            Delta_z,
+        ) * simpson(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
 
     def surface_mass_density_args(self, R, z, M, radius_units="Mpc/h"):
         r"""
@@ -298,7 +362,14 @@ class HaloProfileCore:
             return np.maximum(term_1h, term_2h)
 
     def include_surface_mass_density_2h(
-        self, Sigma_1h, inclusion_type, R, z, halo_bias, radius_units="Mpc/h"
+        self,
+        Sigma_1h,
+        inclusion_type,
+        R,
+        z,
+        halo_bias,
+        radius_units="Mpc/h",
+        sigma_off=None,
     ):
         r"""
         Include the contribution of the cosmological 2-halo term.
@@ -321,6 +392,10 @@ class HaloProfileCore:
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        sigma_off: float, optional
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+            If given, the miscentered 2-halo term is computed in the
+            semi-approximated form, otherwise the centered one is used.
 
         Returns
         -------
@@ -328,10 +403,19 @@ class HaloProfileCore:
             Total surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
+        if sigma_off is None:
+            func_2h = self.matter_statistics.surface_mass_density_2h
+        else:
+
+            def func_2h(R, z, radius_units):
+                return self.surface_mass_density_2h_off_semiapprox(
+                    R, z, sigma_off, radius_units=radius_units
+                )
+
         return self._include_2h_term(
             inclusion_type,
             Sigma_1h,
-            func_2h=self.matter_statistics.surface_mass_density_2h,
+            func_2h=func_2h,
             R=R,
             z=z,
             halo_bias=halo_bias,
@@ -339,7 +423,14 @@ class HaloProfileCore:
         )
 
     def include_excess_surface_mass_density_2h(
-        self, DeltaSigma_1h, inclusion_type, R, z, halo_bias, radius_units="Mpc/h"
+        self,
+        DeltaSigma_1h,
+        inclusion_type,
+        R,
+        z,
+        halo_bias,
+        radius_units="Mpc/h",
+        sigma_off=None,
     ):
         r"""
         Include the contribution of the cosmological 2-halo term.
@@ -362,6 +453,10 @@ class HaloProfileCore:
         radius_units: str
             Unit for the input radius. Accepted values are:
             "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        sigma_off: float, optional
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+            If given, the miscentered 2-halo term is computed in the
+            semi-approximated form, otherwise the centered one is used.
 
         Returns
         -------
@@ -369,12 +464,178 @@ class HaloProfileCore:
             Total excess surface mass density profile (units : h * Msun / pc**2).
             Shape: (z.size, M.size, R.size).
         """
+        if sigma_off is None:
+            func_2h = self.matter_statistics.excess_surface_mass_density_2h
+        else:
+
+            def func_2h(R, z, radius_units):
+                return self.excess_surface_mass_density_2h_off_semiapprox(
+                    R, z, sigma_off, radius_units=radius_units
+                )
+
         return self._include_2h_term(
             inclusion_type,
             DeltaSigma_1h,
-            func_2h=self.matter_statistics.excess_surface_mass_density_2h,
+            func_2h=func_2h,
             R=R,
             z=z,
             halo_bias=halo_bias,
             radius_units=radius_units,
+        )
+
+    def _miscentered_2h_semiapprox(
+        self, func_2h, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=50
+    ):
+        r"""
+        Miscentered 2-halo term in the semi-approximated form.
+
+        For a fixed miscentering offset :math:`R_{\rm off}`, the azimuthal
+        average of the 2-halo profile around the offset centre is approximated as
+        :math:`f(\max(R, R_{\rm off}))`, with :math:`f` the centered 2-halo
+        profile. The result is then averaged over the Rayleigh miscentering
+        distribution of scale `sigma_off`, integrating in :math:`\ln R_{\rm off}`
+        between its 0.01% and 99.99% quantiles.
+
+        Parameters
+        ----------
+        func_2h : function
+            Function that computes the centered 2h term. It must take
+            (R, z, radius_units) inputs, and output shape (z.size, R.size)
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        sigma_off: float
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        roff_grid_size: int, optional
+            Number of grid points used for the integration over the
+            miscentering offset.
+
+        Returns
+        -------
+        profile: np.ndarray
+            Miscentered 2-halo profile (units : h * Msun / pc**2).
+            Shape: (z.size, R.size).
+        """
+        z = np.atleast_1d(z)
+
+        # radius in Mpc/h with shape (z.size, R.size)
+        if radius_units.lower() != "mpc/h":
+            D_A = (
+                self.matter_statistics.angular_diameter_distance(z) * self.background.h
+            )  # Mpc / h
+            R_mpc = convert_distance(R, radius_units, "Mpc/h", D_A[:, np.newaxis])
+        else:
+            R_mpc = np.broadcast_to(np.atleast_1d(R), (z.size, np.size(R)))
+
+        # miscentering offset grid, log-spaced
+        ln_roff = np.linspace(
+            np.log(rayleigh.ppf(1.0e-4, scale=sigma_off)),
+            np.log(rayleigh.ppf(1.0 - 1.0e-4, scale=sigma_off)),
+            roff_grid_size,
+        )
+        roff = np.exp(ln_roff)
+
+        # evaluate the centered 2h term at R and at R_off with a single call
+        R_eval = np.concatenate(
+            [R_mpc, np.broadcast_to(roff, (z.size, roff.size))], axis=1
+        )
+        profile_eval = func_2h(R_eval, z, "Mpc/h")
+        profile_R = profile_eval[:, : R_mpc.shape[1]]
+        profile_roff = profile_eval[:, R_mpc.shape[1] :]
+
+        # profile around each offset centre, shape (z.size, roff.size, R.size)
+        profile_off = np.where(
+            R_mpc[:, np.newaxis, :] > roff[np.newaxis, :, np.newaxis],
+            profile_R[:, np.newaxis, :],
+            profile_roff[:, :, np.newaxis],
+        )
+
+        # average over the Rayleigh distribution, dR_off = R_off dlnR_off
+        weights = rayleigh.pdf(roff, scale=sigma_off) * roff
+        return np.trapezoid(
+            profile_off * weights[np.newaxis, :, np.newaxis], x=ln_roff, axis=1
+        )
+
+    def surface_mass_density_2h_off_semiapprox(
+        self, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=50
+    ):
+        r"""
+        Miscentered surface 2-halo matter density profile.
+
+        Computes the cosmological unbiased surface 2-halo density profile at
+        radius R, averaged over a Rayleigh miscentering distribution in the
+        semi-approximated form (see `_miscentered_2h_semiapprox`).
+
+        Parameters
+        ----------
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        sigma_off: float
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        roff_grid_size: int, optional
+            Number of grid points used for the integration over the
+            miscentering offset.
+
+        Returns
+        -------
+        Sigma: np.ndarray
+            Miscentered 2-halo surface mass density profile
+            (units : h * Msun / pc**2). Shape: (z.size, R.size).
+        """
+        return self._miscentered_2h_semiapprox(
+            self.matter_statistics.surface_mass_density_2h,
+            R,
+            z,
+            sigma_off,
+            radius_units=radius_units,
+            roff_grid_size=roff_grid_size,
+        )
+
+    def excess_surface_mass_density_2h_off_semiapprox(
+        self, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=50
+    ):
+        r"""
+        Miscentered excess surface 2-halo matter density profile.
+
+        Computes the cosmological unbiased excess surface 2-halo density
+        profile at radius R, averaged over a Rayleigh miscentering distribution
+        in the semi-approximated form (see `_miscentered_2h_semiapprox`).
+
+        Parameters
+        ----------
+        R: np.ndarray
+            Radial points (units : Mpc / h)
+        z: np.ndarray
+            Redshift.
+        sigma_off: float
+            Scale of the Rayleigh miscentering distribution (units : Mpc / h).
+        radius_units: str
+            Unit for the input radius. Accepted values are:
+            "Mpc/h", "radians", "degrees", "arcmin", "arcsec".
+        roff_grid_size: int, optional
+            Number of grid points used for the integration over the
+            miscentering offset.
+
+        Returns
+        -------
+        DeltaSigma: np.ndarray
+            Miscentered 2-halo excess surface mass density profile
+            (units : h * Msun / pc**2). Shape: (z.size, R.size).
+        """
+        return self._miscentered_2h_semiapprox(
+            self.matter_statistics.excess_surface_mass_density_2h,
+            R,
+            z,
+            sigma_off,
+            radius_units=radius_units,
+            roff_grid_size=roff_grid_size,
         )
