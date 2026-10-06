@@ -65,7 +65,7 @@ class TwoPoint3DHaloClustering:
         correction = self.core.photoz_rsd_halo_quadrupole_correction(
             z, k, z_obs_scatter, b_eff
         )
-        pk = self.core.matter_statistics.matter_power_spectrum_cb(z, k)
+        pk = self.core.halo_model_properties.matter_power_spectrum_cb(z, k)
 
         ndim_z_obs_scatter = np.asarray(z_obs_scatter).ndim
         if ndim_z_obs_scatter > 1:
@@ -78,7 +78,7 @@ class TwoPoint3DHaloClustering:
         correction = self.core.photoz_rsd_halo_hexadecapole_correction(
             z, k, z_obs_scatter, b_eff
         )
-        pk = self.core.matter_statistics.matter_power_spectrum_cb(z, k)
+        pk = self.core.halo_model_properties.matter_power_spectrum_cb(z, k)
 
         ndim_z_obs_scatter = np.asarray(z_obs_scatter).ndim
         if ndim_z_obs_scatter > 1:
@@ -89,7 +89,7 @@ class TwoPoint3DHaloClustering:
     def power_spectrum_RSD_amplitude(self, z, k, z_obs_scatter, b_eff, mu):
         """Compute the square-root halo power amplitude at fixed mu."""
         correction = self.core.photoz_rsd_halo_amplitude(z, k, z_obs_scatter, b_eff, mu)
-        pk = self.core.matter_statistics.matter_power_spectrum_cb(z, k)
+        pk = self.core.halo_model_properties.matter_power_spectrum_cb(z, k)
 
         ndim_z_obs_scatter = np.asarray(z_obs_scatter).ndim
         if ndim_z_obs_scatter > 1:

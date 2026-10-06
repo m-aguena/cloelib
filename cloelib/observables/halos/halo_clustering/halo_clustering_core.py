@@ -121,7 +121,7 @@ class HaloClusteringCore:
         -----
         The fiducial background is used only for geometrical
         Alcock--Paczynski corrections, while the model background is taken
-        from ``matter_statistics``.
+        from ``halo_model_properties``.
         """
         self.halo_model_properties = halo_model_properties
         self.background_fid = background_fid
@@ -530,7 +530,7 @@ class HaloClusteringCore:
             )
 
         corr0, corr1, corr2 = photoz_rsd_quadrupole_correction(
-            self.matter_statistics.background, z, k, z_obs_scatter
+            self.halo_model_properties.background, z, k, z_obs_scatter
         )
         bias = b_eff[:, np.newaxis]
         return corr0 * bias**2 + corr1 * bias + corr2
@@ -581,7 +581,7 @@ class HaloClusteringCore:
             )
 
         corr0, corr1, corr2 = photoz_rsd_hexadecapole_correction(
-            self.matter_statistics.background, z, k, z_obs_scatter
+            self.halo_model_properties.background, z, k, z_obs_scatter
         )
         bias = b_eff[:, np.newaxis]
         return corr0 * bias**2 + corr1 * bias + corr2
@@ -634,7 +634,7 @@ class HaloClusteringCore:
                 f" the same as b_eff {b_eff.shape}"
             )
         return photoz_rsd_amplitude(
-            self.matter_statistics.background,
+            self.halo_model_properties.background,
             z,
             k,
             z_obs_scatter,
