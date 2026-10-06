@@ -467,7 +467,7 @@ class HaloProfileCore:
         )
 
     def _miscentered_2h_semiapprox(
-        self, func_2h, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=100
+        self, func_2h, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=50
     ):
         r"""
         Miscentered 2-halo term in the semi-approximated form.
@@ -544,7 +544,7 @@ class HaloProfileCore:
         )
 
     def surface_mass_density_2h_off_semiapprox(
-        self, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=100
+        self, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=50
     ):
         r"""
         Miscentered surface 2-halo matter density profile.
@@ -584,7 +584,7 @@ class HaloProfileCore:
         )
 
     def excess_surface_mass_density_2h_off_semiapprox(
-        self, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=100
+        self, R, z, sigma_off, radius_units="Mpc/h", roff_grid_size=50
     ):
         r"""
         Miscentered excess surface 2-halo matter density profile.

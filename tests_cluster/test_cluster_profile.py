@@ -353,13 +353,11 @@ def test_misc_profile_2h():
     )
     profile.set_weights()
 
-    # Reference values from the notebook
-    # "Check Miscentering model for Sigma and DeltaSigma.ipynb".
     # Shape (z_test.size, R_test.size), units h * Msun / pc**2.
     # The 2-halo terms are unbiased (divided by the halo bias). Their tolerance
     # accounts for the accuracy of the k integration (quad_vec, epsrel=1e-1).
     # The 1-halo tolerance accounts for the ~0.1% difference between the virial
-    # overdensity used here and the flat LCDM one used in the notebook.
+    # overdensity used here and the flat LCDM one used to generate the reference values.
     _reference_vals = {
         "surface_mass_density_1h": {
             "desired": [

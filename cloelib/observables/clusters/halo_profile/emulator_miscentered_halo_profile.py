@@ -45,7 +45,7 @@ class EmulatorMiscenteredHaloProfile:
     -----
     The default case used in the implementation as for the BMO halo profile,
     with the emulater trained setting tau_vir = 3.0 within these boundaries
-    # Bounds #log10R [cMpc/h] # log10 Rvir [pMpc/h] # c # sigma_off
+    # Bounds #log10R [pMpc/h] # log10 Rvir [pMpc/h] # c # sigma_off [pMpc/h]
     lower_bounds = [-4., np.log10(0.15), 0.5, 0.05]
     upper_bounds = [np.log10(30.), np.log10(2.2), 10., 0.8]
 
