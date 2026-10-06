@@ -1,14 +1,12 @@
 # import jax.numpy as np
 import numpy as np
 
-from cloelib.cosmology.cosmology import Background
 from cloelib.observables.halos.halo_clustering.halo_clustering_base import (
     HaloClusteringBase,
 )
 
 
 class TwoPoint3DHaloClustering(HaloClusteringBase):
-
     def power_spectrum_monopole_RSD_corrected(self, z, k, z_obs_scatter, b_eff):
         """Computes Pk with RSD correction.
 
@@ -34,9 +32,7 @@ class TwoPoint3DHaloClustering(HaloClusteringBase):
         """
         # correct halos power specrum for photo-z uncertainties and RSD (eqs. 80-83)
         # halo rsd corrections (z, k, ...)
-        photoz_halo_corr = self.photoz_rsd_halo_correction(
-            z, k, z_obs_scatter, b_eff
-        )
+        photoz_halo_corr = self.photoz_rsd_halo_correction(z, k, z_obs_scatter, b_eff)
 
         # dark matter power spectrum (z, k)
         pk = self.halo_model_properties.matter_power_spectrum_cb(z, k)

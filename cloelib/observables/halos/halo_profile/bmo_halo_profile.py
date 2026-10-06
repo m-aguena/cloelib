@@ -59,7 +59,6 @@ class BMOHaloProfile(HaloProfileBase):
         self.two_halo = two_halo
         self.trunc_fact = trunc_fact
 
-
     def _f_term(self, x):
         r"""
         BMO profile F term.
