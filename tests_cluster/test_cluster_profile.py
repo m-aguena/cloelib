@@ -7,10 +7,19 @@ from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbat
 from cloelib.observables.clusters.halo_abundance import CastroHaloAbundance
 from cloelib.observables.clusters.halo_profile import BMOHaloProfile, NFWHaloProfile
 from cloelib.observables.clusters.halo_profile import EmulatorMiscenteredHaloProfile
+from cloelib.observables.clusters.halo_mass_observable import (
+    LognormalPowerLawHaloMassObservable,
+)
 from cloelib.observables.clusters.matter_statistics import MatterStatistics
+from cloelib.observables.clusters.selection_function import GaussianSelectionFunction
+from cloelib.summary_statistics.clusters import (
+    ClusterStatisticsModeling,
+    ClusterWeakLensing,
+    ClusterWeakLensingCovariance,
+)
 
 
-def _get_matter_statistics():
+def _get_matter_statistics(**kwargs):
     # Cosmology parameters
     print("# Cosmology parameters")
     _H0 = 67.7
@@ -34,7 +43,7 @@ def _get_matter_statistics():
     background = CAMBBackground(**_cosmo_pars)
     perturbations = CAMBLinearPerturbations(background, np.linspace(0.0, 2.0, 100))
 
-    return MatterStatistics(perturbations)
+    return MatterStatistics(perturbations, **kwargs)
 
 
 def _get_castro():
@@ -328,3 +337,140 @@ def test_misc_profile():
     profile_misc = EmulatorMiscenteredHaloProfile(_get_matter_statistics(), **_prof_kwargs)
     profile_misc.set_weights()
     _test_misc_profile(profile_misc, _reference_vals)
+
+
+def test_gt_covariance():
+
+    # Gaussian covariance of the reduced shear profile
+    print("# g_t covariance")
+
+    integ_ztrue_arr = np.linspace(0.1, 1.1, 101)
+    integ_mass_arr = np.logspace(12.0, 16.0, 121)
+    matter_stat = _get_matter_statistics(
+        z=np.linspace(0.01, 2.0, 100), k=np.geomspace(1e-4, 10.0, 500)
+    )
+    selection_function = GaussianSelectionFunction(
+        halo_mass_observable=LognormalPowerLawHaloMassObservable(
+            A_l=52.0, B_l=0.9, C_l=0.5, sig_A_l=0.2, sig_B_l=-0.05, sig_C_l=0.001
+        ),
+        sig_lambda_norm=0.9,
+        sig_lambda_z=0.1,
+        sig_lambda_exponent=0.4,
+        sig_z_z=0.025,
+        sig_z_lambda=5.0e-6,
+        lambda_tab_integ=[31, 31],
+        z_tab_integ=31,
+    )
+    cluster_statistics_modeling = ClusterStatisticsModeling(
+        CastroHaloAbundance(matter_statistics=matter_stat),
+        selection_function,
+        integ_k_arr=np.geomspace(1.1e-4, 9.9, 400),
+        integ_mass_arr=integ_mass_arr,
+        integ_lambda_true_arr=np.geomspace(5.0, 250.0, 51),
+        integ_ztrue_arr=integ_ztrue_arr,
+        area=10313.0,
+    )
+    cluster_wl = ClusterWeakLensing(
+        cluster_statistics_modeling,
+        NFWHaloProfile(matter_stat, two_halo="None", zs_max=2.0),
+        halo_concentration=4.0,
+    )
+    cluster_wl_cov = ClusterWeakLensingCovariance(cluster_wl, n_eff=15.0, sigma_e=0.3)
+
+    z_obs_edges = np.array([0.3, 0.5, 0.7])
+    lambda_obs_edges = np.array([20.0, 30.0, 60.0])
+    radius_edges = np.geomspace(0.3, 10.0, 6)
+    z_size, lambda_size, radius_size = 2, 2, 5
+
+    cov, terms = cluster_wl_cov.get_gt_covariance(
+        z_obs_edges, lambda_obs_edges, radius_edges, return_terms=True
+    )
+
+    print("    shape and symmetries")
+    assert cov.shape == (z_size, z_size, lambda_size, lambda_size) + (radius_size,) * 2
+    assert_allclose(cov, terms["shape"] + terms["lss"] + terms["intr"], rtol=1e-12)
+    # diagonal in z_obs bins
+    assert_equal(cov[0, 1], 0.0)
+    assert_equal(cov[1, 0], 0.0)
+    # symmetric and positive definite
+    cov_2d = cov.transpose(0, 2, 4, 1, 3, 5).reshape(
+        (z_size * lambda_size * radius_size,) * 2
+    )
+    assert_allclose(cov_2d, cov_2d.T, rtol=1e-12)
+    assert np.linalg.eigvalsh(cov_2d).min() > 0.0
+
+    print("    auto richness blocks")
+    cov_auto = cluster_wl_cov.get_gt_covariance(
+        z_obs_edges, lambda_obs_edges, radius_edges, cross_richness=False
+    )
+    for ind_lambda in range(lambda_size):
+        assert_allclose(
+            cov_auto[:, :, ind_lambda, ind_lambda],
+            cov[:, :, ind_lambda, ind_lambda],
+            rtol=1e-12,
+        )
+    assert_equal(cov_auto[:, :, 0, 1], 0.0)
+    assert np.abs(cov[:, :, 0, 1]).max() > 0.0
+
+    # Reference values from the notebook "Test Covariance lensing gammat.ipynb"
+    # (last cell, cl_157_analensing_cov), computed with the original implementation of Wu et al. 2019
+    # Eq. 10 using the same cloelib ingredients.
+    # Auto richness blocks, shape (z_obs, lambda_obs, radius, radius).
+    # The variances are compared with relative tolerance, the off-diagonal
+    # terms through the correlation matrix: the notebook integrates numerically
+    # the lens shot noise x shape noise term, which leaks a spurious correlation
+    # between adjacent radial bins of ~1e-4 (exactly zero analytically).
+    print("    comparison with external values")
+    cov_reference = np.array(
+        [
+            [
+                [
+                    [3.281672e-08, 7.077090e-11, 1.568597e-11, 4.359248e-12, 1.012907e-12],
+                    [7.077090e-11, 8.189872e-09, 6.449401e-11, 1.706008e-11, 4.310390e-12],
+                    [1.568597e-11, 6.449401e-11, 2.130659e-09, 6.830604e-11, 1.749422e-11],
+                    [4.359248e-12, 1.706008e-11, 6.830604e-11, 6.478853e-10, 7.045661e-11],
+                    [1.012907e-12, 4.310390e-12, 1.749422e-11, 7.045661e-11, 2.848028e-10],
+                ],
+                [
+                    [5.820921e-08, 1.349009e-10, 2.970522e-11, 7.136410e-12, 1.878316e-12],
+                    [1.349009e-10, 1.454609e-08, 1.229641e-10, 3.036858e-11, 7.509319e-12],
+                    [2.970522e-11, 1.229641e-10, 3.795613e-09, 1.232244e-10, 3.082744e-11],
+                    [7.136410e-12, 3.036858e-11, 1.232244e-10, 1.155562e-09, 1.247561e-10],
+                    [1.878316e-12, 7.509319e-12, 3.082744e-11, 1.247561e-10, 5.054527e-10],
+                ],
+            ],
+            [
+                [
+                    [3.260651e-08, 6.634224e-11, 1.543328e-11, 4.217002e-12, 1.229022e-12],
+                    [6.634224e-11, 8.129639e-09, 6.326760e-11, 1.776314e-11, 4.561915e-12],
+                    [1.543328e-11, 6.326760e-11, 2.115162e-09, 7.072966e-11, 1.869162e-11],
+                    [4.217002e-12, 1.776314e-11, 7.072966e-11, 6.493981e-10, 7.505699e-11],
+                    [1.229022e-12, 4.561915e-12, 1.869162e-11, 7.505699e-11, 2.940720e-10],
+                ],
+                [
+                    [6.404261e-08, 1.350488e-10, 3.092210e-11, 8.222356e-12, 2.129840e-12],
+                    [1.350488e-10, 1.597659e-08, 1.271718e-10, 3.471310e-11, 8.749552e-12],
+                    [3.092210e-11, 1.271718e-10, 4.160022e-09, 1.383706e-10, 3.592380e-11],
+                    [8.222356e-12, 3.471310e-11, 1.383706e-10, 1.274928e-09, 1.445602e-10],
+                    [2.129840e-12, 8.749552e-12, 3.592380e-11, 1.445602e-10, 5.709630e-10],
+                ],
+            ],
+        ]
+    )
+    cov_auto_blocks = np.array(
+        [
+            [cov[iz, iz, il, il] for il in range(lambda_size)]
+            for iz in range(z_size)
+        ]
+    )
+    variance = np.diagonal(cov_auto_blocks, axis1=2, axis2=3)
+    variance_reference = np.diagonal(cov_reference, axis1=2, axis2=3)
+    assert_allclose(variance, variance_reference, rtol=1e-2)
+
+    correlation = cov_auto_blocks / np.sqrt(
+        variance[..., :, np.newaxis] * variance[..., np.newaxis, :]
+    )
+    correlation_reference = cov_reference / np.sqrt(
+        variance_reference[..., :, np.newaxis] * variance_reference[..., np.newaxis, :]
+    )
+    assert_allclose(correlation, correlation_reference, atol=2e-3)

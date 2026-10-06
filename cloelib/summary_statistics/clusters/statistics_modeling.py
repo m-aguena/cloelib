@@ -74,6 +74,9 @@ class ClusterStatisticsModeling:
         self.halo_abundance = halo_abundance
         self.selection_function = selection_function
 
+        # effective survey area in deg2
+        self.area = area
+
         # check the consistency between the selection function and the integration arrays
         self._numerical_sf = hasattr(selection_function, "_sel_cl_data")
         if self._numerical_sf:
