@@ -106,7 +106,9 @@ class Covariance:
                 or not np.all(np.isfinite(z_obs_edges))
                 or np.any(np.diff(z_obs_edges) <= 0)
             ):
-                raise ValueError("Redshift edges must be finite and strictly increasing.")
+                raise ValueError(
+                    "Redshift edges must be finite and strictly increasing."
+                )
             if prediction.ndim != 2 or prediction.shape[0] != z_obs_edges.size - 1:
                 raise ValueError("Count shape does not match the redshift bins.")
             # The spatial-window loop fills this workspace in increasing bin order.
