@@ -32,14 +32,30 @@ class HaloProfileCore:
         matter_statistics : MatterStatistics
             An object from the `MatterStatistics` class.
         mean_nz : np.ndarray
-            Mean redshift per tomographic bin, shape (Number of tomographic source redshift bins,).
+            Location parameter of the skew-normal redshift distribution of the
+            sources in the tomographic bins >= t,
+            shape (Number of tomographic source redshift bins,).
         sigma_nz : np.ndarray
-            Redshift scatter per tomographic bin, shape (Number of tomographic source redshift bins,).
+            Scale parameter of the skew-normal redshift distribution of the
+            sources in the tomographic bins >= t,
+            shape (Number of tomographic source redshift bins,).
         alpha_nz : np.ndarray
-            Skewness parameter per tomographic bin, shape (Number of tomographic source redshift bins,).
+            Skewness parameter of the skew-normal redshift distribution of the
+            sources in the tomographic bins >= t,
+            shape (Number of tomographic source redshift bins,).
         z_mean_tomo_bin : np.ndarray
-            Mean z_obs boundary per tomographic bin, shape (Number of tomographic source redshift bins,),
-            used to select which tomo bin a given mean_z_obs_bin falls into.
+            Mean redshift of the sources in each tomographic bin t,
+            shape (Number of tomographic source redshift bins,), used to select
+            the first tomographic bin t of the source sample for a given
+            mean_z_obs_bin (see `_get_tomo_bin_index`).
+
+        Notes
+        -----
+        For the clusters in an observed redshift bin, the source sample consists
+        of the galaxies in the tomographic bins t, t+1, ..., where t is the first
+        tomographic bin with mean redshift larger than the center of the observed
+        redshift bin. Its redshift distribution is modeled with a skew-normal
+        distribution of parameters (alpha_nz[t], mean_nz[t], sigma_nz[t]).
         """
         self.matter_statistics = matter_statistics
         self.overdensity_type = overdensity_type
@@ -191,7 +207,7 @@ class HaloProfileCore:
         Parameters
         ----------
         z: float or np.ndarray
-            Lens redshift.
+            Source redshift.
         idx: int
             Index into mean_nz/sigma_nz/alpha_nz for the tomographic bin,
             as returned by `_get_tomo_bin_index`.
@@ -199,7 +215,8 @@ class HaloProfileCore:
         Returns
         -------
         n_zs: float or np.ndarray
-            Galaxy number density per source redshift for a given z_obs bin
+            Skew-normal redshift distribution of the sources in the tomographic
+            bins >= idx, at the source redshift z (not normalized)
         """
         return skewnorm.pdf(
             z,
