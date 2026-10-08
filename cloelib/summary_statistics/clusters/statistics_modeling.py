@@ -71,6 +71,7 @@ class ClusterStatisticsModeling:
             Effective area of the survey in deg2.
         """
         # observable objects
+        self.area = area
         self.halo_abundance = halo_abundance
         self.selection_function = selection_function
 

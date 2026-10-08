@@ -6,7 +6,6 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
-from cloelib.observables.halos.covariance import HaloCovariance
 from cloelib.observables.halos.halo_abundance import CastroHaloAbundance
 from cloelib.observables.halos.halo_clustering import TwoPoint3DHaloClustering
 from cloelib.observables.halos.halo_mass_observable import (
@@ -19,6 +18,7 @@ from cloelib.observables.halos.selection_function import (
     NumericalSelectionFunction,
 )
 from cloelib.summary_statistics.clusters import (
+    Covariance,
     ClusterClustering,
     ClusterCounts,
     ClusterStatisticsModeling,
@@ -189,13 +189,6 @@ def get_observables(
         k=interp_k_arr,
     )
     halo_abundance = CastroHaloAbundance(halo_model_properties=halo_model_prop)
-    covariance = HaloCovariance(
-        perturbations,
-        area=area,
-        nbins_zob=len(z_obs_nc_edges),
-        k=interp_k_arr,
-        z_tab_integ=31,
-    )
     halo_profile = NFWHaloProfile(halo_model_prop, two_halo="None")
     halo_clustering = TwoPoint3DHaloClustering(halo_model_prop, background_fid)
 
@@ -221,7 +214,7 @@ def get_observables(
 
     return (
         halo_abundance,
-        covariance,
+        area,
         halo_profile,
         halo_clustering,
         sf_counts,
@@ -237,7 +230,7 @@ def get_observables(
 
 def get_summ_stats(
     halo_abundance,
-    covariance,
+    area,
     halo_profile,
     halo_clustering,
     sf_counts,
@@ -271,13 +264,12 @@ def get_summ_stats(
             integ_mass_arr=integ_mass_arr,
             integ_lambda_true_arr=integ_lambda_true_arr,
             integ_ztrue_arr=integ_ztrue_arr_new,
-            area=covariance.area,
+            area=area,
         )
         for sf in (sf_counts, sf_profiles, sf_clustering)
     ]
     cluster_counts_statistics = ClusterCounts(
         modeling_counts,
-        covariance,
     )
     cluster_wl_statistics = ClusterWeakLensing(
         modeling_profiles,
@@ -328,11 +320,10 @@ def get_values(
     )
     print(f"nc        :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
-    cov_cluster_counts = cluster_counts_statistics.get_NC_covariance(
-        z_obs_nc_edges,
-        cluster_counts,
-        counts_intermediate_integration_products["window_lambda_obs"],
-        counts_intermediate_integration_products["window_z_obs"],
+    cov_cluster_counts = Covariance(cluster_counts_statistics).compute(
+        z_obs_edges=z_obs_nc_edges,
+        prediction=cluster_counts,
+        intermediates=counts_intermediate_integration_products,
     )
     print(f"nc_cov    :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
@@ -352,12 +343,8 @@ def get_values(
     )
     print(f"xi        :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
-    cov_cluster_clustering = cluster_clustering_statistics.get_xi_covariance(
-        clustering_intermediate_integration_products["pk0_mean_values"],
-        clustering_intermediate_integration_products["radial_shell_window"],
-        clustering_intermediate_integration_products["radial_shell_volume"],
-        clustering_intermediate_integration_products["window_z_obs"],
-        clustering_intermediate_integration_products["cluster_counts"],
+    cov_cluster_clustering = Covariance(cluster_clustering_statistics).compute(
+        intermediates=clustering_intermediate_integration_products,
     )
     print(f"xi_cov    :  {time.time() - t0:.4f} seconds")
     return (
