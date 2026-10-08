@@ -1,11 +1,19 @@
 # import jax.numpy as np
-from types import SimpleNamespace
-
 import numpy as np
 from numpy.testing import assert_allclose
 
 from cloelib.cosmology.camb_cosmology import CAMBBackground, CAMBLinearPerturbations
-from cloelib.summary_statistics.clusters import ClusterCounts, Covariance
+from cloelib.observables.halos.halo_abundance import CastroHaloAbundance
+from cloelib.observables.halos.halo_mass_observable import (
+    LognormalPowerLawHaloMassObservable,
+)
+from cloelib.observables.halos.halo_model_properties import HaloModelProperties
+from cloelib.observables.halos.selection_function import GaussianSelectionFunction
+from cloelib.summary_statistics.clusters import (
+    ClusterCounts,
+    ClusterStatisticsModeling,
+    Covariance,
+)
 
 
 def test_count_covariance():
@@ -46,12 +54,38 @@ def test_count_covariance():
     zbins = np.linspace(0, 2, nbins_z + 1)
     k_test = np.geomspace(k_min, k_max, k_div)
 
-    modeling = SimpleNamespace(
-        area=area,
-        halo_model_properties=SimpleNamespace(background=perturbations.background),
-        tabulated_integrands={"k": k_test},
+    halo_model_properties = HaloModelProperties(
+        perturbations,
+        k=np.geomspace(k_min / 2, k_max * 2, k_div),
     )
-    CC = Covariance(ClusterCounts(modeling), z_tab_integ=z_tab_integ)
+    halo_abundance = CastroHaloAbundance(halo_model_properties)
+    selection_function = GaussianSelectionFunction(
+        halo_mass_observable=LognormalPowerLawHaloMassObservable(
+            A_l=52.0,
+            B_l=0.9,
+            C_l=0.5,
+            sig_A_l=0.2,
+            sig_B_l=-0.05,
+            sig_C_l=0.001,
+        ),
+        sig_lambda_norm=0.9,
+        sig_lambda_z=0.1,
+        sig_lambda_exponent=0.4,
+        sig_z_z=0.025,
+        sig_z_lambda=5.0e-6,
+        z_tab_integ=z_tab_integ,
+        lambda_tab_integ=[31],
+    )
+    clusterstatmod = ClusterStatisticsModeling(
+        halo_abundance=halo_abundance,
+        selection_function=selection_function,
+        integ_k_arr=k_test,
+        integ_mass_arr=np.geomspace(1e12, 1e16, 31),
+        integ_lambda_true_arr=np.geomspace(5.0, 250.0, 31),
+        integ_ztrue_arr=np.linspace(0.01, 1.99, 31),
+        area=area,
+    )
+    CC = Covariance(ClusterCounts(clusterstatmod), z_tab_integ=z_tab_integ)
     # Exercise the unchanged internal survey-window kernel against reference values.
     CC.rint = np.zeros((nbins_z, len(k_test), CC.L + 1))
 

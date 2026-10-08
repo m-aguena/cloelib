@@ -100,21 +100,32 @@ class Covariance:
                 raise ValueError("Counts require prediction and z_obs_edges.")
             z_obs_edges = np.asarray(z_obs_edges)
             prediction = np.asarray(prediction)
-            if z_obs_edges.ndim != 1 or z_obs_edges.size < 2 or not np.all(np.isfinite(z_obs_edges)) or np.any(np.diff(z_obs_edges) <= 0):
+            if (
+                z_obs_edges.ndim != 1
+                or z_obs_edges.size < 2
+                or not np.all(np.isfinite(z_obs_edges))
+                or np.any(np.diff(z_obs_edges) <= 0)
+            ):
                 raise ValueError("Redshift edges must be finite and strictly increasing.")
             if prediction.ndim != 2 or prediction.shape[0] != z_obs_edges.size - 1:
                 raise ValueError("Count shape does not match the redshift bins.")
             # The spatial-window loop fills this workspace in increasing bin order.
             self.rint = np.zeros((z_obs_edges.size - 1, len(self.k), self.L + 1))
             return self._get_NC_covariance(
-                z_obs_edges, prediction,
-                intermediates["window_lambda_obs"], intermediates["window_z_obs"],
+                z_obs_edges,
+                prediction,
+                intermediates["window_lambda_obs"],
+                intermediates["window_z_obs"],
             )
         if "pk0_mean_values" not in intermediates:
-            raise NotImplementedError("Pass get_xi0 products; higher-multipole covariance is not implemented.")
+            raise NotImplementedError(
+                "Pass get_xi0 products; higher-multipole covariance is not implemented."
+            )
         return self._get_xi_covariance(
-            intermediates["pk0_mean_values"], intermediates["radial_shell_window"],
-            intermediates["radial_shell_volume"], intermediates["window_z_obs"],
+            intermediates["pk0_mean_values"],
+            intermediates["radial_shell_window"],
+            intermediates["radial_shell_volume"],
+            intermediates["window_z_obs"],
             intermediates["cluster_counts"],
         )
 
@@ -222,9 +233,7 @@ class Covariance:
             self.modeling.halo_model_properties.background,
             z_mid,
             self.modeling.tabulated_integrands["k"],
-            self.modeling.selection_function.scatter_z_obs(
-                0, z_mid
-            ),
+            self.modeling.selection_function.scatter_z_obs(0, z_mid),
         )[0]
 
         # spherical harmonic expansion coefficients (covariance)
@@ -356,10 +365,8 @@ class Covariance:
         ########################################
 
         # Compute observed volume in each redshift bin : (z_obs, lambda_obs)
-        volume_mean_values = (
-            self.modeling.integrate_probe_function_in_redshift(
-                np.ones((1, 1)), window_z_obs
-            )
+        volume_mean_values = self.modeling.integrate_probe_function_in_redshift(
+            np.ones((1, 1)), window_z_obs
         )
         # Compute output shot-noise terms : (z_obs, lambda_obs, lambda_obs)
         vol_over_cluster_counts = (
@@ -478,9 +485,7 @@ class Covariance:
                             * avol_bpk_mean_values[
                                 :, ind_lambda_j, ind_lambda_h, np.newaxis, np.newaxis, :
                             ]
-                            * self.modeling.tabulated_integrands[
-                                "dk"
-                            ],
+                            * self.modeling.tabulated_integrands["dk"],
                         )
 
         # Compute the covariance : (z_obs, lambda_obs,  lambda_obs, lambda_obs, lambda_obs, radius, radius)
