@@ -412,14 +412,6 @@ def test_gt_covariance():
     assert_equal(cov_auto[:, :, 0, 1], 0.0)
     assert np.abs(cov[:, :, 0, 1]).max() > 0.0
 
-    # Reference values from the notebook "Test Covariance lensing gammat.ipynb"
-    # (last cell, cl_157_analensing_cov), computed with the original implementation of Wu et al. 2019
-    # Eq. 10 using the same cloelib ingredients.
-    # Auto richness blocks, shape (z_obs, lambda_obs, radius, radius).
-    # The variances are compared with relative tolerance, the off-diagonal
-    # terms through the correlation matrix: the notebook integrates numerically
-    # the lens shot noise x shape noise term, which leaks a spurious correlation
-    # between adjacent radial bins of ~1e-4 (exactly zero analytically).
     print("    comparison with external values")
     cov_reference = np.array(
         [
