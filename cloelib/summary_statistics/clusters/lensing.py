@@ -74,6 +74,7 @@ class ClusterWeakLensing:
         lambda_obs_edges,
         radius_edges,
         effective_inverse_critical_surface_mass_density=None,
+        return_intermediate_products=False,
     ):
         """Compute weak lensing profile, it can be excess surface density or reduced shear.
 
@@ -89,12 +90,23 @@ class ClusterWeakLensing:
             The effective inverse of the critical surface density.
             If provided, it must be shape (ztrue, M, radius) and this function
             returns the reduced shear, else it returns the excess surface density.
+        return_intermediate_products : bool
+            If true, returns also the intermediate integration products.
 
         Returns
         -------
         wl_profile_mean_values : numpy.ndarray
             Weak lensing quantity (excess surface density or reduced shear) in redshift,
             richness, and radial bins.
+        intermediate_integration_products (optional) : dict
+            Dictionary with intermediate products that can be used by
+            ClusterWeakLensingCovariance.get_gt_covariance.
+            Returned only when `return_intermediate_products` is true.
+            Contains :
+
+                * window_redshift_lambda_obs (numpy.ndarray) : P(lambda_obs_bin, z_obs_bin|M, ztrue), (z_obs, lambda_obs, ztrue, M).
+                * number_density (numpy.ndarray) : Integral of P(lambda_obs_bin, z_obs_bin|M, ztrue)*dn/dM over mass, (z_obs, lambda_obs, ztrue).
+                * cluster_counts (numpy.ndarray) : Number counts in redshift and richness bins, (z_obs, lambda_obs).
         """
         ############################################
         # Get cluster statistics modeling quantities
@@ -105,12 +117,17 @@ class ClusterWeakLensing:
                 z_obs_edges, lambda_obs_edges
             )
         )
-        # cluster counts : (z_obs, lambda_obs)
-        cluster_counts = self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
-            # integral of P(lambda_obs_bin,z_obs_bin|M, z)*dn/dM on lambda_obs bins and mass : (lambda_obs, ztrue)
+        # integral of P(lambda_obs_bin,z_obs_bin|M, z)*dn/dM over mass : (z_obs, lambda_obs, ztrue)
+        number_density = (
             self.cluster_statitstics_modeling.integrate_probe_function_in_mass(
                 np.ones((1, 1)), window_redshift_lambda_obs
-            ),
+            )
+        )
+        # cluster counts : (z_obs, lambda_obs)
+        cluster_counts = (
+            self.cluster_statitstics_modeling.integrate_probe_function_in_redshift(
+                number_density
+            )
         )
 
         ########################
@@ -151,9 +168,24 @@ class ClusterWeakLensing:
                 excess_surface_density_in_window_lambda_obs_mass_integrated,
             )
         ) / cluster_counts[:, :, np.newaxis]
-        return wl_profile_mean_values
 
-    def get_DeltaSigma(self, z_obs_edges, lambda_obs_edges, radius_edges):
+        if not return_intermediate_products:
+            return wl_profile_mean_values
+
+        intermediate_integration_products = {
+            "window_redshift_lambda_obs": window_redshift_lambda_obs,
+            "number_density": number_density,
+            "cluster_counts": cluster_counts,
+        }
+        return wl_profile_mean_values, intermediate_integration_products
+
+    def get_DeltaSigma(
+        self,
+        z_obs_edges,
+        lambda_obs_edges,
+        radius_edges,
+        return_intermediate_products=False,
+    ):
         """Compute excess surface density profile.
 
         Parameters
@@ -164,11 +196,22 @@ class ClusterWeakLensing:
             Edges of richness bins for the integration.
         radius_edges : numpy.ndarray
             Edges of radial bins for the profile, computed at the center of the bins.
+        return_intermediate_products : bool
+            If true, returns also the intermediate integration products.
 
         Returns
         -------
         deltasigma_mean_values : numpy.ndarray
             Excess surface density in redshift, richness, and radial bins.
+        intermediate_integration_products (optional) : dict
+            Dictionary with intermediate products that can be used by
+            ClusterWeakLensingCovariance.get_gt_covariance.
+            Returned only when `return_intermediate_products` is true.
+            Contains :
+
+                * window_redshift_lambda_obs (numpy.ndarray) : P(lambda_obs_bin, z_obs_bin|M, ztrue), (z_obs, lambda_obs, ztrue, M).
+                * number_density (numpy.ndarray) : Integral of P(lambda_obs_bin, z_obs_bin|M, ztrue)*dn/dM over mass, (z_obs, lambda_obs, ztrue).
+                * cluster_counts (numpy.ndarray) : Number counts in redshift and richness bins, (z_obs, lambda_obs).
         """
         # output : (z_obs, lambda_obs, radius)
         return self._get_profile(
@@ -176,10 +219,16 @@ class ClusterWeakLensing:
             lambda_obs_edges,
             radius_edges,
             effective_inverse_critical_surface_mass_density=None,
+            return_intermediate_products=return_intermediate_products,
         )
 
     def get_gt(
-        self, z_obs_edges, lambda_obs_edges, radius_edges, opt_sel_bias_params=None
+        self,
+        z_obs_edges,
+        lambda_obs_edges,
+        radius_edges,
+        opt_sel_bias_params=None,
+        return_intermediate_products=False,
     ):
         """Compute reduced shear profile.
 
@@ -199,11 +248,22 @@ class ClusterWeakLensing:
             The values must be ``opt_sel_bias_params=(R0, A, alpha, beta, gamma)``,
             where each individual parameter must be either float or have shape
             (redshift, richness) bins.
+        return_intermediate_products : bool
+            If true, returns also the intermediate integration products.
 
         Returns
         -------
         gt_mean_values : numpy.ndarray
            Reduced shear in redshift, richness, and radial bins.
+        intermediate_integration_products (optional) : dict
+            Dictionary with intermediate products that can be used by
+            ClusterWeakLensingCovariance.get_gt_covariance.
+            Returned only when `return_intermediate_products` is true.
+            Contains :
+
+                * window_redshift_lambda_obs (numpy.ndarray) : P(lambda_obs_bin, z_obs_bin|M, ztrue), (z_obs, lambda_obs, ztrue, M).
+                * number_density (numpy.ndarray) : Integral of P(lambda_obs_bin, z_obs_bin|M, ztrue)*dn/dM over mass, (z_obs, lambda_obs, ztrue).
+                * cluster_counts (numpy.ndarray) : Number counts in redshift and richness bins, (z_obs, lambda_obs).
         """
         z_obs_edges_size = len(z_obs_edges) - 1
 
@@ -234,15 +294,17 @@ class ClusterWeakLensing:
                 0.5 * (radius_edges[:-1] + radius_edges[1:]),
                 *(np.asarray(par)[..., np.newaxis] for par in opt_sel_bias_params),
             )
-        return (
-            self._get_profile(
-                z_obs_edges,
-                lambda_obs_edges,
-                radius_edges,
-                effective_inverse_critical_surface_mass_density,
-            )
-            * opt_sel_corr
+        profile = self._get_profile(
+            z_obs_edges,
+            lambda_obs_edges,
+            radius_edges,
+            effective_inverse_critical_surface_mass_density,
+            return_intermediate_products=return_intermediate_products,
         )
+        if not return_intermediate_products:
+            return profile * opt_sel_corr
+        gt_mean_values, intermediate_integration_products = profile
+        return gt_mean_values * opt_sel_corr, intermediate_integration_products
 
     @staticmethod
     def optical_selection_bias_correction(R, R0, A, alpha, beta, gamma):
@@ -582,7 +644,9 @@ class ClusterWeakLensingCovariance:
     # angular power spectra
     # ------------------------
 
-    def _lens_sample(self, z_obs_edges, lambda_obs_edges):
+    def _lens_sample(
+        self, z_obs_edges, lambda_obs_edges, intermediate_integration_products=None
+    ):
         r"""Lens sample quantities predicted from the halo mass function.
 
         Parameters
@@ -591,6 +655,11 @@ class ClusterWeakLensingCovariance:
             Edges of redshift bins.
         lambda_obs_edges : numpy.ndarray
             Edges of richness bins.
+        intermediate_integration_products : dict, None
+            Intermediate products of ClusterWeakLensing.get_gt or get_DeltaSigma
+            computed with the same redshift and richness bins. If provided, the
+            window function, number density and cluster counts are taken from it
+            instead of being recomputed.
 
         Returns
         -------
@@ -606,20 +675,33 @@ class ClusterWeakLensingCovariance:
         csm = self.cluster_statitstics_modeling
         dv_dz = csm.tabulated_integrands["dv/dz(ztrue)"]
 
-        # P(lambda_obs_bin,z_obs_bin|M, z) : (z_obs, lambda_obs, ztrue, M)
-        window_redshift_lambda_obs = csm.window_redshift_richness_observed(
-            z_obs_edges, lambda_obs_edges
-        )
-        # comoving number density of the lens sample : (z_obs, lambda_obs, ztrue)
-        number_density = csm.integrate_probe_function_in_mass(
-            np.ones((1, 1)), window_redshift_lambda_obs
-        )
+        if intermediate_integration_products is None:
+            # P(lambda_obs_bin,z_obs_bin|M, z) : (z_obs, lambda_obs, ztrue, M)
+            window_redshift_lambda_obs = csm.window_redshift_richness_observed(
+                z_obs_edges, lambda_obs_edges
+            )
+            # comoving number density of the lens sample : (z_obs, lambda_obs, ztrue)
+            number_density = csm.integrate_probe_function_in_mass(
+                np.ones((1, 1)), window_redshift_lambda_obs
+            )
+            # cluster counts : (z_obs, lambda_obs)
+            cluster_counts = csm.integrate_probe_function_in_redshift(number_density)
+        else:
+            window_redshift_lambda_obs = intermediate_integration_products[
+                "window_redshift_lambda_obs"
+            ]
+            number_density = intermediate_integration_products["number_density"]
+            cluster_counts = intermediate_integration_products["cluster_counts"]
+            expected_shape = (len(z_obs_edges) - 1, len(lambda_obs_edges) - 1)
+            if cluster_counts.shape != expected_shape:
+                raise ValueError(
+                    f"The intermediate integration products have {cluster_counts.shape} "
+                    f"(z_obs, lambda_obs) bins, expected {expected_shape}."
+                )
         # bias weighted comoving number density : (z_obs, lambda_obs, ztrue)
         bias_number_density = csm.integrate_probe_function_in_mass(
             csm.tabulated_integrands["bias(ztrue,M)"], window_redshift_lambda_obs
         )
-        # cluster counts : (z_obs, lambda_obs)
-        cluster_counts = csm.integrate_probe_function_in_redshift(number_density)
 
         _norm = np.divide(
             dv_dz,
@@ -787,6 +869,7 @@ class ClusterWeakLensingCovariance:
         radius_edges,
         cross_richness=True,
         return_terms=False,
+        intermediate_integration_products=None,
     ):
         """Compute the Gaussian covariance of the reduced shear profile.
 
@@ -804,6 +887,11 @@ class ClusterWeakLensingCovariance:
         return_terms : bool
             If True, returns also the shape noise, LSS and intrinsic terms
             (Wu et al. 2019, Eqs. 11-13), which sum to the covariance.
+        intermediate_integration_products : dict, None
+            Intermediate products returned by ClusterWeakLensing.get_gt (or
+            get_DeltaSigma) with ``return_intermediate_products=True``, computed
+            with the same redshift and richness bins. If provided, the window
+            function, number density and cluster counts are not recomputed.
 
         Returns
         -------
@@ -825,7 +913,9 @@ class ClusterWeakLensingCovariance:
         ##############################
         # Lens and source sample
         ##############################
-        lens_sample = self._lens_sample(z_obs_edges, lambda_obs_edges)
+        lens_sample = self._lens_sample(
+            z_obs_edges, lambda_obs_edges, intermediate_integration_products
+        )
         # lens surface density in sr^-1 : (z_obs, lambda_obs)
         n_lens = lens_sample["cluster_counts"] / self.survey_solid_angle
 

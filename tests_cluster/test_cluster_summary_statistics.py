@@ -23,6 +23,7 @@ from cloelib.summary_statistics.clusters import (
     ClusterCounts,
     ClusterStatisticsModeling,
     ClusterWeakLensing,
+    ClusterWeakLensingCovariance,
 )
 
 
@@ -335,12 +336,23 @@ def get_values(
     )
     print(f"nc_cov    :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
-    gt_mean_values = cluster_wl_statistics.get_gt(
+    gt_mean_values, gt_intermediate_integration_products = (
+        cluster_wl_statistics.get_gt(
+            z_obs_edges=z_obs_profile_edges,
+            lambda_obs_edges=lambda_obs_profile_edges,
+            radius_edges=radius_profile_edges,
+            return_intermediate_products=True,
+        )
+    )
+    print(f"dsig      :  {time.time() - t0:.4f} seconds")
+    t0 = time.time()
+    cov_gt = ClusterWeakLensingCovariance(cluster_wl_statistics).get_gt_covariance(
         z_obs_edges=z_obs_profile_edges,
         lambda_obs_edges=lambda_obs_profile_edges,
         radius_edges=radius_profile_edges,
+        intermediate_integration_products=gt_intermediate_integration_products,
     )
-    print(f"dsig      :  {time.time() - t0:.4f} seconds")
+    print(f"gt_cov    :  {time.time() - t0:.4f} seconds")
     t0 = time.time()
     cluster_clustering, clustering_intermediate_integration_products = (
         cluster_clustering_statistics.get_xi0(
@@ -365,6 +377,7 @@ def get_values(
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
+        cov_gt,
     )
 
 
@@ -374,6 +387,7 @@ def print_rel_diff(
     cluster_clustering,
     cov_cluster_counts,
     cov_cluster_clustering,
+    cov_gt,
 ):
     # Max relative difference
     print()
@@ -402,6 +416,11 @@ def print_rel_diff(
         "xi_cov",
         cov_cluster_clustering[1, 1, 1:3, 1:3, 10:20, 10:20],
         benchmark_values.cov_cluster_clustering,
+    )
+    print_diff(
+        "gt_cov",
+        cov_gt[1, 1, 0:2, 0:2],
+        benchmark_values.cov_gt,
     )
 
 
@@ -441,6 +460,7 @@ def test_clustersummmarystatitistics():
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
+        cov_gt,
     ) = get_values(*cl_summ_stats)
 
     print("---------------------------")
@@ -451,6 +471,7 @@ def test_clustersummmarystatitistics():
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
+        cov_gt,
     )
 
     assert_allclose(cluster_counts, benchmark_values.cluster_counts, rtol=1e-2)
@@ -469,6 +490,8 @@ def test_clustersummmarystatitistics():
         rtol=5e-2,
     )
 
+    assert_allclose(cov_gt[1, 1, 0:2, 0:2], benchmark_values.cov_gt, rtol=5e-2)
+
 
 def test_clustersummmarystatitistics_interp():
     cl_observables = get_observables(get_sf=get_sf_interp)
@@ -484,6 +507,7 @@ def test_clustersummmarystatitistics_interp():
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
+        cov_gt,
     ) = get_values(*cl_summ_stats)
 
     print("---------------------------")
@@ -494,6 +518,7 @@ def test_clustersummmarystatitistics_interp():
         cluster_clustering,
         cov_cluster_counts,
         cov_cluster_clustering,
+        cov_gt,
     )
     # results to be evaluated
     """
