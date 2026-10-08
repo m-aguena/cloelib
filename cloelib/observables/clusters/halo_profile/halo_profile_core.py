@@ -32,34 +32,62 @@ class HaloProfileCore:
         matter_statistics : MatterStatistics
             An object from the `MatterStatistics` class.
         mean_nz : np.ndarray
-            Mean redshift per tomographic bin, shape (Number of tomographic source redshift bins,).
+            Location parameter of the skew-normal redshift distribution of the
+            sources in the tomographic bins >= t,
+            shape (Number of tomographic source redshift bins,).
         sigma_nz : np.ndarray
-            Redshift scatter per tomographic bin, shape (Number of tomographic source redshift bins,).
+            Scale parameter of the skew-normal redshift distribution of the
+            sources in the tomographic bins >= t,
+            shape (Number of tomographic source redshift bins,).
         alpha_nz : np.ndarray
-            Skewness parameter per tomographic bin, shape (Number of tomographic source redshift bins,).
+            Skewness parameter of the skew-normal redshift distribution of the
+            sources in the tomographic bins >= t,
+            shape (Number of tomographic source redshift bins,).
         z_mean_tomo_bin : np.ndarray
-            Mean z_obs boundary per tomographic bin, shape (Number of tomographic source redshift bins,),
-            used to select which tomo bin a given mean_z_obs_bin falls into.
+            Mean redshift of the sources in each tomographic bin t,
+            shape (Number of tomographic source redshift bins,), used to select
+            the first tomographic bin t of the source sample for a given
+            mean_z_obs_bin (see `_get_tomo_bin_index`).
+
+        Notes
+        -----
+        For the clusters in an observed redshift bin, the source sample consists
+        of the galaxies in the tomographic bins t, t+1, ..., where t is the first
+        tomographic bin with mean redshift larger than the center of the observed
+        redshift bin. Its redshift distribution is modeled with a skew-normal
+        distribution of parameters (alpha_nz[t], mean_nz[t], sigma_nz[t]).
         """
         self.matter_statistics = matter_statistics
         self.overdensity_type = overdensity_type
         self.overdensity = overdensity
         self.zs_max = zs_max
         self.mean_nz = np.atleast_1d(
-            mean_nz if mean_nz is not None else np.array([0.18739829, 0.33775482, 0.50338379, 0.66827123, 0.86322198,
-       1.30780699])
+            mean_nz
+            if mean_nz is not None
+            else np.array(
+                [0.18739829, 0.33775482, 0.50338379, 0.66827123, 0.86322198, 1.30780699]
+            )
         )
         self.sigma_nz = np.atleast_1d(
-            sigma_nz if sigma_nz is not None else np.array([0.85102341, 0.77623404, 0.74479123, 0.79814509, 0.85482975,
-       0.77782535])
+            sigma_nz
+            if sigma_nz is not None
+            else np.array(
+                [0.85102341, 0.77623404, 0.74479123, 0.79814509, 0.85482975, 0.77782535]
+            )
         )
         self.alpha_nz = np.atleast_1d(
-            alpha_nz if alpha_nz is not None else np.array([7.4511585 , 3.12760121, 3.24293517, 6.36498593, 4.32074969,
-       1.50975262])
+            alpha_nz
+            if alpha_nz is not None
+            else np.array(
+                [7.4511585, 3.12760121, 3.24293517, 6.36498593, 4.32074969, 1.50975262]
+            )
         )
         self.z_mean_tomo_bin = np.atleast_1d(
-            z_mean_tomo_bin if z_mean_tomo_bin is not None else np.array([0.52372988, 0.5987506 , 0.7179003 , 0.90270588, 1.19243611,
-       1.71458837])
+            z_mean_tomo_bin
+            if z_mean_tomo_bin is not None
+            else np.array(
+                [0.52372988, 0.5987506, 0.7179003, 0.90270588, 1.19243611, 1.71458837]
+            )
         )
 
     @property
@@ -163,7 +191,7 @@ class HaloProfileCore:
                 self.sigma_nz[idx],
             )
             - skewnorm.cdf(
-                z+ Delta_z,
+                z + Delta_z,
                 self.alpha_nz[idx],
                 self.mean_nz[idx],
                 self.sigma_nz[idx],
@@ -179,7 +207,7 @@ class HaloProfileCore:
         Parameters
         ----------
         z: float or np.ndarray
-            Lens redshift.
+            Source redshift.
         idx: int
             Index into mean_nz/sigma_nz/alpha_nz for the tomographic bin,
             as returned by `_get_tomo_bin_index`.
@@ -187,7 +215,8 @@ class HaloProfileCore:
         Returns
         -------
         n_zs: float or np.ndarray
-            Galaxy number density per source redshift for a given z_obs bin
+            Skew-normal redshift distribution of the sources in the tomographic
+            bins >= idx, at the source redshift z (not normalized)
         """
         return skewnorm.pdf(
             z,
@@ -196,7 +225,7 @@ class HaloProfileCore:
             self.sigma_nz[idx],
         )
 
-    def sigma_crit_inv_eff(self, z, idx, Delta_z = 0.05, z_grid_size=50):
+    def sigma_crit_inv_eff(self, z, idx, Delta_z=0.05, z_grid_size=50):
         r"""
         Effective inverse critical surface mass density.
 
@@ -222,11 +251,16 @@ class HaloProfileCore:
         m_sigma_crit_m1: float
             Effective inverse critical surface mass density (units : pc^2 / Msun / h)
         """
-        z_s = np.linspace(z + Delta_z, self.zs_max, z_grid_size, axis=1) 
-        z_s[z_s>=self.zs_max]=self.zs_max-1.0e-5 # the last term is to avoid problem with the normalization n_zs_norM. It can be removed setting zs_max higer than max z (i.e. z_true)
-        sig_crit_m1 = self.n_zs(z_s,idx) * 1.0 / self.sigma_crit(z, z_s)
-        return self.n_zs_norM(z, idx, Delta_z,) * simpson(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
-
+        z_s = np.linspace(z + Delta_z, self.zs_max, z_grid_size, axis=1)
+        z_s[z_s >= self.zs_max] = (
+            self.zs_max - 1.0e-5
+        )  # the last term is to avoid problem with the normalization n_zs_norM. It can be removed setting zs_max higer than max z (i.e. z_true)
+        sig_crit_m1 = self.n_zs(z_s, idx) * 1.0 / self.sigma_crit(z, z_s)
+        return self.n_zs_norM(
+            z,
+            idx,
+            Delta_z,
+        ) * simpson(sig_crit_m1, x=z_s)  # pc^2 / Msun / h
 
     def surface_mass_density_args(self, R, z, M, radius_units="Mpc/h"):
         r"""
@@ -288,9 +322,9 @@ class HaloProfileCore:
             np.atleast_1d(M).size,
             np.atleast_1d(R).size,
         )
-        assert (
-            profile.shape == expected_shape
-        ), f"Expected shape {expected_shape}, got {profile.shape}"
+        assert profile.shape == expected_shape, (
+            f"Expected shape {expected_shape}, got {profile.shape}"
+        )
 
     def _include_2h_term(
         self, inclusion_type, term_1h, func_2h, R, z, halo_bias, radius_units
